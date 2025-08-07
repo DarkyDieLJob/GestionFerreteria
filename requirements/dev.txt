@@ -1,0 +1,1 @@
+pytest\npytest-django\npytest-cov\nblack\nflake8
