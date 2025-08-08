@@ -5,13 +5,15 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
 - [Requisitos Técnicos](#requisitos-técnicos)
 - [Diseño y Arquitectura](#diseño-y-arquitectura)
 - [Instalación y Configuración](#instalación-y-configuración)
+- [Ejecución](#ejecución)
+- [Pruebas](#pruebas)
 - [Estructura de Directorios](#estructura-de-directorios)
 
 ## Requisitos Técnicos
 
 ### Backend
-- **Python**: 3.8+
-- **Django**: 4.0.6+
+- **Python**: 3.10+
+- **Django**: 5.2+
 - **Bases de datos**:
   - SQLite (por defecto)
   - Posibilidad de múltiples bases de datos por aplicación
@@ -21,18 +23,19 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
   - python-decouple (manejo de variables de entorno)
   - django-rest-framework-authtoken (autenticación por tokens)
 
-### Frontend
+### Frontend (opcional)
 - **Node.js**: 14+
 - **npm** o **yarn** para gestión de dependencias
 - **Tailwind CSS** para estilos
-- **Configuración inicial excluida** del control de versiones
+- La configuración inicial puede mantenerse fuera del control de versiones
 
 ## Diseño y Arquitectura
 
 ### Estructura del Proyecto
-- **Arquitectura limpia** con separación clara de responsabilidades
+- **Arquitectura limpia / hexagonal** con separación clara de responsabilidades
 - **Sistema modular** con aplicaciones independientes
-- **Frontend separado** en directorio `/frontend`
+- **manage.py está dentro del directorio `src/`**
+- (Opcional) Frontend separado en directorio `/frontend`
 
 ### Base de Datos
 - **Router dinámico** en `core_config/database_routers.py`
@@ -50,14 +53,13 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
 
 ### Frontend
 - **Tailwind CSS** para estilos
-- **Configuración inicial** excluida del control de versiones
-- **Estructura típica**:
-  ```
-  frontend/
-  ├── package.json
-  ├── tailwind.config.js
-  └── (otros archivos de configuración)
-  ```
+- **Estructura típica** (opcional):
+```
+frontend/
+├── package.json
+├── tailwind.config.js
+└── (otros archivos de configuración)
+```
 
 ## Instalación y Configuración
 
@@ -81,10 +83,32 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
    GITHUB_CLIENT_ID=tu_client_id
    GITHUB_SECRET=tu_secret
    ```
-5. Migrar las bases de datos:
+5. Migrar las bases de datos (manage.py está en `src/`):
    ```bash
+   cd src
    python manage.py migrate
    ```
+
+## Ejecución
+
+Levantar el servidor de desarrollo (desde `src/`):
+
+```bash
+source ../venv/bin/activate  # si no está activo
+python manage.py runserver
+```
+
+Accede a http://127.0.0.1:8000/
+
+## Pruebas
+
+Ejecutar la suite de tests con pytest (los tests están bajo `src/`):
+
+```bash
+source venv/bin/activate      # desde la raíz del proyecto
+cd src
+python -m pytest -q
+```
 
 ### Frontend
 1. Navegar al directorio del frontend:
@@ -107,22 +131,28 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
 
 ## Estructura de Directorios
 ```
-src/
-├── core_config/           # Configuración principal del proyecto
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   └── database_routers.py
-├── core_auth/             # Aplicación de autenticación
-│   ├── adapters/
-│   ├── domain/
-│   └── tests/
-└── frontend/              # Frontend (ignorado en git)
-    ├── package.json
-    └── tailwind.config.js
+.
+├── README.md
+├── requirements.txt
+├── pytest.ini
+├── venv/                      # entorno virtual (sugerido)
+└── src/
+    ├── manage.py              # archivo de gestión de Django
+    ├── core_config/           # configuración principal del proyecto
+    │   ├── __init__.py
+    │   ├── settings.py
+    │   ├── urls.py
+    │   └── database_routers.py
+    ├── core_auth/             # aplicación de autenticación (arquitectura hexagonal)
+    │   ├── adapters/
+    │   ├── domain/
+    │   └── tests/
+    ├── core_app/              # aplicación base (home, dashboard)
+    ├── templates/
+    └── static/
 ```
 
 ## Consideraciones Importantes
 1. **Variables de entorno**: Todas las configuraciones sensibles deben estar en `.env`
 2. **Migraciones**: Cada aplicación puede tener su propia base de datos
-3. **Frontend**: La configuración inicial debe ser recreada siguiendo las instrucciones
+3. **Frontend (opcional)**: La configuración inicial debe ser recreada siguiendo las instrucciones
