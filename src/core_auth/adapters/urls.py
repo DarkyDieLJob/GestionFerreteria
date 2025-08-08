@@ -4,5 +4,8 @@ from . import views
 app_name = 'core_auth'
 
 urlpatterns = [
-    # path('', views.article_list, name='article_list'),
+    # Autenticación
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('register/', views.RegisterView.as_view(), name='register'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
 ]

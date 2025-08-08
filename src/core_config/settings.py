@@ -104,7 +104,11 @@ ROOT_URLCONF = 'core_config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),  # Project-level templates
+            os.path.join(BASE_DIR, 'core_app', 'templates'),  # Core app templates
+            os.path.join(BASE_DIR, 'core_auth', 'templates'),  # Auth app templates
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -191,5 +195,14 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Se creará en /src/static
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#LOGIN_REDIRECT_URL = 'core_app:dashboard'
-#LOGOUT_REDIRECT_URL = 'core_auth:public'
+# Authentication settings
+LOGIN_REDIRECT_URL = 'home'  # Redirect to home after login
+LOGOUT_REDIRECT_URL = 'home'  # Redirect to home after logout
+LOGIN_URL = 'core_auth:login'  # URL to redirect to for login (using namespaced URL)
+
+# Allauth settings
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Change to 'mandatory' for email verification
+ACCOUNT_LOGOUT_ON_GET = True  # Skip the logout confirmation page
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # Allow login with username or email
+ACCOUNT_EMAIL_REQUIRED = True  # Require email for signup
+ACCOUNT_UNIQUE_EMAIL = True  # Enforce unique email addresses

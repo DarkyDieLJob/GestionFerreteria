@@ -15,12 +15,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.shortcuts import redirect
+from core_app.adapters.views import home
 
 urlpatterns = [
+    path('', home, name='home'),
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
-    path('auth/', include('core_auth.adapters.urls')),
-    path('dashboard/', include('core_app.adapters.urls')),  # Para el dashboard genérico
-
+    path('auth/', include(('core_auth.adapters.urls', 'core_auth'), namespace='core_auth')),
+    path('dashboard/', include('core_app.adapters.urls', namespace='core_app')),  # Para el dashboard genérico
 ]
 

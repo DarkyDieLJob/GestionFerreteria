@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Registro{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">
+                Crear una cuenta
+            </h1>
+            <p class="mt-2 text-sm text-gray-600">
+                Únete a nuestra plataforma y comienza a disfrutar de todos los beneficios
+            </p>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="rounded-md bg-red-50 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle h-5 w-5 text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        {% for error in form.non_field_errors %}
+                            <p class="text-sm font-medium text-red-800">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <form method="POST" action="{% url 'core_auth:register' %}" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="space-y-4">
+                <!-- Username Field -->
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Nombre de usuario
+                    </label>
+                    <div class="mt-1">
+                        <input id="{{ form.username.id_for_label }}" 
+                               name="{{ form.username.name }}" 
+                               type="text" 
+                               required 
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                               value="{{ form.username.value|default:'' }}"
+                               placeholder="usuario">
+                        {% if form.username.errors %}
+                            {% for error in form.username.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Email Field -->
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Correo electrónico
+                    </label>
+                    <div class="mt-1">
+                        <input id="{{ form.email.id_for_label }}" 
+                               name="{{ form.email.name }}" 
+                               type="email" 
+                               required 
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                               value="{{ form.email.value|default:'' }}"
+                               placeholder="usuario@ejemplo.com">
+                        {% if form.email.errors %}
+                            {% for error in form.email.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div>
+                    <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Contraseña
+                    </label>
+                    <div class="mt-1">
+                        <input id="{{ form.password1.id_for_label }}" 
+                               name="{{ form.password1.name }}" 
+                               type="password" 
+                               required 
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                               placeholder="••••••••">
+                        {% if form.password1.errors %}
+                            {% for error in form.password1.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Mínimo 8 caracteres. No uses información personal.
+                    </p>
+                </div>
+
+                <!-- Confirm Password Field -->
+                <div>
+                    <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Confirmar contraseña
+                    </label>
+                    <div class="mt-1">
+                        <input id="{{ form.password2.id_for_label }}" 
+                               name="{{ form.password2.name }}" 
+                               type="password" 
+                               required 
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                               placeholder="••••••••">
+                        {% if form.password2.errors %}
+                            {% for error in form.password2.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="flex items-start">
+                    <div class="flex items-center h-5 mt-1">
+                        <input id="{{ form.terms.id_for_label }}" 
+                               name="{{ form.terms.name }}" 
+                               type="checkbox" 
+                               class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                               required>
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="{{ form.terms.id_for_label }}" class="font-medium text-gray-700">
+                            Acepto los <a href="#" class="text-indigo-600 hover:text-indigo-500">Términos de Servicio</a> y la <a href="#" class="text-indigo-600 hover:text-indigo-500">Política de Privacidad</a>
+                        </label>
+                        {% if form.terms.errors %}
+                            {% for error in form.terms.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Crear cuenta
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-6">
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white text-gray-500">
+                        ¿Ya tienes una cuenta?
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <a href="{% url 'core_auth:login' %}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    Iniciar sesión
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
