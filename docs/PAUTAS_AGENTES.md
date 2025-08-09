@@ -47,6 +47,19 @@ Guía breve y accionable para que un agente trabaje de forma segura y reproducib
 - Si hay fallos, leer los mensajes y corregir antes de continuar
 - Los tests residen bajo `src/` (p. ej. `src/core_auth/tests/`)
 
+### 4.1 Alcance de pruebas y cobertura
+
+- Ámbito principal: solo las apps `core_auth` y `core_app`.
+- Exclusiones permanentes de pruebas y cobertura (NUNCA incluir):
+  - `templates/` y, en particular, `templates/app_templates/` (scaffolding para crear nuevas apps).
+  - Archivos de configuración/arranque del proyecto: `settings.py`, `asgi.py`, `wsgi.py`, `manage.py`.
+  - Migraciones y archivos generados automáticamente.
+- La configuración actual ya lo garantiza:
+  - `pytest.ini` usa `norecursedirs = templates templates/* templates/app_templates venv .venv node_modules` para excluir el scaffolding del descubrimiento de tests.
+  - `pytest.ini` limita la cobertura a `--cov=src/core_auth --cov=src/core_app`.
+  - `.coveragerc` omite plantillas/scaffolding y archivos no testeables.
+- Si se crea una nueva app a partir del template, moverla fuera de `templates/` antes de agregar código y tests.
+
 ## 5) Convenciones de código (resumen)
 
 - Arquitectura hexagonal: preferir lógica en `domain/use_cases.py`, vistas/adaptadores en `adapters/`
@@ -73,6 +86,20 @@ Guía breve y accionable para que un agente trabaje de forma segura y reproducib
 - Validar que `venv` esté activo antes de ejecutar `manage.py`/pytest
 - Evitar modificar múltiples archivos grandes de una sola vez; preferir cambios pequeños con pruebas
 - Documentar cambios relevantes en Markdown (README.md, docs/)
+
+### 7.1 Lineamientos operativos del agente
+
+- Respetar el alcance de pruebas/cobertura: solamente `core_auth` y `core_app`.
+- Nunca añadir, mover ni ejecutar tests dentro de `templates/` ni sobre `templates/app_templates/`.
+- Si se requiere scaffolding para nuevas apps, utilizar `templates/app_templates/` como referencia, pero no integrarlo al árbol de `src/` hasta que sea una app real.
+- Antes de proponer borrados, verificar que se trate de archivos de scaffolding no referenciados; por defecto conservar el scaffolding pero EXCLUIRLO del flujo de CI/tests.
+
+## 11) Notas sobre scaffolding de templates
+
+- `templates/app_templates/` es una plantilla de referencia para crear nuevas apps con la arquitectura esperada (adapters/domain/ports/tests).
+- Este scaffolding es parte de la documentación viva del proyecto y NUNCA debe formar parte de pruebas ni métricas de cobertura.
+- Cualquier error en esos archivos no detendrá CI porque están excluidos. No deben ser corregidos salvo que se actualice el scaffolding como guía.
+- Al crear una nueva app, copiar la estructura desde `templates/app_templates/` a `src/<nueva_app>/` y recién allí implementar código y tests.
 
 ## 8) Atajos útiles
 

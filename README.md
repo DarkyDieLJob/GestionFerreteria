@@ -110,6 +110,13 @@ cd src
 python -m pytest -q
 ```
 
+### Alcance de pruebas y cobertura
+
+- La cobertura y las pruebas están enfocadas únicamente en las apps `core_auth` y `core_app`.
+- `templates/app_templates/` es scaffolding (plantilla para crear nuevas apps) y está EXCLUIDO de descubrimiento de tests y de cobertura de forma permanente.
+- También se excluyen archivos no testeables como `settings.py`, `asgi.py`, `wsgi.py`, `manage.py`, migraciones y artefactos generados.
+- La configuración (`pytest.ini` y `.coveragerc`) ya refleja estas reglas.
+
 ### Frontend
 1. Navegar al directorio del frontend:
    ```bash
@@ -148,11 +155,12 @@ python -m pytest -q
     │   ├── domain/
     │   └── tests/
     ├── core_app/              # aplicación base (home, dashboard)
-    ├── templates/
+    ├── templates/             # incluye `templates/app_templates/` como scaffolding (EXCLUIDO de tests/cobertura)
     └── static/
 ```
 
 ## Consideraciones Importantes
 1. **Variables de entorno**: Todas las configuraciones sensibles deben estar en `.env`
 2. **Migraciones**: Cada aplicación puede tener su propia base de datos
-3. **Frontend (opcional)**: La configuración inicial debe ser recreada siguiendo las instrucciones
+3. **Scaffolding**: `templates/app_templates/` se usa solo como plantilla de referencia. Nunca se ejecutan tests ni se mide cobertura allí. Al crear una nueva app, copiar la estructura a `src/<nueva_app>/` y recién entonces agregar código y tests.
+4. **Frontend (opcional)**: La configuración inicial debe ser recreada siguiendo las instrucciones

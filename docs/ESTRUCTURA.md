@@ -71,4 +71,11 @@ cd src
 python -m pytest -q
 ```
 
-Para ver cobertura, revisa el resumen final que imprime `pytest-cov` (configurado en `pytest.ini`).
+### Alcance y cobertura
+
+- Alcance de pruebas y cobertura: únicamente `core_auth` y `core_app`.
+- `templates/app_templates/` es scaffolding para crear nuevas apps: está EXCLUIDO de descubrimiento de tests y de la medición de cobertura de forma permanente.
+- También se excluyen `settings.py`, `asgi.py`, `wsgi.py`, `manage.py`, migraciones y archivos generados.
+- La configuración (`pytest.ini` y `.coveragerc`) ya refleja estas reglas.
+
+Para ver cobertura, revisa el resumen final que imprime `pytest-cov` (configurado en `pytest.ini`) y el reporte HTML en `htmlcov/`.

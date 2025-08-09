@@ -1,13 +1,20 @@
 [run]
-source = src
-include = */core_auth/*
+source = 
+    src/core_auth
+    src/core_app
+branch = True
 omit = 
     */tests/*
     */migrations/*
     */__pycache__/*
+    */templates/*
     */admin.py
     */apps.py
     */urls.py
+    */settings.py
+    */asgi.py
+    */wsgi.py
+    */manage.py
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -32,3 +39,6 @@ exclude_lines =
     
     # Ignore test files themselves
     def test_
+
+[html]
+directory = htmlcov
