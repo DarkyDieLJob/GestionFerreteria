@@ -117,6 +117,14 @@ python -m pytest -q
 - También se excluyen archivos no testeables como `settings.py`, `asgi.py`, `wsgi.py`, `manage.py`, migraciones y artefactos generados.
 - La configuración (`pytest.ini` y `.coveragerc`) ya refleja estas reglas.
 
+#### Vista de cobertura (solo staff)
+
+- Existe una vista protegida para ver el reporte HTML de cobertura dentro de la app: `/coverage/`.
+- Protección: requiere usuario staff (`@staff_member_required`).
+- Disponibilidad: solo si `DEBUG=True` o si `COVERAGE_VIEW_ENABLED=True` en los settings del entorno.
+- Fuente: sirve el archivo `htmlcov/index.html` generado por `pytest --cov`.
+- En CI (GitHub Actions) el reporte se publica como artifact del job (no en la app). Solo es accesible para usuarios con acceso al repo.
+
 ### Frontend
 1. Navegar al directorio del frontend:
    ```bash

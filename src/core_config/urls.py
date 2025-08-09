@@ -16,10 +16,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
-from core_app.adapters.views import home
+from core_app.adapters.views import home, coverage_report, coverage_asset, coverage_raw
 
 urlpatterns = [
     path('', home, name='home'),
+    path('coverage/', coverage_report, name='coverage'),
+    path('coverage/assets/<path:path>', coverage_asset, name='coverage_asset'),
+    path('coverage/raw/<path:path>', coverage_raw, name='coverage_raw'),
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
     path('auth/', include(('core_auth.adapters.urls', 'core_auth'), namespace='core_auth')),
