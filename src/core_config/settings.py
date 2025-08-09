@@ -117,6 +117,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core_app.context_processors.coverage',
+                'core_auth.context_processors.staff_reset_requests_badge',
             ],
         },
     },

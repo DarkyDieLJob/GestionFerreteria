@@ -149,11 +149,22 @@ class ResetRequestListView(StaffRequiredMixin, View):
     template_name = 'core_auth/staff/reset_requests_list.html'
 
     def get(self, request, *args, **kwargs):
-        qs = PasswordResetRequest.objects.order_by('-created_at')
+        # Permitir alternar entre 'accionables' (por defecto) y 'todas' mediante ?scope=all
+        scope = (request.GET.get('scope') or '').lower()
+        if scope == 'all':
+            qs = PasswordResetRequest.objects.select_related('user__core_profile').order_by('-created_at')
+        else:
+            # Mostrar sólo solicitudes accionables:
+            # - pending
+            # - approved y el usuario aún debe cambiar la contraseña
+            from django.db.models import Q
+            qs = PasswordResetRequest.objects.select_related('user__core_profile').filter(
+                Q(status='pending') | Q(status='approved', user__core_profile__must_change_password=True)
+            ).order_by('-created_at')
         status_filter = request.GET.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
-        return render(request, self.template_name, {'requests': qs})
+        return render(request, self.template_name, {'requests': qs, 'scope': scope})
 
 
 class ResetRequestDetailView(StaffRequiredMixin, View):
