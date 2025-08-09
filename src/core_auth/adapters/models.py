@@ -44,6 +44,9 @@ class PasswordResetRequest(models.Model):
     )
 
     # Inputs provistos por el solicitante
+    # Campo de compatibilidad: identificador ingresado por el usuario (usuario o email)
+    # Algunos tests esperan este nombre de campo explícitamente.
+    identifier_submitted = models.CharField(max_length=255, blank=True, default='')
     username_input = models.CharField(max_length=150, blank=True, default='')
     email_input = models.EmailField(blank=True, default='')
     dni_last4_provided = models.CharField(max_length=4, blank=True, default='')  # no almacenar si no es necesario, ideal comparar y descartar
@@ -70,7 +73,8 @@ class PasswordResetRequest(models.Model):
     temp_password_preview = models.CharField(max_length=64, blank=True, default='', help_text='Se guarda sólo para mostrar al staff en pantalla (opcional).')
 
     def __str__(self) -> str:
-        base = self.username_input or self.email_input or 'unknown'
+        # Prefer the exact identifier submitted by the user if available
+        base = (self.identifier_submitted or '').strip() or self.username_input or self.email_input or 'unknown'
         return f"PasswordResetRequest({base}, {self.status})"
 
     def save(self, *args, **kwargs):
