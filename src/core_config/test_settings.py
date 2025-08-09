@@ -40,3 +40,8 @@ CACHES = {
 
 # Email backend for tests
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+
+# Staff-only coverage view toggle for local/testing environments.
+# La vista /coverage/ sólo se habilita si DEBUG=True o si esta bandera está en True.
+# En tests no es necesario habilitarla.
+COVERAGE_VIEW_ENABLED = False
