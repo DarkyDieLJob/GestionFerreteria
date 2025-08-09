@@ -40,6 +40,28 @@ class LoginForm(AuthenticationForm):
 
 class RegisterForm(UserCreationForm):
     """Formulario de registro de usuario personalizado."""
+    phone_number = forms.CharField(
+        label=_("Teléfono (opcional)"),
+        required=False,
+        max_length=32,
+        widget=forms.TextInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Teléfono (opcional)'
+        })
+    )
+    dni_last4 = forms.CharField(
+        label=_("Últimos 4 del DNI"),
+        required=False,
+        max_length=4,
+        min_length=4,
+        widget=forms.TextInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Ej: 1234',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'autocomplete': 'off',
+        })
+    )
     email = forms.EmailField(
         label=_("Correo electrónico"),
         max_length=254,
@@ -104,3 +126,24 @@ class RegisterForm(UserCreationForm):
         if User.objects.filter(username=username).exists():
             raise ValidationError(_("Este nombre de usuario ya está en uso."))
         return username
+
+    def clean_dni_last4(self):
+        value = (self.cleaned_data.get('dni_last4') or '').strip()
+        # Permitir vacío (el campo es opcional). Si se proporciona, validar 4 dígitos.
+        if not value:
+            return ''
+        if not (len(value) == 4 and value.isdigit()):
+            raise ValidationError(_("Debes ingresar exactamente 4 dígitos."))
+        return value
+
+
+class ResetRequestForm(forms.Form):
+    """Formulario público simplificado: acepta un único identificador (usuario o email)."""
+    identifier = forms.CharField(
+        label=_('Usuario o Email'), required=True, max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Tu usuario o email',
+            'autocomplete': 'username',
+        })
+    )

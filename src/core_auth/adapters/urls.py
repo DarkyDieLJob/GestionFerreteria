@@ -15,4 +15,5 @@ urlpatterns = [
     path('staff/reset-requests/', views.ResetRequestListView.as_view(), name='staff_reset_requests'),
     path('staff/reset-requests/<int:pk>/', views.ResetRequestDetailView.as_view(), name='staff_reset_request_detail'),
     path('staff/reset-requests/<int:pk>/approve/', views.approve_reset_request, name='staff_reset_request_approve'),
+    path('staff/reset-requests/<int:pk>/deliver/', views.deliver_reset_request, name='staff_reset_request_deliver'),
 ]

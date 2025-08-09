@@ -4,16 +4,17 @@ from .adapters.models import PasswordResetRequest
 
 def staff_reset_requests_badge(request):
     """Adds pending_reset_requests_count for staff users.
-    Counts requests that still require action:
-      - status pending, or
-      - status approved and the associated user still must change password.
+    Counts requests that still require action under the new flow:
+      - status pending
+      - status under_review
+      - status ready_to_deliver
     """
     count = 0
     try:
         if request.user.is_authenticated and request.user.is_staff:
-            qs = PasswordResetRequest.objects.select_related("user__core_profile").filter(
-                Q(status="pending") | Q(status="approved", user__core_profile__must_change_password=True)
-            )
+            qs = PasswordResetRequest.objects.filter(status__in=[
+                'pending', 'under_review', 'ready_to_deliver'
+            ])
             count = qs.count()
     except Exception:
         count = 0
