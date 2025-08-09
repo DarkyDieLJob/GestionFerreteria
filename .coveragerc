@@ -1,7 +1,7 @@
 [run]
 source = 
-    src/core_auth
-    src/core_app
+    core_auth
+    core_app
 branch = True
 omit = 
     */tests/*

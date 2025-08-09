@@ -7,5 +7,7 @@ urlpatterns = [
     #la ruta raiz se llama home
     path('', views.home, name='home'),
     path('coverage/', views.coverage_report, name='coverage'),
+    path('coverage/assets/<path:path>', views.coverage_asset, name='coverage_asset'),
+    path('coverage/raw/<path:path>', views.coverage_raw, name='coverage_raw'),
     # path('', views.article_list, name='article_list'),
 ]
