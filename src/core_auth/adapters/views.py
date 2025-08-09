@@ -1,16 +1,22 @@
 import logging
-from django.shortcuts import render, redirect
+import secrets
+import string
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, update_session_auth_hash
 from django.core.exceptions import ValidationError
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.utils import timezone
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 from .forms import RegisterForm, LoginForm
+from .models import CoreAuthProfile, PasswordResetRequest
+from django.contrib.auth.forms import PasswordChangeForm
 from .repository import DjangoAuthRepository
 from ..domain.use_cases import RegisterUserUseCase, LoginUserUseCase, LogoutUserUseCase
 
@@ -64,13 +70,138 @@ class RegisterView(View):
                     _('¡Registro exitoso! Por favor, inicia sesión.')
                 )
                 return redirect(self.success_url)
-                
+
             except Exception as e:
                 logger.error(f"Error durante el registro: {str(e)}", exc_info=True)
                 messages.error(request, 'No se pudo completar el registro')
-        
+
         # Si hay errores, volver a mostrar el formulario con los errores
         return render(request, self.template_name, {'form': form}, status=200)
+
+
+class ForgotPasswordInfoView(View):
+    template_name = 'core_auth/forgot_password_info.html'
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name)
+
+    def post(self, request, *args, **kwargs):
+        identifier = (request.POST.get('identifier') or '').strip()
+        if not identifier:
+            messages.error(request, _('Por favor, ingresa tu usuario o email'))
+            return render(request, self.template_name, status=200)
+
+        # Intentar asociar a un usuario (opcional)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = None
+        try:
+            user = User.objects.filter(username__iexact=identifier).first()
+            if not user:
+                user = User.objects.filter(email__iexact=identifier).first()
+        except Exception:
+            user = None
+
+        # Registrar solicitud
+        prr = PasswordResetRequest.objects.create(
+            user=user,
+            identifier_submitted=identifier,
+            status='pending',
+            created_ip=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:512]
+        )
+        messages.success(request, _('Tu solicitud fue registrada. El equipo de soporte se comunicará contigo.'))
+        return redirect(reverse('core_auth:forgot_password_info'))
+
+
+class PasswordChangeEnforcedView(LoginRequiredMixin, View):
+    template_name = 'core_auth/password_change_enforced.html'
+
+    def get(self, request, *args, **kwargs):
+        form = PasswordChangeForm(user=request.user)
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request, *args, **kwargs):
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Desactivar el flag de forzar cambio
+            profile = getattr(user, 'core_profile', None)
+            if profile:
+                profile.must_change_password = False
+                profile.save(update_fields=['must_change_password', 'updated_at'])
+            update_session_auth_hash(request, user)
+            messages.success(request, _('Tu contraseña fue actualizada correctamente.'))
+            return redirect(reverse('core_app:home'))
+        return render(request, self.template_name, {'form': form}, status=200)
+
+
+class StaffRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        messages.error(self.request, _('No tienes permisos para acceder a esta sección.'))
+        return redirect('core_auth:login')
+
+
+class ResetRequestListView(StaffRequiredMixin, View):
+    template_name = 'core_auth/staff/reset_requests_list.html'
+
+    def get(self, request, *args, **kwargs):
+        qs = PasswordResetRequest.objects.order_by('-created_at')
+        status_filter = request.GET.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return render(request, self.template_name, {'requests': qs})
+
+
+class ResetRequestDetailView(StaffRequiredMixin, View):
+    template_name = 'core_auth/staff/reset_request_detail.html'
+
+    def get(self, request, pk, *args, **kwargs):
+        prr = get_object_or_404(PasswordResetRequest, pk=pk)
+        return render(request, self.template_name, {'req': prr})
+
+
+def _generate_temp_password(length: int = 6) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+
+def approve_reset_request(request, pk):
+    from django.contrib.admin.views.decorators import staff_member_required
+
+    @staff_member_required
+    def _inner(req, pk):
+        prr = get_object_or_404(PasswordResetRequest, pk=pk)
+        if prr.status not in ('pending', 'approved'):
+            messages.error(req, _('La solicitud ya fue procesada.'))
+            return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+        if not prr.user:
+            messages.error(req, _('No se pudo asociar un usuario a esta solicitud.'))
+            return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+        temp_password = _generate_temp_password(6)
+        prr.user.set_password(temp_password)
+        prr.user.save()
+
+        # Activar flag de cambio obligatorio
+        profile, created = CoreAuthProfile.objects.get_or_create(user=prr.user)
+        profile.must_change_password = True
+        profile.save(update_fields=['must_change_password', 'updated_at'])
+
+        prr.status = 'processed'
+        prr.processed_by = req.user
+        prr.processed_at = timezone.now()
+        prr.temp_password_preview = temp_password
+        prr.save()
+
+        messages.success(req, _('Solicitud procesada. Se generó una contraseña temporal.'))
+        return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+    return _inner(request, pk)
 
 
 class LoginView(View):
