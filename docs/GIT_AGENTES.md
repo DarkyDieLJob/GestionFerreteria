@@ -8,6 +8,7 @@ Guía de flujo de trabajo Git para agentes y colaboradores.
   - Ejemplos:
     - `feature/core_auth/reset-requests-badge`
     - `feature/doc/git-workflow`
+    - `feature/core_auth/reset-flow-dni-wsp`
 
 ## Crear una rama feature
 1) Asegúrate de estar en `develop` actualizado con `pre-release` (ver Sync):
@@ -28,6 +29,14 @@ Guía de flujo de trabajo Git para agentes y colaboradores.
   - Trae esos cambios (merge `origin/pre-release` -> `develop`).
 - Si un PR fue mergeado a `pre-release` y se requiere desplegar/release:
   - Ver sección Releases.
+
+### Checklist mínimo para PRs
+- [ ] Ejecuté tests localmente (`python -m pytest -q`) y están verdes.
+- [ ] Incluí migraciones de Django si cambié modelos (`src/core_auth/migrations/*`).
+- [ ] Verifiqué que `settings.py` y variables `.env` nuevas están documentadas (ej.: `WHATSAPP_CONTACT`, `PASSWORD_RESET_TICKET_TTL_HOURS`, `TEMP_PASSWORD_LENGTH`).
+- [ ] Actualicé templates y admin si cambié campos visibles.
+- [ ] Describí el flujo de verificación manual y consideraciones de seguridad si aplica.
+- [ ] No hay cambios fuera del alcance (solo `core_auth`/`core_app` salvo documentación).
 
 Pseudocódigo del flujo de PRs
 ```
