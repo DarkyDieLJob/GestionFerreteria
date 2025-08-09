@@ -10,11 +10,13 @@ from django.contrib.auth import login, logout, update_session_auth_hash
 from django.core.exceptions import ValidationError
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
+from django.conf import settings
+from django.contrib.auth.hashers import make_password, check_password
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-from .forms import RegisterForm, LoginForm
+from .forms import RegisterForm, LoginForm, ResetRequestForm
 from .models import CoreAuthProfile, PasswordResetRequest
 from django.contrib.auth.forms import PasswordChangeForm
 from .repository import DjangoAuthRepository
@@ -64,6 +66,14 @@ class RegisterView(View):
                     email=form.cleaned_data['email'],
                     password=form.cleaned_data['password1']
                 )
+                # Crear/actualizar perfil extendido con teléfono y hash de DNI
+                profile, _ = CoreAuthProfile.objects.get_or_create(user=user)
+                profile.phone_number = form.cleaned_data.get('phone_number', '')
+                dni_last4 = form.cleaned_data.get('dni_last4')
+                if dni_last4:
+                    profile.dni_last4_hash = make_password(dni_last4)
+                profile.recovery_hint = 'Últimos 4 del DNI'
+                profile.save()
                 
                 messages.success(
                     request,
@@ -83,34 +93,63 @@ class ForgotPasswordInfoView(View):
     template_name = 'core_auth/forgot_password_info.html'
 
     def get(self, request, *args, **kwargs):
-        return render(request, self.template_name)
+        form = ResetRequestForm()
+        ctx = {
+            'form': form,
+            'whatsapp_contact': getattr(settings, 'WHATSAPP_CONTACT', ''),
+            'app_name': getattr(settings, 'NOMBRE_APLICACION', 'Mi Aplicacion'),
+        }
+        return render(request, self.template_name, ctx)
 
     def post(self, request, *args, **kwargs):
-        identifier = (request.POST.get('identifier') or '').strip()
-        if not identifier:
-            messages.error(request, _('Por favor, ingresa tu usuario o email'))
-            return render(request, self.template_name, status=200)
+        form = ResetRequestForm(request.POST)
+        if not form.is_valid():
+            ctx = {
+                'form': form,
+                'whatsapp_contact': getattr(settings, 'WHATSAPP_CONTACT', ''),
+                'app_name': getattr(settings, 'NOMBRE_APLICACION', 'Mi Aplicacion'),
+            }
+            return render(request, self.template_name, ctx, status=200)
 
-        # Intentar asociar a un usuario (opcional)
+        username = form.cleaned_data['username'].strip()
+        email = form.cleaned_data['email'].strip()
+        dni_last4 = form.cleaned_data['dni_last4'].strip()
+        phone = (form.cleaned_data.get('phone') or '').strip()
+
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        user = None
-        try:
-            user = User.objects.filter(username__iexact=identifier).first()
-            if not user:
-                user = User.objects.filter(email__iexact=identifier).first()
-        except Exception:
-            user = None
+        user = User.objects.filter(username__iexact=username, email__iexact=email).first()
 
-        # Registrar solicitud
+        # Comparar DNI (si hay perfil)
+        dni_match = False
+        if user:
+            profile = getattr(user, 'core_profile', None)
+            if profile and profile.dni_last4_hash:
+                dni_match = check_password(dni_last4, profile.dni_last4_hash)
+
+        # Generar short_code
+        alphabet = string.ascii_uppercase + string.digits
+        short_code = ''.join(secrets.choice(alphabet) for _ in range(8))
+
+        # Calcular expiración
+        ttl_hours = getattr(settings, 'PASSWORD_RESET_TICKET_TTL_HOURS', 48)
+        expires_at = timezone.now() + timezone.timedelta(hours=ttl_hours)
+
+        # Crear ticket
         prr = PasswordResetRequest.objects.create(
-            user=user,
-            identifier_submitted=identifier,
+            user=user if dni_match else None,
+            username_input=username,
+            email_input=email,
+            dni_last4_provided='****',  # no persistimos el valor real
+            provided_phone=phone,
             status='pending',
+            short_code=short_code,
             created_ip=request.META.get('REMOTE_ADDR'),
-            user_agent=request.META.get('HTTP_USER_AGENT', '')[:512]
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:512],
+            expires_at=expires_at,
         )
-        messages.success(request, _('Tu solicitud fue registrada. El equipo de soporte se comunicará contigo.'))
+
+        messages.success(request, _(f'Tu solicitud fue registrada. Tu código es {short_code}. Escribe a nuestro WhatsApp oficial y compártelo para continuar.'))
         return redirect(reverse('core_auth:forgot_password_info'))
 
 
@@ -186,30 +225,56 @@ def approve_reset_request(request, pk):
     @staff_member_required
     def _inner(req, pk):
         prr = get_object_or_404(PasswordResetRequest, pk=pk)
-        if prr.status not in ('pending', 'approved'):
+        if prr.status not in ('pending', 'under_review', 'ready_to_deliver'):
             messages.error(req, _('La solicitud ya fue procesada.'))
+            return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+        # Generar contraseña temporal pero NO aplicarla aún
+        temp_password = _generate_temp_password(getattr(settings, 'TEMP_PASSWORD_LENGTH', 16))
+        prr.temp_password_preview = temp_password
+        prr.status = 'ready_to_deliver'
+        prr.processed_by = req.user
+        prr.processed_at = timezone.now()
+        prr.save(update_fields=['temp_password_preview', 'status', 'processed_by', 'processed_at'])
+
+        messages.success(req, _('Temporal generada. Lista para entregar cuando el usuario comparta el código de solicitud.'))
+        return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+    return _inner(request, pk)
+
+
+def deliver_reset_request(request, pk):
+    from django.contrib.admin.views.decorators import staff_member_required
+
+    @staff_member_required
+    def _inner(req, pk):
+        prr = get_object_or_404(PasswordResetRequest, pk=pk)
+        if prr.status != 'ready_to_deliver':
+            messages.error(req, _('La solicitud no está lista para entregar.'))
             return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
 
         if not prr.user:
             messages.error(req, _('No se pudo asociar un usuario a esta solicitud.'))
             return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
 
-        temp_password = _generate_temp_password(6)
-        prr.user.set_password(temp_password)
+        if not prr.temp_password_preview:
+            messages.error(req, _('No hay contraseña temporal generada.'))
+            return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+        # Aplicar la contraseña temporal en el momento de la entrega
+        prr.user.set_password(prr.temp_password_preview)
         prr.user.save()
 
-        # Activar flag de cambio obligatorio
-        profile, created = CoreAuthProfile.objects.get_or_create(user=prr.user)
+        # Forzar cambio de contraseña al primer login
+        profile, _ = CoreAuthProfile.objects.get_or_create(user=prr.user)
         profile.must_change_password = True
         profile.save(update_fields=['must_change_password', 'updated_at'])
 
-        prr.status = 'processed'
-        prr.processed_by = req.user
-        prr.processed_at = timezone.now()
-        prr.temp_password_preview = temp_password
-        prr.save()
+        prr.status = 'resolved'
+        prr.delivered_at = timezone.now()
+        prr.save(update_fields=['status', 'delivered_at'])
 
-        messages.success(req, _('Solicitud procesada. Se generó una contraseña temporal.'))
+        messages.success(req, _('Contraseña temporal activada y lista para ser comunicada al usuario.'))
         return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
 
     return _inner(request, pk)

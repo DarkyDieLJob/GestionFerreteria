@@ -40,6 +40,28 @@ class LoginForm(AuthenticationForm):
 
 class RegisterForm(UserCreationForm):
     """Formulario de registro de usuario personalizado."""
+    phone_number = forms.CharField(
+        label=_("Teléfono (opcional)"),
+        required=False,
+        max_length=32,
+        widget=forms.TextInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Teléfono (opcional)'
+        })
+    )
+    dni_last4 = forms.CharField(
+        label=_("Últimos 4 del DNI"),
+        required=True,
+        max_length=4,
+        min_length=4,
+        widget=forms.TextInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Ej: 1234',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'autocomplete': 'off',
+        })
+    )
     email = forms.EmailField(
         label=_("Correo electrónico"),
         max_length=254,
@@ -104,3 +126,50 @@ class RegisterForm(UserCreationForm):
         if User.objects.filter(username=username).exists():
             raise ValidationError(_("Este nombre de usuario ya está en uso."))
         return username
+
+    def clean_dni_last4(self):
+        value = (self.cleaned_data.get('dni_last4') or '').strip()
+        if not (len(value) == 4 and value.isdigit()):
+            raise ValidationError(_("Debes ingresar exactamente 4 dígitos."))
+        return value
+
+
+class ResetRequestForm(forms.Form):
+    """Formulario público para solicitar reseteo sin email."""
+    username = forms.CharField(
+        label=_('Usuario'), required=True, max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Tu usuario',
+            'autocomplete': 'username',
+        })
+    )
+    email = forms.EmailField(
+        label=_('Correo registrado'), required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Tu correo registrado',
+            'autocomplete': 'email',
+        })
+    )
+    dni_last4 = forms.CharField(
+        label=_('Últimos 4 del DNI'), required=True, max_length=4, min_length=4,
+        widget=forms.TextInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': '1234', 'inputmode': 'numeric', 'pattern': '[0-9]*',
+            'autocomplete': 'off',
+        })
+    )
+    phone = forms.CharField(
+        label=_('Teléfono de contacto (opcional)'), required=False, max_length=32,
+        widget=forms.TextInput(attrs={
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Teléfono de contacto (opcional)'
+        })
+    )
+
+    def clean_dni_last4(self):
+        value = (self.cleaned_data.get('dni_last4') or '').strip()
+        if not (len(value) == 4 and value.isdigit()):
+            raise ValidationError(_("Debes ingresar exactamente 4 dígitos."))
+        return value
