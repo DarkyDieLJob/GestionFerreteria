@@ -7,6 +7,7 @@ omit =
     */tests/*
     */migrations/*
     */__pycache__/*
+    */__init__.py
     */templates/*
     */admin.py
     */apps.py
