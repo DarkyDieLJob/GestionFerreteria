@@ -6,16 +6,22 @@ Guía breve y accionable para que un agente trabaje de forma segura y reproducib
 
 ## 1) Preparación y entorno
 
-- Verificar versión de Python: `python3 --version` (>= 3.10)
+- Verificar versión de Python: `python3 --version` (>= 3.9)
 - Crear y activar entorno virtual si no existe:
   ```bash
   python3 -m venv venv
   source venv/bin/activate
   ```
-- Instalar dependencias:
+- Instalar dependencias (recomendado):
   ```bash
-  pip install -r requirements.txt
+  # Nota: `lista_v3.txt` es un ejemplo heredado de otro proyecto.
+  # En este repositorio, el archivo efectivo por defecto es `notebook.txt`.
+  pip install -r requirements/notebook.txt
+  # opcional según caso
+  # pip install -r requirements/dev.txt
+  # pip install -r requirements/lista_v3.txt
   ```
+  Nota: alternativamente, usar los scripts de setup en `scripts/` para automatizar instalación y pruebas.
 - Confirmar que el archivo de entorno existe en `src/.env`. Si no, crearlo (ver docs/INSTALACION.md).
 
 ## 2) Ubicación de comandos
@@ -94,12 +100,67 @@ Guía breve y accionable para que un agente trabaje de forma segura y reproducib
 - Si se requiere scaffolding para nuevas apps, utilizar `templates/app_templates/` como referencia, pero no integrarlo al árbol de `src/` hasta que sea una app real.
 - Antes de proponer borrados, verificar que se trate de archivos de scaffolding no referenciados; por defecto conservar el scaffolding pero EXCLUIRLO del flujo de CI/tests.
 
+### 7.2 Flujo de registro y recuperación (CoreAuth)
+
+Resumen operativo del nuevo flujo seguro sin correo electrónico, con verificación por últimos 4 del DNI y entrega por WhatsApp.
+
+- Registro de usuario (público):
+  - Campos principales: usuario, email, contraseña; además:
+    - Teléfono (opcional, recomendado para contacto por WhatsApp)
+    - Últimos 4 del DNI (obligatorio, dato de recuperación). Se almacena hasheado.
+  - Efecto: el perfil (`CoreAuthProfile`) guarda `phone_number` y `dni_last4_hash`.
+
+- Solicitud de reseteo (pública):
+  - Formulario requiere: `username`, `email`, `dni_last4` (últimos 4), `phone` (opcional).
+  - No se informa si el usuario existe (mensaje neutro).
+  - Se crea `PasswordResetRequest` con:
+    - `short_code` único (seguimiento interno)
+    - `status` inicial `pending`
+    - `expires_at` según TTL de settings
+  - No se envía email. El canal oficial de entrega es WhatsApp (ver `WHATSAPP_CONTACT`).
+
+- Flujo staff (panel de staff):
+  - Lista de solicitudes con estados: `pending`, `under_review`, `ready_to_deliver`, `resolved`, `expired`, `rejected`.
+  - Acción "Generar temporal" (en `pending`):
+    - Genera contraseña temporal (no aplicada todavía) y pasa a `ready_to_deliver`.
+  - Acción "Entregar y activar" (en `ready_to_deliver`):
+    - Tras verificar manualmente identidad y entregar la clave por WhatsApp, aplica la contraseña al usuario, marca `delivered_at` y `resolved`, forzando cambio al siguiente login.
+  - Las expiradas (`expired`) no deben entregarse; generar una nueva si corresponde.
+
+- Seguridad y configuración:
+  - El DNI se guarda hasheado con los hashers de Django.
+  - Claves temporales tienen longitud configurable y caducan por TTL.
+  - Variables en `settings.py` (o `.env` según el proyecto):
+    - `NOMBRE_APLICACION` (display)
+    - `WHATSAPP_CONTACT` (número oficial para entrega)
+    - `PASSWORD_RESET_TICKET_TTL_HOURS` (TTL por defecto: 48h)
+    - `TEMP_PASSWORD_LENGTH` (por defecto: 16)
+  - Hay un context processor que muestra a staff un badge con solicitudes accionables.
+
+- Notas operativas:
+  - Verificar que las plantillas públicas y de staff se correspondan con los campos/estados vigentes.
+  - Registrar auditoría via campos del modelo (timestamps, `processed_by`, `delivered_at`).
+  - Futuras mejoras sugeridas: rate limiting y CAPTCHA en el formulario público.
+
 ## 11) Notas sobre scaffolding de templates
 
 - `templates/app_templates/` es una plantilla de referencia para crear nuevas apps con la arquitectura esperada (adapters/domain/ports/tests).
 - Este scaffolding es parte de la documentación viva del proyecto y NUNCA debe formar parte de pruebas ni métricas de cobertura.
 - Cualquier error en esos archivos no detendrá CI porque están excluidos. No deben ser corregidos salvo que se actualice el scaffolding como guía.
 - Al crear una nueva app, copiar la estructura desde `templates/app_templates/` a `src/<nueva_app>/` y recién allí implementar código y tests.
+
+## 12) Flujo Git (resumen para agentes)
+
+- Ramas largas vivas:
+  - `develop`: base para ramas `feature/*` y `fix/*` (trabajo diario).
+  - `pre-release`: integración y estabilización (staging) antes de producción.
+  - `main`: producción (solo versiones liberadas).
+- Ramas de trabajo: `feature/{app_o_seccion}/{descripcion}` o `fix/{area}/{descripcion}` creadas desde `develop`.
+- Sincronización: mantener `develop` sincronizado periódicamente con `pre-release`.
+- Releases (resumen):
+  - Preferido: PR de `pre-release` -> `main`, tag `vX.Y.Z`, deploy.
+  - Solo-dev (sin PR): merge `pre-release` -> `main`, tag y push del tag; luego sincronizar `develop`.
+- Referencia detallada: ver `docs/GIT_AGENTES.md`.
 
 ## 8) Atajos útiles
 

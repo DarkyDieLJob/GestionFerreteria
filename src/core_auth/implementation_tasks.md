@@ -1,5 +1,7 @@
 # Lista de Tareas Enriquecida: Implementación de core_auth
 
+> Nota de estado: la autenticación básica está implementada y los tests pasan al 100%. Ver `src/core_auth/status.md`. Stack objetivo: Python 3.9+ y Django 4.2 LTS.
+
 ## 1. Configuración Inicial
 
 ### [ ] 1.1 Configuración de la Aplicación

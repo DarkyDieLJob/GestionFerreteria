@@ -12,8 +12,8 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
 ## Requisitos Técnicos
 
 ### Backend
-- **Python**: 3.10+
-- **Django**: 5.2+
+- **Python**: 3.9+
+- **Django**: 4.2.x (LTS)
 - **Bases de datos**:
   - SQLite (por defecto)
   - Posibilidad de múltiples bases de datos por aplicación
@@ -21,7 +21,7 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
   - django-allauth (autenticación social)
   - djangorestframework (APIs REST)
   - python-decouple (manejo de variables de entorno)
-  - django-rest-framework-authtoken (autenticación por tokens)
+  - (Opcional) django-rest-framework-authtoken (autenticación por tokens)
 
 ### Frontend (opcional)
 - **Node.js**: 14+
@@ -63,19 +63,25 @@ frontend/
 
 ## Instalación y Configuración
 
-### Backend
+### Backend (Setup rápido recomendado)
 1. Clonar el repositorio
-2. Crear un entorno virtual:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/macOS
-   # o
-   .\venv\Scripts\activate  # Windows
-   ```
-3. Instalar dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. Ejecutar el script de setup (crea venv, instala dependencias, prepara .env, configura Tailwind y migra DB):
+   - Windows (PowerShell):
+     ```powershell
+     powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Dev
+     ```
+   - Linux/macOS (bash):
+     ```bash
+     chmod +x ./scripts/setup.sh
+     ./scripts/setup.sh --requirements notebook --dev
+     ```
+   Notas:
+   - Usa `-Requirements`/`--requirements` para elegir archivo: `dev`, `notebook`, `lista_v3` o una ruta personalizada (por defecto: `notebook`).
+   - Agrega `-NoFrontend`/`--no-frontend` si quieres omitir el scaffolding de Tailwind.
+   - Los scripts aseguran `djangorestframework` y `python-decouple` si faltan en el requirements elegido.
+
+   Para más atajos, revisa la sección "Comandos rápidos" en `docs/INSTALACION.md`:
+   `docs/INSTALACION.md#comandos-rápidos`.
 4. Configurar variables de entorno en `.env`:
    ```
    SECRET_KEY=tu_clave_secreta
@@ -83,7 +89,7 @@ frontend/
    GITHUB_CLIENT_ID=tu_client_id
    GITHUB_SECRET=tu_secret
    ```
-5. Migrar las bases de datos (manage.py está en `src/`):
+5. Migrar las bases de datos (si no corriste los scripts de setup; `manage.py` está en `src/`):
    ```bash
    cd src
    python manage.py migrate
@@ -91,14 +97,64 @@ frontend/
 
 ## Ejecución
 
-Levantar el servidor de desarrollo (desde `src/`):
+Levantar el servidor de desarrollo (desde la raíz):
 
 ```bash
-source ../venv/bin/activate  # si no está activo
-python manage.py runserver
+# Linux/macOS
+./venv/bin/python ./src/manage.py runserver
+
+# Windows (PowerShell)
+./venv/Scripts/python.exe ./src/manage.py runserver
 ```
 
 Accede a http://127.0.0.1:8000/
+
+### Comandos rápidos (Windows PowerShell)
+
+- __Setup + activar shell + correr pruebas__
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Dev -ActivateShell -Test
+  ```
+
+- __Setup + pruebas y lanzar server si todo pasa__
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Dev -ActivateShell -Test -RunServer
+  ```
+
+- __Activar entorno y correr pruebas manualmente__
+
+  ```powershell
+  .\venv\Scripts\Activate
+  python -m pytest -q .\src
+  ```
+
+- __Lanzar servidor manualmente__
+
+  ```powershell
+  .\venv\Scripts\python .\src\manage.py runserver 0.0.0.0:8000
+  ```
+
+### Crear superusuario (admin)
+
+Desde la raíz del proyecto, con el entorno activado:
+
+- Windows (PowerShell):
+
+  ```powershell
+  .\venv\Scripts\Activate
+  python .\src\manage.py createsuperuser
+  ```
+
+- Linux/macOS (bash):
+
+  ```bash
+  source ./venv/bin/activate
+  python ./src/manage.py createsuperuser
+  ```
+
+Sigue las indicaciones (usuario, email opcional y contraseña). Luego inicia sesión en `/admin/`.
 
 ## Pruebas
 
@@ -116,6 +172,14 @@ python -m pytest -q
 - `templates/app_templates/` es scaffolding (plantilla para crear nuevas apps) y está EXCLUIDO de descubrimiento de tests y de cobertura de forma permanente.
 - También se excluyen archivos no testeables como `settings.py`, `asgi.py`, `wsgi.py`, `manage.py`, migraciones y artefactos generados.
 - La configuración (`pytest.ini` y `.coveragerc`) ya refleja estas reglas.
+
+#### Vista de cobertura (solo staff)
+
+- Existe una vista protegida para ver el reporte HTML de cobertura dentro de la app: `/coverage/`.
+- Protección: requiere usuario staff (`@staff_member_required`).
+- Disponibilidad: solo si `DEBUG=True` o si `COVERAGE_VIEW_ENABLED=True` en los settings del entorno.
+- Fuente: sirve el archivo `htmlcov/index.html` generado por `pytest --cov`.
+- En CI (GitHub Actions) el reporte se publica como artifact del job (no en la app). Solo es accesible para usuarios con acceso al repo.
 
 ### Frontend
 1. Navegar al directorio del frontend:
@@ -140,7 +204,20 @@ python -m pytest -q
 ```
 .
 ├── README.md
-├── requirements.txt
+├── requirements/              # archivos de dependencias
+│   ├── dev.txt
+│   ├── notebook.txt
+│   └── lista_v3.txt
+├── scripts/                   # scripts de automatización
+│   ├── setup.ps1              # Windows (PowerShell)
+│   └── setup.sh               # Linux/macOS (bash)
+├── frontend/                  # Tailwind (generado por scripts)
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   └── src/input.css
+├── static/
+│   └── css/tailwind.css       # salida compilada de Tailwind
 ├── pytest.ini
 ├── venv/                      # entorno virtual (sugerido)
 └── src/
@@ -160,7 +237,7 @@ python -m pytest -q
 ```
 
 ## Consideraciones Importantes
-1. **Variables de entorno**: Todas las configuraciones sensibles deben estar en `.env`
+1. **Variables de entorno**: Todas las configuraciones sensibles deben estar en `src/.env` (usa `src/.env.example` como plantilla)
 2. **Migraciones**: Cada aplicación puede tener su propia base de datos
 3. **Scaffolding**: `templates/app_templates/` se usa solo como plantilla de referencia. Nunca se ejecutan tests ni se mide cobertura allí. Al crear una nueva app, copiar la estructura a `src/<nueva_app>/` y recién entonces agregar código y tests.
-4. **Frontend (opcional)**: La configuración inicial debe ser recreada siguiendo las instrucciones
+4. **Frontend**: Los scripts generan `frontend/` y compilan Tailwind a `static/css/tailwind.css`. Incluye el CSS en tus plantillas con `{% static 'css/tailwind.css' %}`.

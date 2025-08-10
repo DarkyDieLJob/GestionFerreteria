@@ -23,30 +23,30 @@
 
 ### Estado Actual
 
-#### Autenticación Vanilla de Django
-- ✅ **Configuración Básica**: Correctamente configurada
+#### Autenticación Básica de Django
+- ✅ **Configuración Básica**: Implementada y operativa
 - 🔄 **Modelo de Usuario**: Usando el modelo por defecto de Django
-- 🔍 **URLs de Autenticación**: No definidas aún
+- 🔍 **URLs de Autenticación**: Definidas en `core_config/urls.py` o incluidas desde `core_auth`
+- 🧩 **Cambio de contraseña forzado**: Vista usa `EnforcedPasswordChangeForm` con mensaje de error en español para contraseña actual incorrecta (incluye "incorrecta")
 
 #### Autenticación Social (allauth)
-- ⚠️ **Configuración Inicial**: Básica configurada, faltan URLs
-- 🔑 **Credenciales**: Cargadas desde variables de entorno
-- 🌐 **Sitio Configurado**: `SITE_ID = 2`
+- 🔄 **Estado**: Opcional; disponible y documentada, puede activarse por entorno
+- 🔑 **Credenciales**: Desde variables de entorno
+- 🌐 **Sitio Configurado**: `SITE_ID` configurable
 
 ## Próximos Pasos
 
-1. **Autenticación Vanilla**:
-   - Implementar vistas y URLs básicas
-   - Crear plantillas para login/registro
+1. **Autenticación Básica**:
+   - Afinar templates y UX donde sea necesario
+   - Revisar mensajes e i18n
 
 2. **Autenticación Social**:
-   - Configurar URLs de allauth
-   - Verificar credenciales de proveedores
-   - Configurar redirecciones
+   - Habilitar proveedores requeridos según despliegue
+   - Verificar redirecciones y permisos
 
 3. **Seguridad**:
    - Mover `SECRET_KEY` a variables de entorno
    - Ajustar `DEBUG` y `ALLOWED_HOSTS` para producción
 
 4. **Pruebas**:
-   - Implementar pruebas de autenticación
+   - ✅ Suite actual pasa al 100%; mantener cobertura y añadir casos nuevos si se habilita social auth

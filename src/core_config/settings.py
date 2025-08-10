@@ -72,8 +72,8 @@ SOCIALACCOUNT_PROVIDERS = {
     },
     'github': {
         'APP': {
-            'client_id': config('GITHUB_CLIENT_ID'),
-            'secret': config('GITHUB_SECRET'),
+            'client_id': config('GITHUB_CLIENT_ID', default=''),
+            'secret': config('GITHUB_SECRET', default=''),
             'key': '',
         },
         'SCOPE': ['user:email'],
@@ -117,6 +117,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core_app.context_processors.coverage',
+                'core_auth.context_processors.staff_reset_requests_badge',
+                'core_app.context_processors.app_meta',
             ],
         },
     },
@@ -207,3 +210,12 @@ ACCOUNT_LOGOUT_ON_GET = True  # Skip the logout confirmation page
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'  # Allow login with username or email
 ACCOUNT_EMAIL_REQUIRED = True  # Require email for signup
 ACCOUNT_UNIQUE_EMAIL = True  # Enforce unique email addresses
+
+# Variables de personalización de la aplicación y recuperación
+# Nombre de la aplicación y número de contacto oficial (WhatsApp)
+NOMBRE_APLICACION = config('NOMBRE_APLICACION', default='Mi Aplicacion')
+WHATSAPP_CONTACT = config('WHATSAPP_CONTACT', default='+00 000 000 000')
+
+# Parámetros del flujo de recuperación sin email
+PASSWORD_RESET_TICKET_TTL_HOURS = int(config('PASSWORD_RESET_TICKET_TTL_HOURS', default=48))
+TEMP_PASSWORD_LENGTH = int(config('TEMP_PASSWORD_LENGTH', default=16))

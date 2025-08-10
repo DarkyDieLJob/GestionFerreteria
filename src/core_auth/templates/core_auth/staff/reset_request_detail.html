@@ -5,10 +5,14 @@
   <h1 class="text-2xl font-semibold mb-4">Detalle de solicitud #{{ req.id }}</h1>
 
   <div class="bg-white shadow rounded p-4 space-y-3">
-    <div><span class="font-medium">Identificador enviado:</span> {{ req.identifier_submitted }}</div>
-    <div><span class="font-medium">Usuario:</span> {% if req.user %}{{ req.user.username }} ({{ req.user.email }}){% else %}-{% endif %}</div>
+    <div><span class="font-medium">Código de solicitud:</span> <span class="font-mono">{{ req.short_code }}</span></div>
+    <div><span class="font-medium">Usuario/email ingresados:</span> {{ req.username_input }} / {{ req.email_input }}</div>
+    <div><span class="font-medium">Usuario asociado:</span> {% if req.user %}{{ req.user.username }} ({{ req.user.email }}){% else %}-{% endif %}</div>
     <div><span class="font-medium">Estado:</span> {{ req.get_status_display }}</div>
     <div><span class="font-medium">Creado:</span> {{ req.created_at|date:'Y-m-d H:i' }}</div>
+    {% if req.expires_at %}
+    <div><span class="font-medium">Vence:</span> {{ req.expires_at|date:'Y-m-d H:i' }}</div>
+    {% endif %}
     <div><span class="font-medium">IP:</span> {{ req.created_ip }} | <span class="font-medium">UA:</span> <span class="break-all">{{ req.user_agent }}</span></div>
 
     {% if req.processed_at %}
@@ -36,12 +40,19 @@
     </script>
     {% endif %}
 
-    <div class="pt-4 flex gap-2">
+    <div class="pt-4 flex gap-2 flex-wrap">
       {% if req.status == 'pending' and req.user %}
         <a href="{% url 'core_auth:staff_reset_request_approve' req.id %}"
            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-           onclick="return confirm('¿Generar contraseña temporal y forzar cambio al usuario?');">
-           Aprobar y generar contraseña
+           onclick="return confirm('¿Generar contraseña temporal (no se aplicará hasta la entrega)?');">
+           Generar temporal
+        </a>
+      {% endif %}
+      {% if req.status == 'ready_to_deliver' and req.user and req.temp_password_preview %}
+        <a href="{% url 'core_auth:staff_reset_request_deliver' req.id %}"
+           class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+           onclick="return confirm('¿Aplicar y dar por entregada la contraseña temporal?');">
+           Entregar y activar
         </a>
       {% endif %}
     </div>

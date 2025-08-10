@@ -20,8 +20,8 @@ class CoreAuthProfileAdmin(admin.ModelAdmin):
 
 @admin.register(PasswordResetRequest)
 class PasswordResetRequestAdmin(admin.ModelAdmin):
-    list_display = ("id", "identifier_submitted", "user", "status", "created_at", "processed_by", "processed_at")
-    list_filter = ("status", "created_at")
-    search_fields = ("identifier_submitted", "user__username", "user__email")
-    readonly_fields = ("created_at", "processed_at", "created_ip", "user_agent")
+    list_display = ("id", "short_code", "username_input", "email_input", "user", "status", "created_at", "processed_by", "processed_at", "delivered_at", "expires_at")
+    list_filter = ("status", "created_at", "processed_at", "delivered_at")
+    search_fields = ("short_code", "username_input", "email_input", "user__username", "user__email")
+    readonly_fields = ("created_at", "processed_at", "delivered_at", "expires_at", "created_ip", "user_agent", "short_code")
     ordering = ("-created_at",)

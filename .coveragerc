@@ -1,12 +1,13 @@
 [run]
 source = 
-    src/core_auth
-    src/core_app
+    core_auth
+    core_app
 branch = True
 omit = 
     */tests/*
     */migrations/*
     */__pycache__/*
+    */__init__.py
     */templates/*
     */admin.py
     */apps.py

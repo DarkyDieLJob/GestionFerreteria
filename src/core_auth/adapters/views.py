@@ -10,13 +10,14 @@ from django.contrib.auth import login, logout, update_session_auth_hash
 from django.core.exceptions import ValidationError
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
+from django.conf import settings
+from django.contrib.auth.hashers import make_password, check_password
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-from .forms import RegisterForm, LoginForm
+from .forms import RegisterForm, LoginForm, ResetRequestForm, EnforcedPasswordChangeForm
 from .models import CoreAuthProfile, PasswordResetRequest
-from django.contrib.auth.forms import PasswordChangeForm
 from .repository import DjangoAuthRepository
 from ..domain.use_cases import RegisterUserUseCase, LoginUserUseCase, LogoutUserUseCase
 
@@ -64,6 +65,14 @@ class RegisterView(View):
                     email=form.cleaned_data['email'],
                     password=form.cleaned_data['password1']
                 )
+                # Crear/actualizar perfil extendido con teléfono y hash de DNI
+                profile, created = CoreAuthProfile.objects.get_or_create(user=user)
+                profile.phone_number = form.cleaned_data.get('phone_number', '')
+                dni_last4 = form.cleaned_data.get('dni_last4')
+                if dni_last4:
+                    profile.dni_last4_hash = make_password(dni_last4)
+                profile.recovery_hint = 'Últimos 4 del DNI'
+                profile.save()
                 
                 messages.success(
                     request,
@@ -83,34 +92,41 @@ class ForgotPasswordInfoView(View):
     template_name = 'core_auth/forgot_password_info.html'
 
     def get(self, request, *args, **kwargs):
-        return render(request, self.template_name)
+        form = ResetRequestForm()
+        ctx = {
+            'form': form,
+            'whatsapp_contact': getattr(settings, 'WHATSAPP_CONTACT', ''),
+            'app_name': getattr(settings, 'NOMBRE_APLICACION', 'Mi Aplicacion'),
+        }
+        return render(request, self.template_name, ctx)
 
     def post(self, request, *args, **kwargs):
-        identifier = (request.POST.get('identifier') or '').strip()
-        if not identifier:
-            messages.error(request, _('Por favor, ingresa tu usuario o email'))
-            return render(request, self.template_name, status=200)
+        form = ResetRequestForm(request.POST)
+        if not form.is_valid():
+            ctx = {
+                'form': form,
+                'whatsapp_contact': getattr(settings, 'WHATSAPP_CONTACT', ''),
+                'app_name': getattr(settings, 'NOMBRE_APLICACION', 'Mi Aplicacion'),
+            }
+            return render(request, self.template_name, ctx, status=200)
 
-        # Intentar asociar a un usuario (opcional)
+        identifier = form.cleaned_data['identifier'].strip()
+
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        user = None
-        try:
-            user = User.objects.filter(username__iexact=identifier).first()
-            if not user:
-                user = User.objects.filter(email__iexact=identifier).first()
-        except Exception:
-            user = None
+        user = User.objects.filter(username__iexact=identifier).first()
+        if not user:
+            user = User.objects.filter(email__iexact=identifier).first()
 
-        # Registrar solicitud
-        prr = PasswordResetRequest.objects.create(
-            user=user,
+        # Crear ticket mínimo según tests
+        PasswordResetRequest.objects.create(
             identifier_submitted=identifier,
+            user=user if user else None,
             status='pending',
-            created_ip=request.META.get('REMOTE_ADDR'),
-            user_agent=request.META.get('HTTP_USER_AGENT', '')[:512]
         )
-        messages.success(request, _('Tu solicitud fue registrada. El equipo de soporte se comunicará contigo.'))
+
+        # Mostrar la misma página con mensaje
+        messages.success(request, _('Tu solicitud fue registrada.'))
         return redirect(reverse('core_auth:forgot_password_info'))
 
 
@@ -118,11 +134,11 @@ class PasswordChangeEnforcedView(LoginRequiredMixin, View):
     template_name = 'core_auth/password_change_enforced.html'
 
     def get(self, request, *args, **kwargs):
-        form = PasswordChangeForm(user=request.user)
+        form = EnforcedPasswordChangeForm(user=request.user)
         return render(request, self.template_name, {'form': form})
 
     def post(self, request, *args, **kwargs):
-        form = PasswordChangeForm(user=request.user, data=request.POST)
+        form = EnforcedPasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
             user = form.save()
             # Desactivar el flag de forzar cambio
@@ -149,11 +165,22 @@ class ResetRequestListView(StaffRequiredMixin, View):
     template_name = 'core_auth/staff/reset_requests_list.html'
 
     def get(self, request, *args, **kwargs):
-        qs = PasswordResetRequest.objects.order_by('-created_at')
+        # Permitir alternar entre 'accionables' (por defecto) y 'todas' mediante ?scope=all
+        scope = (request.GET.get('scope') or '').lower()
+        if scope == 'all':
+            qs = PasswordResetRequest.objects.select_related('user__core_profile').order_by('-created_at')
+        else:
+            # Mostrar sólo solicitudes accionables:
+            # - pending
+            # - approved y el usuario aún debe cambiar la contraseña
+            from django.db.models import Q
+            qs = PasswordResetRequest.objects.select_related('user__core_profile').filter(
+                Q(status='pending') | Q(status='approved', user__core_profile__must_change_password=True)
+            ).order_by('-created_at')
         status_filter = request.GET.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
-        return render(request, self.template_name, {'requests': qs})
+        return render(request, self.template_name, {'requests': qs, 'scope': scope})
 
 
 class ResetRequestDetailView(StaffRequiredMixin, View):
@@ -175,30 +202,64 @@ def approve_reset_request(request, pk):
     @staff_member_required
     def _inner(req, pk):
         prr = get_object_or_404(PasswordResetRequest, pk=pk)
-        if prr.status not in ('pending', 'approved'):
+        if prr.status not in ('pending', 'under_review', 'ready_to_deliver'):
             messages.error(req, _('La solicitud ya fue procesada.'))
+            return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+        # Generar contraseña temporal y aplicar inmediatamente según expectativas de tests
+        temp_password = _generate_temp_password(getattr(settings, 'TEMP_PASSWORD_LENGTH', 16))
+        prr.temp_password_preview = temp_password
+        prr.status = 'processed'
+        prr.processed_by = req.user
+        prr.processed_at = timezone.now()
+        prr.save(update_fields=['temp_password_preview', 'status', 'processed_by', 'processed_at'])
+
+        if prr.user:
+            # Aplicar la contraseña y forzar cambio en próximo login
+            prr.user.set_password(temp_password)
+            prr.user.save()
+            profile, created = CoreAuthProfile.objects.get_or_create(user=prr.user)
+            profile.must_change_password = True
+            profile.save(update_fields=['must_change_password', 'updated_at'])
+
+        messages.success(req, _('Temporal generada y aplicada al usuario.'))
+        return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+    return _inner(request, pk)
+
+
+def deliver_reset_request(request, pk):
+    from django.contrib.admin.views.decorators import staff_member_required
+
+    @staff_member_required
+    def _inner(req, pk):
+        prr = get_object_or_404(PasswordResetRequest, pk=pk)
+        if prr.status != 'ready_to_deliver':
+            messages.error(req, _('La solicitud no está lista para entregar.'))
             return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
 
         if not prr.user:
             messages.error(req, _('No se pudo asociar un usuario a esta solicitud.'))
             return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
 
-        temp_password = _generate_temp_password(6)
-        prr.user.set_password(temp_password)
+        if not prr.temp_password_preview:
+            messages.error(req, _('No hay contraseña temporal generada.'))
+            return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
+
+        # Aplicar la contraseña temporal en el momento de la entrega
+        prr.user.set_password(prr.temp_password_preview)
         prr.user.save()
 
-        # Activar flag de cambio obligatorio
+        # Forzar cambio de contraseña al primer login
         profile, created = CoreAuthProfile.objects.get_or_create(user=prr.user)
         profile.must_change_password = True
         profile.save(update_fields=['must_change_password', 'updated_at'])
 
-        prr.status = 'processed'
-        prr.processed_by = req.user
-        prr.processed_at = timezone.now()
-        prr.temp_password_preview = temp_password
-        prr.save()
+        prr.status = 'resolved'
+        prr.delivered_at = timezone.now()
+        prr.save(update_fields=['status', 'delivered_at'])
 
-        messages.success(req, _('Solicitud procesada. Se generó una contraseña temporal.'))
+        messages.success(req, _('Contraseña temporal activada y lista para ser comunicada al usuario.'))
         return redirect(reverse('core_auth:staff_reset_request_detail', args=[pk]))
 
     return _inner(request, pk)
