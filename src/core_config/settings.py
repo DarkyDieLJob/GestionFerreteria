@@ -13,10 +13,14 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 import importlib
 import os
-from decouple import config
+from decouple import AutoConfig
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Use python-decouple with explicit search path to ensure src/.env is loaded
+# regardless of the working directory (e.g., inside Docker or local dev)
+config = AutoConfig(search_path=BASE_DIR)
 
 
 # Quick-start development settings - unsuitable for production
