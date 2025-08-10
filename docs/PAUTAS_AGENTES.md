@@ -6,16 +6,22 @@ Guía breve y accionable para que un agente trabaje de forma segura y reproducib
 
 ## 1) Preparación y entorno
 
-- Verificar versión de Python: `python3 --version` (>= 3.10)
+- Verificar versión de Python: `python3 --version` (>= 3.9)
 - Crear y activar entorno virtual si no existe:
   ```bash
   python3 -m venv venv
   source venv/bin/activate
   ```
-- Instalar dependencias:
+- Instalar dependencias (recomendado):
   ```bash
-  pip install -r requirements.txt
+  # Nota: `lista_v3.txt` es un ejemplo heredado de otro proyecto.
+  # En este repositorio, el archivo efectivo por defecto es `notebook.txt`.
+  pip install -r requirements/notebook.txt
+  # opcional según caso
+  # pip install -r requirements/dev.txt
+  # pip install -r requirements/lista_v3.txt
   ```
+  Nota: alternativamente, usar los scripts de setup en `scripts/` para automatizar instalación y pruebas.
 - Confirmar que el archivo de entorno existe en `src/.env`. Si no, crearlo (ver docs/INSTALACION.md).
 
 ## 2) Ubicación de comandos
@@ -142,6 +148,19 @@ Resumen operativo del nuevo flujo seguro sin correo electrónico, con verificaci
 - Este scaffolding es parte de la documentación viva del proyecto y NUNCA debe formar parte de pruebas ni métricas de cobertura.
 - Cualquier error en esos archivos no detendrá CI porque están excluidos. No deben ser corregidos salvo que se actualice el scaffolding como guía.
 - Al crear una nueva app, copiar la estructura desde `templates/app_templates/` a `src/<nueva_app>/` y recién allí implementar código y tests.
+
+## 12) Flujo Git (resumen para agentes)
+
+- Ramas largas vivas:
+  - `develop`: base para ramas `feature/*` y `fix/*` (trabajo diario).
+  - `pre-release`: integración y estabilización (staging) antes de producción.
+  - `main`: producción (solo versiones liberadas).
+- Ramas de trabajo: `feature/{app_o_seccion}/{descripcion}` o `fix/{area}/{descripcion}` creadas desde `develop`.
+- Sincronización: mantener `develop` sincronizado periódicamente con `pre-release`.
+- Releases (resumen):
+  - Preferido: PR de `pre-release` -> `main`, tag `vX.Y.Z`, deploy.
+  - Solo-dev (sin PR): merge `pre-release` -> `main`, tag y push del tag; luego sincronizar `develop`.
+- Referencia detallada: ver `docs/GIT_AGENTES.md`.
 
 ## 8) Atajos útiles
 

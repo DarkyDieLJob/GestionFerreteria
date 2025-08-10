@@ -3,12 +3,14 @@
 Guía de flujo de trabajo Git para agentes y colaboradores.
 
 ## Convenciones de ramas
-- Ramas largas vivas: `main` (producción), `pre-release` (staging), `develop` (integración)
+- Ramas largas vivas: `main` (producción), `pre-release` (integración/estabilización), `develop` (base para `feature/*` y `fix/*`)
 - Ramas de trabajo: `feature/{app_o_seccion}/{descripcion}`
   - Ejemplos:
     - `feature/core_auth/reset-requests-badge`
     - `feature/doc/git-workflow`
     - `feature/core_auth/reset-flow-dni-wsp`
+
+> Nota (trabajo en solitario): este repositorio está pensado para 1 desarrollador. Se prefieren PRs para historial claro, pero se permiten merges directos cuando no haya revisor, manteniendo las validaciones (tests verdes) y mensajes de commit con Conventional Commits.
 
 ## Crear una rama feature
 1) Asegúrate de estar en `develop` actualizado con `pre-release` (ver Sync):
@@ -32,6 +34,8 @@ Guía de flujo de trabajo Git para agentes y colaboradores.
 
 ### Checklist mínimo para PRs
 - [ ] Ejecuté tests localmente (`python -m pytest -q`) y están verdes.
+- [ ] Alternativamente validé con script: Windows `./scripts/setup.ps1 -Test` o Linux/macOS `./scripts/setup.sh --test`.
+- [ ] Mensajes de commit siguiendo Conventional Commits (feat, fix, chore, docs, etc.).
 - [ ] Incluí migraciones de Django si cambié modelos (`src/core_auth/migrations/*`).
 - [ ] Verifiqué que `settings.py` y variables `.env` nuevas están documentadas (ej.: `WHATSAPP_CONTACT`, `PASSWORD_RESET_TICKET_TTL_HOURS`, `TEMP_PASSWORD_LENGTH`).
 - [ ] Actualicé templates y admin si cambié campos visibles.
@@ -65,6 +69,22 @@ else:
      - Crear tag semántico (ej: `vX.Y.Z`): `git tag -a vX.Y.Z -m "Release vX.Y.Z"` y `git push origin vX.Y.Z`.
      - Opcional: GitHub Release con changelog.
   4) Desplegar desde `main` (pipeline de CD si existe).
+
+### Opción directa (solo desarrollador, sin PR)
+- Usar solo cuando no existan revisores y con tests locales verdes.
+```
+git checkout pre-release
+git pull --ff-only
+# Validar estado (tests/QA)
+git checkout main
+git pull --ff-only
+git merge --no-ff pre-release -m "release: v1.0.0"
+git tag -a v1.0.0 -m "release: v1.0.0"
+git push origin main
+git push origin v1.0.0
+# Mantener ramas sincronizadas
+git checkout develop && git pull --ff-only && git merge --no-ff origin/pre-release -m "chore: sync pre-release -> develop (v1.0.0)" && git push
+```
 
 ## Backport: ¿qué es y cuándo?
 - Backport = aplicar cambios ya integrados en una rama más adelantada a otra rama base diferente.

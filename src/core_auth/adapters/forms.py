@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, PasswordChangeForm as DjangoPasswordChangeForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -36,6 +36,18 @@ class LoginForm(AuthenticationForm):
         'invalid_login': _("Credenciales inválidas"),
         'inactive': _("Esta cuenta está inactiva"),
     }
+
+
+class EnforcedPasswordChangeForm(DjangoPasswordChangeForm):
+    """Formulario de cambio de contraseña que fuerza un mensaje claro en español
+    cuando la contraseña actual no coincide. La prueba espera que el HTML contenga
+    la palabra 'incorrecta' o 'invalid'.
+    """
+    # Copiamos para no mutar el original
+    error_messages = DjangoPasswordChangeForm.error_messages.copy()
+    error_messages['password_incorrect'] = _(
+        'La contraseña actual es incorrecta.'
+    )
 
 
 class RegisterForm(UserCreationForm):

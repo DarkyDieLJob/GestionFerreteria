@@ -7,8 +7,10 @@ Este proyecto utiliza Django con Arquitectura Limpia/Hexagonal. El archivo `mana
 ```
 .
 ├── README.md
-├── requirements.txt
+├── requirements/
 ├── pytest.ini
+├── scripts/
+├── frontend/
 ├── venv/                      # entorno virtual (sugerido)
 └── src/
     ├── manage.py              # archivo de gestión de Django
@@ -23,7 +25,7 @@ Este proyecto utiliza Django con Arquitectura Limpia/Hexagonal. El archivo `mana
     │   └── tests/             # pruebas de la app (pytest)
     ├── core_app/              # aplicación base (home, dashboard)
     ├── templates/
-    └── static/
+    └── static/                # incluye css compilado de Tailwind (static/css/tailwind.css)
 ```
 
 ## Capas (Hexagonal)
