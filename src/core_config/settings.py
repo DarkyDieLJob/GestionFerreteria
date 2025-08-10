@@ -72,8 +72,8 @@ SOCIALACCOUNT_PROVIDERS = {
     },
     'github': {
         'APP': {
-            'client_id': config('GITHUB_CLIENT_ID'),
-            'secret': config('GITHUB_SECRET'),
+            'client_id': config('GITHUB_CLIENT_ID', default=''),
+            'secret': config('GITHUB_SECRET', default=''),
             'key': '',
         },
         'SCOPE': ['user:email'],
