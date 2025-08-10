@@ -10,6 +10,17 @@ Guía de flujo de trabajo Git para agentes y colaboradores.
     - `feature/doc/git-workflow`
     - `feature/core_auth/reset-flow-dni-wsp`
 
+### Ramas de corrección `fix/*`
+- Objetivo: corregir defectos detectados en integración/QA antes del release.
+- Origen: SIEMPRE crear a partir de `pre-release` (no desde `develop`).
+- Nombre: `fix/{area}/{descripcion-corta}`.
+- Flujo:
+  1) `git checkout pre-release && git pull --ff-only`
+  2) `git checkout -b fix/{area}/{descripcion}`
+  3) Commits atómicos con tipo `fix:` o `docs/chore` si aplica.
+  4) Abrir PR base `pre-release` (no a `main`).
+  5) Tras merge en `pre-release`, sincronizar `develop` (ver Sync) si corresponde.
+
 > Nota (trabajo en solitario): este repositorio está pensado para 1 desarrollador. Se prefieren PRs para historial claro, pero se permiten merges directos cuando no haya revisor, manteniendo las validaciones (tests verdes) y mensajes de commit con Conventional Commits.
 
 ## Crear una rama feature
@@ -106,3 +117,5 @@ git checkout develop && git pull --ff-only && git merge --no-ff origin/pre-relea
 - Abrir PR a pre-release (con gh): `gh pr create --base pre-release --head feature/{app}/{desc} ...`
 - Sync pre-release -> develop: `git checkout develop && git fetch && git merge --no-ff origin/pre-release -m "Merge pre-release into develop"`
 - Release: PR `pre-release` -> `main`, luego tag `vX.Y.Z` y push del tag.
+ - Crear fix: `git checkout pre-release && git pull --ff-only && git checkout -b fix/{area}/{desc}`
+ - Abrir PR fix a pre-release: `gh pr create --base pre-release --head fix/{area}/{desc} ...`

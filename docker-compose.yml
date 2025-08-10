@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    image: django-proyects:raspbian
+    container_name: django-proyects
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      # Estáticos: habilitar si quieres recopilar estáticos en runtime
+      - ENABLE_COLLECTSTATIC=false
+      # Desactiva frontend si no quieres construir Tailwind (por defecto se construye)
+      - NO_FRONTEND=false
+    # Opcional: montar volumen si quieres persistir DB sqlite fuera del contenedor
+    # volumes:
+    #   - ./src/data:/app/src/data
+    #   - ./static:/app/static
+    command: ["python", "src/manage.py", "runserver", "0.0.0.0:8000"]
