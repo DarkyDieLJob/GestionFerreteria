@@ -8,16 +8,17 @@ Usa los scripts de `scripts/` para automatizar: creación de venv, instalación 
 
 - Windows (PowerShell):
   ```powershell
-  powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Dev
+  powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Test
   ```
 - Linux/macOS (bash):
   ```bash
   chmod +x ./scripts/setup.sh
-  ./scripts/setup.sh --requirements notebook --dev
+  ./scripts/setup.sh --requirements notebook --test
   ```
 
 Notas:
-- `-Requirements`/`--requirements` acepta: `dev`, `notebook` (por defecto), `lista_v3` o una ruta a un archivo.
+- `-Requirements`/`--requirements` acepta: `dev`, `notebook` (recomendado), `lista_v3` o una ruta a un archivo.
+- `lista_v3` es un ejemplo heredado de otro proyecto; en este repositorio el archivo efectivo por defecto es `notebook.txt`.
 - Para omitir frontend (Tailwind) agrega `-NoFrontend`/`--no-frontend`.
 - Los scripts aseguran `djangorestframework` y `python-decouple` si faltan.
 
@@ -32,10 +33,36 @@ Al finalizar, levanta el servidor con:
 
 > Nota: El archivo `manage.py` está dentro del directorio `src/`.
 
+### Comandos rápidos
+
+- Windows (PowerShell):
+  ```powershell
+  # Setup automatizado con pruebas
+  powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Test
+  # Ejecutar servidor
+  ./venv/Scripts/python.exe ./src/manage.py runserver
+  # Ejecutar tests
+  ./venv/Scripts/python.exe -m pytest -q
+  # Crear superusuario
+  ./venv/Scripts/python.exe ./src/manage.py createsuperuser
+  ```
+
+- Linux/macOS (bash):
+  ```bash
+  # Setup automatizado con pruebas
+  ./scripts/setup.sh --requirements notebook --test
+  # Ejecutar servidor
+  ./venv/bin/python ./src/manage.py runserver
+  # Ejecutar tests
+  ./venv/bin/python -m pytest -q
+  # Crear superusuario
+  ./venv/bin/python ./src/manage.py createsuperuser
+  ```
+
 ## 1) Prerrequisitos (para setup manual)
 
 - Git instalado
-- Python 3.10+ instalado (verifica con `python3 --version`)
+- Python 3.9+ instalado (verifica con `python3 --version`)
 - Pip instalado (`python3 -m ensurepip --upgrade`)
 - Recomendado: virtualenv (opcional si usas `python -m venv`)
 
@@ -57,12 +84,14 @@ Para salir del entorno virtual posteriormente: `deactivate`
 
 ## 4) Instalar dependencias
 
-El proyecto organiza dependencias en `requirements/`. Recomendado usar `requirements/notebook.txt`:
+El proyecto organiza dependencias en `requirements/`.
+Opciones comunes: `notebook.txt` (recomendado/efectivo), `dev.txt` (desarrollo), `lista_v3.txt` (ejemplo heredado de otro proyecto).
 
 ```bash
 pip install -r requirements/notebook.txt
-# y asegurar paquetes requeridos por settings
-pip install djangorestframework python-decouple
+# opcional según tu caso
+# pip install -r requirements/dev.txt
+# pip install -r requirements/lista_v3.txt
 ```
 
 Si falla alguna dependencia, asegúrate de tener herramientas de compilación básicas (ej.: `build-essential`, `python3-dev`).

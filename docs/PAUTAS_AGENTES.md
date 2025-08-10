@@ -6,16 +6,22 @@ Guía breve y accionable para que un agente trabaje de forma segura y reproducib
 
 ## 1) Preparación y entorno
 
-- Verificar versión de Python: `python3 --version` (>= 3.10)
+- Verificar versión de Python: `python3 --version` (>= 3.9)
 - Crear y activar entorno virtual si no existe:
   ```bash
   python3 -m venv venv
   source venv/bin/activate
   ```
-- Instalar dependencias:
+- Instalar dependencias (recomendado):
   ```bash
-  pip install -r requirements.txt
+  # Nota: `lista_v3.txt` es un ejemplo heredado de otro proyecto.
+  # En este repositorio, el archivo efectivo por defecto es `notebook.txt`.
+  pip install -r requirements/notebook.txt
+  # opcional según caso
+  # pip install -r requirements/dev.txt
+  # pip install -r requirements/lista_v3.txt
   ```
+  Nota: alternativamente, usar los scripts de setup en `scripts/` para automatizar instalación y pruebas.
 - Confirmar que el archivo de entorno existe en `src/.env`. Si no, crearlo (ver docs/INSTALACION.md).
 
 ## 2) Ubicación de comandos

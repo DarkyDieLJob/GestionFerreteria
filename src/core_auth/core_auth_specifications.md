@@ -38,8 +38,8 @@ Este documento detalla las especificaciones funcionales y técnicas para impleme
 ## Requisitos Técnicos
 
 - **Backend**:
-  - Python 3.8+.
-  - Django 4.0.6+.
+  - Python 3.9+.
+  - Django 4.2.x (LTS).
   - Backend de autenticación: `django.contrib.auth.backends.ModelBackend`.
   - Modelo de usuario: Modelo por defecto de Django (`django.contrib.auth.models.User`).
   - Dependencias: `django` (ya incluido en `requirements/lista_v3.txt`).
@@ -129,6 +129,8 @@ src/core_auth/
    - **`tests/test_adapters.py`**: Pruebas para los adaptadores, incluyendo formularios, vistas y el repositorio.
 
 ## Instrucciones para la Implementación
+
+Nota de estado: la autenticación básica ya está implementada y las pruebas actuales pasan al 100%. Ver `src/core_auth/status.md` para detalles. El flujo de cambio de contraseña forzado utiliza `EnforcedPasswordChangeForm` con mensaje en español cuando la contraseña actual es incorrecta.
 
 ### 1. Configurar la Aplicación `core_auth`
 - Asegúrate de que `core_auth` esté en `INSTALLED_APPS` en `core_config/settings.py`:

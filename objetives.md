@@ -1,5 +1,25 @@
 # Objetivos para Implementar el Proyecto Base
 
+> Nota: El flujo recomendado hoy es clonar el repo y usar los scripts de setup multiplataforma. La guía de creación "desde cero" que sigue se mantiene como referencia histórica.
+
+## Flujo Rápido (clonación + scripts)
+
+- Clona el repo y entra a la carpeta raíz del proyecto.
+- Windows (PowerShell):
+  ```powershell
+  scripts/setup.ps1 -Requirements lista_v3 -ActivateShell -Test -RunServer
+  ```
+- Linux/macOS (bash):
+  ```bash
+  bash scripts/setup.sh --requirements lista_v3 --test
+  ```
+- Variables de entorno: copia `src/.env.example` a `src/.env` y ajusta valores.
+- Crear superusuario (desde `src/` con venv activo):
+  ```powershell
+  python manage.py createsuperuser
+  ```
+- Consulta `README.md` para más detalles de opciones (`dev`, `notebook`, integración de frontend con Tailwind, etc.).
+
 Este documento detalla los pasos necesarios para completar la implementación del proyecto base en Django con **arquitectura hexagonal**, diseñado para ser clonado y extendido en nuevos proyectos. Incluye autenticación local y social, endpoints REST opcionales con autenticación por tokens, soporte para que cada aplicación defina su propia base de datos, y una plantilla personalizada para `startapp`.
 
 ## Pasos para Completar el Proyecto Base

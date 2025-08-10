@@ -5,6 +5,7 @@ Este documento describe la estructura de un proyecto base en Django, diseñado c
 ## Carpetas Principales
 
 - **`src/`**: Contiene el código fuente del proyecto.
+  - **`manage.py`**: Script principal de Django para ejecutar comandos administrativos.
   - **`core_config/`**: Configuración global del proyecto.
     - `settings.py`: Configuración de Django (bases de datos, autenticación, DRF, etc.).
     - `urls.py`: URLs globales del proyecto.
@@ -24,11 +25,7 @@ Este documento describe la estructura de un proyecto base en Django, diseñado c
       - `urls.py`: URLs específicas de la aplicación.
       - `repository.py`: Adaptador para conectar con `core_app_db`.
     - `templates/`:
-      - `core_app/`:
-        - `base.html`: Plantilla base para la UI.
-      - `auth/`:
-        - `login.html`: Formulario de inicio de sesión.
-        - `register.html`: Formulario de registro.
+      - `core_app/`: Plantillas propias de core_app (por ejemplo `base.html`).
     - `tests/`:
       - `test_use_cases.py`: Pruebas para casos de uso.
       - `test_adapters.py`: Pruebas para adaptadores.
@@ -36,8 +33,16 @@ Este documento describe la estructura de un proyecto base en Django, diseñado c
     - `apps.py`: Configuración de la aplicación.
     - `migrations/`:
       - `__init__.py`: Directorio para migraciones.
+  - **`core_auth/`**: Aplicación para autenticación.
+    - `templates/`:
+      - `auth/`: Plantillas para autenticación (ej. `login.html`, `register.html`).
+  - **`scripts/`**:
+    - `setup.ps1`: Setup en Windows (crea venv, instala deps, prepara `.env`, frontend opcional, migraciones, tests, flags `-ActivateShell`, `-RunServer`).
+    - `setup.sh`: Setup en Linux/macOS.
+  - **`frontend/`** (opcional):
+    - Tailwind CSS (compila a `static/css/tailwind.css`).
 
-- **`docs/`**: Documentación del proyecto.
+- **`docs/`**: Documentación del proyecto (si aplica).
   - `adr/`:
     - `0001-adopcion-arquitectura-hexagonal.md`: Decisión sobre la arquitectura.
   - `api/`: Documentación de la API REST (pendiente).
@@ -54,7 +59,6 @@ Este documento describe la estructura de un proyecto base en Django, diseñado c
 
 ## Archivos en la Raíz
 
-- **`manage.py`**: Script principal de Django para ejecutar comandos administrativos.
 - **`project_structure.md`**: Este archivo, que describe la estructura.
 - **`objectives.md`**: Pasos para implementar el proyecto.
 - **`README.md`**: Instrucciones para configurar y ejecutar el proyecto.
@@ -74,7 +78,7 @@ El proyecto sigue una **arquitectura hexagonal** para garantizar:
 
 ## Detalles de Implementación
 
-- **Autenticación**: Pendiente de implementación en `core_auth`.
+- **Autenticación**: Implementada en `core_auth` (formularios, vistas y plantillas). Se incluye refuerzo en cambio de contraseña con mensaje claro para contraseña actual incorrecta.
 - **API REST**: Pendiente de implementación en `api`.
 - **Pruebas**: Estructuradas por casos de uso y adaptadores, ejecutadas con `pytest`.
 - **Bases de datos**:

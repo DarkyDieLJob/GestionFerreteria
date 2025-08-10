@@ -2,6 +2,22 @@
 
 Este documento registra los cambios realizados en el módulo de autenticación (`core_auth`).
 
+## [2025-08-10]
+
+### Cambiado
+- Alineación de versiones en documentación: Python 3.9+, Django 4.2.x (LTS).
+- `README.md`: comandos rápidos (setup, tests, server) y guía para crear superusuario en Windows/Linux.
+- `project_structure.md`: refleja `manage.py` en `src/`, `scripts/`, e integración de `frontend/` (Tailwind).
+- `objetives.md`: flujo recomendado de clonación + scripts; pasos "desde cero" quedan como referencia.
+- `src/core_auth/status.md`: estado actualizado (autenticación básica operativa; allauth opcional).
+
+### Añadido
+- `scripts/setup.ps1`: flags `-ActivateShell`, `-Test`, `-RunServer` para automatizar activación, pruebas y arranque del server.
+- Formulario `EnforcedPasswordChangeForm` con mensaje en español que incluye "incorrecta" para contraseña actual inválida.
+
+### Corregido
+- Pruebas de autenticación: suite ahora pasa al 100% tras ajustar el mensaje de error en cambio de contraseña forzado.
+
 ## [2025-08-07]
 
 ### Añadido

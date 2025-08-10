@@ -12,8 +12,8 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
 ## Requisitos Técnicos
 
 ### Backend
-- **Python**: 3.10+
-- **Django**: 5.2+
+- **Python**: 3.9+
+- **Django**: 4.2.x (LTS)
 - **Bases de datos**:
   - SQLite (por defecto)
   - Posibilidad de múltiples bases de datos por aplicación
@@ -21,7 +21,7 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
   - django-allauth (autenticación social)
   - djangorestframework (APIs REST)
   - python-decouple (manejo de variables de entorno)
-  - django-rest-framework-authtoken (autenticación por tokens)
+  - (Opcional) django-rest-framework-authtoken (autenticación por tokens)
 
 ### Frontend (opcional)
 - **Node.js**: 14+
@@ -79,6 +79,9 @@ frontend/
    - Usa `-Requirements`/`--requirements` para elegir archivo: `dev`, `notebook`, `lista_v3` o una ruta personalizada (por defecto: `notebook`).
    - Agrega `-NoFrontend`/`--no-frontend` si quieres omitir el scaffolding de Tailwind.
    - Los scripts aseguran `djangorestframework` y `python-decouple` si faltan en el requirements elegido.
+
+   Para más atajos, revisa la sección "Comandos rápidos" en `docs/INSTALACION.md`:
+   `docs/INSTALACION.md#comandos-rápidos`.
 4. Configurar variables de entorno en `.env`:
    ```
    SECRET_KEY=tu_clave_secreta

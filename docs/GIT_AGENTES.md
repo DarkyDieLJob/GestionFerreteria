@@ -32,6 +32,8 @@ Guía de flujo de trabajo Git para agentes y colaboradores.
 
 ### Checklist mínimo para PRs
 - [ ] Ejecuté tests localmente (`python -m pytest -q`) y están verdes.
+- [ ] Alternativamente validé con script: Windows `./scripts/setup.ps1 -Test` o Linux/macOS `./scripts/setup.sh --test`.
+- [ ] Mensajes de commit siguiendo Conventional Commits (feat, fix, chore, docs, etc.).
 - [ ] Incluí migraciones de Django si cambié modelos (`src/core_auth/migrations/*`).
 - [ ] Verifiqué que `settings.py` y variables `.env` nuevas están documentadas (ej.: `WHATSAPP_CONTACT`, `PASSWORD_RESET_TICKET_TTL_HOURS`, `TEMP_PASSWORD_LENGTH`).
 - [ ] Actualicé templates y admin si cambié campos visibles.
