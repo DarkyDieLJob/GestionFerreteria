@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% block head_title %}{% endblock %} | Mi Aplicación{% endblock %}</title>
+    <title>{% block title %}{% block head_title %}{% endblock %} | {{ app_name }} v{{ app_version }}{% endblock %}</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -57,7 +57,7 @@
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
                         <a href="{% url 'home' %}" class="text-xl font-bold text-gray-900">
-                            Mi Aplicación
+                            {{ app_name }} <span class="text-sm text-gray-500">v{{ app_version }}</span>
                         </a>
                     </div>
                     <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -195,7 +195,7 @@
     <footer class="bg-white border-t border-gray-200 mt-12">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <p class="text-center text-gray-500 text-sm">
-                &copy; {% now "Y" %} Mi Aplicación. Todos los derechos reservados.
+                &copy; {% now "Y" %} {{ app_name }} v{{ app_version }}. Todos los derechos reservados.
             </p>
         </div>
     </footer>

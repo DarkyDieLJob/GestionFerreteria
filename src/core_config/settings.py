@@ -72,8 +72,8 @@ SOCIALACCOUNT_PROVIDERS = {
     },
     'github': {
         'APP': {
-            'client_id': config('GITHUB_CLIENT_ID'),
-            'secret': config('GITHUB_SECRET'),
+            'client_id': config('GITHUB_CLIENT_ID', default=''),
+            'secret': config('GITHUB_SECRET', default=''),
             'key': '',
         },
         'SCOPE': ['user:email'],
@@ -119,6 +119,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core_app.context_processors.coverage',
                 'core_auth.context_processors.staff_reset_requests_badge',
+                'core_app.context_processors.app_meta',
             ],
         },
     },
