@@ -1,0 +1,49 @@
+name: Release Back-Merge
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  backmerge-develop:
+    name: Back-merge main -> develop on tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all branches
+        run: |
+          git fetch origin +refs/heads/*:refs/remotes/origin/* --prune
+
+      - name: Merge main into develop
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Ensure we have the latest
+          git checkout develop
+          git reset --hard origin/develop
+          # Merge origin/main into develop
+          git merge --no-ff origin/main -m "chore: back-merge main into develop after ${{ github.ref_name }}"
+          # If nothing to commit, skip push
+          if git diff --quiet origin/develop...HEAD; then
+            echo "No changes to push"
+          else
+            git push origin HEAD:develop
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "Back-merge job completed for tag ${{ github.ref_name }}"
