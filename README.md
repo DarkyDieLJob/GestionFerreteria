@@ -106,6 +106,53 @@ Levantar el servidor de desarrollo (desde la raíz):
 
 Accede a http://127.0.0.1:8000/
 
+### Comandos rápidos (Windows PowerShell)
+
+- __Setup + activar shell + correr pruebas__
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Dev -ActivateShell -Test
+  ```
+
+- __Setup + pruebas y lanzar server si todo pasa__
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Dev -ActivateShell -Test -RunServer
+  ```
+
+- __Activar entorno y correr pruebas manualmente__
+
+  ```powershell
+  .\venv\Scripts\Activate
+  python -m pytest -q .\src
+  ```
+
+- __Lanzar servidor manualmente__
+
+  ```powershell
+  .\venv\Scripts\python .\src\manage.py runserver 0.0.0.0:8000
+  ```
+
+### Crear superusuario (admin)
+
+Desde la raíz del proyecto, con el entorno activado:
+
+- Windows (PowerShell):
+
+  ```powershell
+  .\venv\Scripts\Activate
+  python .\src\manage.py createsuperuser
+  ```
+
+- Linux/macOS (bash):
+
+  ```bash
+  source ./venv/bin/activate
+  python ./src/manage.py createsuperuser
+  ```
+
+Sigue las indicaciones (usuario, email opcional y contraseña). Luego inicia sesión en `/admin/`.
+
 ## Pruebas
 
 Ejecutar la suite de tests con pytest (los tests están bajo `src/`):

@@ -27,7 +27,9 @@ param(
   [switch]$Test = $false,
   [switch]$SkipMigrate = $false,
   [string]$Requirements = 'notebook',
-  [switch]$NoFrontend = $false
+  [switch]$NoFrontend = $false,
+  [switch]$ActivateShell = $false,
+  [switch]$RunServer = $false
 )
 
 $ErrorActionPreference = 'Stop'
@@ -229,10 +231,31 @@ if ($Test) {
   Write-Stage "Ejecutando tests (pytest)"
   try {
     & $venvPython -m pytest -q .\src
+    $pytestExit = $LASTEXITCODE
   } catch {
     Write-Host "Pytest no disponible o falló. Instala con -Dev para incluirlo." -ForegroundColor Yellow
   }
 }
 
-Write-Host "`nSetup completado. Para ejecutar el servidor:" -ForegroundColor Green
+if ($ActivateShell) {
+  Write-Stage "Abriendo nueva PowerShell con entorno activado en src/"
+  $activateCmd = ".\\venv\\Scripts\\Activate.ps1; Set-Location src"
+  Start-Process powershell -ArgumentList @('-NoExit','-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-Command', $activateCmd)
+}
+
+# 10) Lanzar servidor opcionalmente
+if ($RunServer) {
+  $canRun = $true
+  if ($Test -and ($pytestExit -ne $null) -and ($pytestExit -ne 0)) {
+    $canRun = $false
+    Write-Host "Tests fallaron (exitcode=$pytestExit). No se iniciará el servidor por -RunServer." -ForegroundColor Yellow
+  }
+  if ($canRun) {
+    Write-Stage "Iniciando servidor de desarrollo"
+    & $venvPython .\src\manage.py runserver
+  }
+}
+
+Write-Host "`nSetup completado. Para ejecutar el servidor manualmente:" -ForegroundColor Green
 Write-Host ".\venv\Scripts\python .\src\manage.py runserver" -ForegroundColor Green
+Write-Host "Para activar el entorno en esta sesión: .\\venv\\Scripts\\Activate.ps1" -ForegroundColor Green
