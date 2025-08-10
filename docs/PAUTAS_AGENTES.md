@@ -149,6 +149,19 @@ Resumen operativo del nuevo flujo seguro sin correo electrónico, con verificaci
 - Cualquier error en esos archivos no detendrá CI porque están excluidos. No deben ser corregidos salvo que se actualice el scaffolding como guía.
 - Al crear una nueva app, copiar la estructura desde `templates/app_templates/` a `src/<nueva_app>/` y recién allí implementar código y tests.
 
+## 12) Flujo Git (resumen para agentes)
+
+- Ramas largas vivas:
+  - `develop`: base para ramas `feature/*` y `fix/*` (trabajo diario).
+  - `pre-release`: integración y estabilización (staging) antes de producción.
+  - `main`: producción (solo versiones liberadas).
+- Ramas de trabajo: `feature/{app_o_seccion}/{descripcion}` o `fix/{area}/{descripcion}` creadas desde `develop`.
+- Sincronización: mantener `develop` sincronizado periódicamente con `pre-release`.
+- Releases (resumen):
+  - Preferido: PR de `pre-release` -> `main`, tag `vX.Y.Z`, deploy.
+  - Solo-dev (sin PR): merge `pre-release` -> `main`, tag y push del tag; luego sincronizar `develop`.
+- Referencia detallada: ver `docs/GIT_AGENTES.md`.
+
 ## 8) Atajos útiles
 
 - Correr un subconjunto de tests:
