@@ -1,24 +1,52 @@
 # Guía de Instalación (Primer Clonado)
 
-Esta guía está pensada como un algoritmo paso a paso para que un agente (o cualquier persona) pueda instalar y ejecutar el proyecto desde cero en Linux.
+Esta guía describe el setup recomendado y alternativo para instalar y ejecutar el proyecto desde cero en Windows y Linux/macOS.
+
+## 0) Setup rápido recomendado (Windows y Linux/macOS)
+
+Usa los scripts de `scripts/` para automatizar: creación de venv, instalación de dependencias, creación de `src/.env`, configuración de Tailwind (frontend) y migraciones.
+
+- Windows (PowerShell):
+  ```powershell
+  powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Dev
+  ```
+- Linux/macOS (bash):
+  ```bash
+  chmod +x ./scripts/setup.sh
+  ./scripts/setup.sh --requirements notebook --dev
+  ```
+
+Notas:
+- `-Requirements`/`--requirements` acepta: `dev`, `notebook` (por defecto), `lista_v3` o una ruta a un archivo.
+- Para omitir frontend (Tailwind) agrega `-NoFrontend`/`--no-frontend`.
+- Los scripts aseguran `djangorestframework` y `python-decouple` si faltan.
+
+Al finalizar, levanta el servidor con:
+```bash
+# Linux/macOS
+./venv/bin/python ./src/manage.py runserver
+
+# Windows (PowerShell)
+./venv/Scripts/python.exe ./src/manage.py runserver
+```
 
 > Nota: El archivo `manage.py` está dentro del directorio `src/`.
 
-## 0) Prerrequisitos
+## 1) Prerrequisitos (para setup manual)
 
 - Git instalado
 - Python 3.10+ instalado (verifica con `python3 --version`)
 - Pip instalado (`python3 -m ensurepip --upgrade`)
 - Recomendado: virtualenv (opcional si usas `python -m venv`)
 
-## 1) Clonar el repositorio
+## 2) Clonar el repositorio
 
 ```bash
 git clone <URL_DEL_REPO>
 cd DjangoProyects
 ```
 
-## 2) Crear y activar entorno virtual
+## 3) Crear y activar entorno virtual
 
 ```bash
 python3 -m venv venv
@@ -27,15 +55,19 @@ source venv/bin/activate
 
 Para salir del entorno virtual posteriormente: `deactivate`
 
-## 3) Instalar dependencias
+## 4) Instalar dependencias
+
+El proyecto organiza dependencias en `requirements/`. Recomendado usar `requirements/notebook.txt`:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements/notebook.txt
+# y asegurar paquetes requeridos por settings
+pip install djangorestframework python-decouple
 ```
 
 Si falla alguna dependencia, asegúrate de tener herramientas de compilación básicas (ej.: `build-essential`, `python3-dev`).
 
-## 4) Configurar variables de entorno (.env)
+## 5) Configurar variables de entorno (.env)
 
 Crea un archivo `.env` en `src/` (misma carpeta donde está `manage.py`):
 
@@ -57,7 +89,7 @@ EOF
 
 Ajusta los valores según tu entorno.
 
-## 5) Migraciones de base de datos
+## 6) Migraciones de base de datos
 
 Ejecuta los comandos desde `src/` porque ahí está `manage.py`:
 
@@ -66,7 +98,7 @@ cd src
 python manage.py migrate
 ```
 
-## 6) (Opcional) Crear superusuario
+## 7) (Opcional) Crear superusuario
 
 ```bash
 python manage.py createsuperuser
@@ -74,7 +106,7 @@ python manage.py createsuperuser
 
 Completa los datos cuando se te soliciten.
 
-## 7) Ejecutar el servidor de desarrollo
+## 8) Ejecutar el servidor de desarrollo
 
 Asegúrate de que el entorno virtual está activo y que estás en `src/`:
 
@@ -84,7 +116,7 @@ python manage.py runserver
 
 Abre en el navegador: http://127.0.0.1:8000/
 
-## 8) Ejecutar pruebas automatizadas
+## 9) Ejecutar pruebas automatizadas
 
 Las pruebas viven bajo `src/`. Desde la raíz del repo:
 
@@ -96,30 +128,75 @@ python -m pytest -q
 
 Deberías ver todos los tests en verde. Si quieres reporte detallado, quita `-q`.
 
-## 9) Verificar funcionalidades básicas
+## 10) Verificar funcionalidades básicas
 
 - Acceso a la página principal: http://127.0.0.1:8000/
 - Registro/Login/Logout desde las vistas de autenticación
 - Panel de admin (si creaste superusuario): http://127.0.0.1:8000/admin/
 
-## 10) (Opcional) Frontend
+## 11) Frontend (Tailwind)
 
-Si decides usar el frontend opcional (Tailwind u otros):
+Los scripts crean `frontend/` y compilan Tailwind a `static/css/tailwind.css`. Si hiciste setup manual, puedes crear el frontend así:
 
 ```bash
+# desde la raíz
+mkdir -p frontend/src static/css
+cat > frontend/package.json << 'EOF'
+{
+  "name": "django-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css -w",
+    "build": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.10"
+  }
+}
+EOF
+
+cat > frontend/tailwind.config.js << 'EOF'
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "../src/**/*.html",
+    "../src/**/templates/**/*.html",
+    "../templates/**/*.html"
+  ],
+  theme: { extend: {} },
+  plugins: [],
+};
+EOF
+
+cat > frontend/postcss.config.js << 'EOF'
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+EOF
+
+cat > frontend/src/input.css << 'EOF'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+EOF
+
 cd frontend
 npm install
-npm run dev
-# o
-# yarn
-yarn dev
+npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify
 ```
 
-## 11) Solución de problemas comunes
+## 12) Solución de problemas comunes
 
 - "command not found: python": usa `python3` y `pip3` según tu distro.
 - Error de dependencias nativas: instala herramientas de compilación (Ubuntu/Debian: `sudo apt-get install build-essential python3-dev`).
 - Variables de entorno no cargan: confirma que el `.env` está en `src/` y que `DEBUG`/`SECRET_KEY` tienen valores válidos.
+- No se genera CSS de Tailwind: verifica que Node/npm estén instalados y corre `npm install && npm run build` en `frontend/`.
 - Errores de migración: elimina `db.sqlite3` (si usas SQLite) y la carpeta de migraciones de apps específicas como último recurso, luego vuelve a `python manage.py migrate`.
 
 ## 12) Resumen del algoritmo

@@ -63,19 +63,22 @@ frontend/
 
 ## Instalación y Configuración
 
-### Backend
+### Backend (Setup rápido recomendado)
 1. Clonar el repositorio
-2. Crear un entorno virtual:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/macOS
-   # o
-   .\venv\Scripts\activate  # Windows
-   ```
-3. Instalar dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. Ejecutar el script de setup (crea venv, instala dependencias, prepara .env, configura Tailwind y migra DB):
+   - Windows (PowerShell):
+     ```powershell
+     powershell -ExecutionPolicy Bypass -NoLogo -NoProfile -File .\scripts\setup.ps1 -Requirements notebook -Dev
+     ```
+   - Linux/macOS (bash):
+     ```bash
+     chmod +x ./scripts/setup.sh
+     ./scripts/setup.sh --requirements notebook --dev
+     ```
+   Notas:
+   - Usa `-Requirements`/`--requirements` para elegir archivo: `dev`, `notebook`, `lista_v3` o una ruta personalizada (por defecto: `notebook`).
+   - Agrega `-NoFrontend`/`--no-frontend` si quieres omitir el scaffolding de Tailwind.
+   - Los scripts aseguran `djangorestframework` y `python-decouple` si faltan en el requirements elegido.
 4. Configurar variables de entorno en `.env`:
    ```
    SECRET_KEY=tu_clave_secreta
@@ -83,7 +86,7 @@ frontend/
    GITHUB_CLIENT_ID=tu_client_id
    GITHUB_SECRET=tu_secret
    ```
-5. Migrar las bases de datos (manage.py está en `src/`):
+5. Migrar las bases de datos (si no corriste los scripts de setup; `manage.py` está en `src/`):
    ```bash
    cd src
    python manage.py migrate
@@ -91,11 +94,14 @@ frontend/
 
 ## Ejecución
 
-Levantar el servidor de desarrollo (desde `src/`):
+Levantar el servidor de desarrollo (desde la raíz):
 
 ```bash
-source ../venv/bin/activate  # si no está activo
-python manage.py runserver
+# Linux/macOS
+./venv/bin/python ./src/manage.py runserver
+
+# Windows (PowerShell)
+./venv/Scripts/python.exe ./src/manage.py runserver
 ```
 
 Accede a http://127.0.0.1:8000/
@@ -148,7 +154,20 @@ python -m pytest -q
 ```
 .
 ├── README.md
-├── requirements.txt
+├── requirements/              # archivos de dependencias
+│   ├── dev.txt
+│   ├── notebook.txt
+│   └── lista_v3.txt
+├── scripts/                   # scripts de automatización
+│   ├── setup.ps1              # Windows (PowerShell)
+│   └── setup.sh               # Linux/macOS (bash)
+├── frontend/                  # Tailwind (generado por scripts)
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   └── src/input.css
+├── static/
+│   └── css/tailwind.css       # salida compilada de Tailwind
 ├── pytest.ini
 ├── venv/                      # entorno virtual (sugerido)
 └── src/
@@ -168,7 +187,7 @@ python -m pytest -q
 ```
 
 ## Consideraciones Importantes
-1. **Variables de entorno**: Todas las configuraciones sensibles deben estar en `.env`
+1. **Variables de entorno**: Todas las configuraciones sensibles deben estar en `src/.env` (usa `src/.env.example` como plantilla)
 2. **Migraciones**: Cada aplicación puede tener su propia base de datos
 3. **Scaffolding**: `templates/app_templates/` se usa solo como plantilla de referencia. Nunca se ejecutan tests ni se mide cobertura allí. Al crear una nueva app, copiar la estructura a `src/<nueva_app>/` y recién entonces agregar código y tests.
-4. **Frontend (opcional)**: La configuración inicial debe ser recreada siguiendo las instrucciones
+4. **Frontend**: Los scripts generan `frontend/` y compilan Tailwind a `static/css/tailwind.css`. Incluye el CSS en tus plantillas con `{% static 'css/tailwind.css' %}`.

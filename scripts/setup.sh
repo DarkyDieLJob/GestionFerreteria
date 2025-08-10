@@ -3,12 +3,16 @@
 # Setup del proyecto en Linux/macOS (bash)
 # - Crea venv, instala dependencias, genera .env si falta, migra DB
 # - Flags opcionales: --dev para deps de desarrollo, --test para correr tests, --skip-migrate para omitir migraciones
+# - --requirements <nombre|ruta> para elegir qué archivo de requirements instalar (dev|notebook|lista_v3|ruta)
+# - --no-frontend para saltar scaffolding de frontend (Tailwind)
 #
 set -euo pipefail
 
 DEV=false
 TEST=false
 SKIP_MIGRATE=false
+REQUIREMENTS="notebook"
+NO_FRONTEND=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -22,6 +26,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-migrate)
       SKIP_MIGRATE=true
+      shift
+      ;;
+    --requirements)
+      REQUIREMENTS=${2:-}
+      if [[ -z "$REQUIREMENTS" ]]; then echo "--requirements requiere un valor" >&2; exit 1; fi
+      shift 2
+      ;;
+    --no-frontend)
+      NO_FRONTEND=true
       shift
       ;;
     *)
@@ -50,13 +63,20 @@ fi
 stage "Actualizando pip"
 ./venv/bin/python -m pip install --upgrade pip
 
-# 4) Instalar dependencias base
-stage "Instalando dependencias base (requirements/lista_v3.txt)"
-REQ_BASE="requirements/lista_v3.txt"
-if [[ ! -f "$REQ_BASE" ]]; then
-  echo "No existe $REQ_BASE" >&2
-  exit 1
-fi
+# 4) Instalar dependencias base (según selección)
+stage "Seleccionando requirements: $REQUIREMENTS"
+REQ_DIR="requirements"
+case "$REQUIREMENTS" in
+  [Dd][Ee][Vv])        REQ_BASE="$REQ_DIR/dev.txt" ;;
+  [Nn][Oo][Tt][Ee][Bb][Oo][Oo][Kk]) REQ_BASE="$REQ_DIR/notebook.txt" ;;
+  [Ll][Ii][Ss][Tt][Aa]_[Vv]3|[Ll][Ii][Ss][Tt][Aa][Vv]3) REQ_BASE="$REQ_DIR/lista_v3.txt" ;;
+  *)
+    if [[ -f "$REQUIREMENTS" ]]; then REQ_BASE="$REQUIREMENTS"; else
+      echo "No se reconoce requirements '$REQUIREMENTS'. Use dev|notebook|lista_v3 o una ruta válida." >&2; exit 1;
+    fi
+    ;;
+esac
+stage "Instalando dependencias base ($REQ_BASE)"
 ./venv/bin/python -m pip install -r "$REQ_BASE"
 
 # 5) Paquetes requeridos no listados explícitamente
@@ -98,6 +118,76 @@ EOF
   fi
 else
   echo "src/.env ya existe, no se modifica."
+fi
+
+# 7.1) Frontend (Tailwind) por defecto a menos que se desactive
+if [[ "$NO_FRONTEND" != "true" ]]; then
+  stage "Configurando frontend con Tailwind"
+  FRONTEND_DIR="frontend"
+  mkdir -p "$FRONTEND_DIR/src"
+
+  if [[ ! -f "$FRONTEND_DIR/package.json" ]]; then
+    cat > "$FRONTEND_DIR/package.json" << 'EOF'
+{
+  "name": "django-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css -w",
+    "build": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.10"
+  }
+}
+EOF
+  fi
+
+  if [[ ! -f "$FRONTEND_DIR/tailwind.config.js" ]]; then
+    cat > "$FRONTEND_DIR/tailwind.config.js" << 'EOF'
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "../src/**/*.html",
+    "../src/**/templates/**/*.html",
+    "../templates/**/*.html"
+  ],
+  theme: { extend: {} },
+  plugins: [],
+};
+EOF
+  fi
+
+  if [[ ! -f "$FRONTEND_DIR/postcss.config.js" ]]; then
+    cat > "$FRONTEND_DIR/postcss.config.js" << 'EOF'
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+EOF
+  fi
+
+  if [[ ! -f "$FRONTEND_DIR/src/input.css" ]]; then
+    cat > "$FRONTEND_DIR/src/input.css" << 'EOF'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+EOF
+  fi
+
+  mkdir -p static/css
+  if command -v npm >/dev/null 2>&1; then
+    stage "Instalando dependencias npm"
+    (cd "$FRONTEND_DIR" && npm install)
+    stage "Construyendo CSS con Tailwind"
+    (cd "$FRONTEND_DIR" && npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify)
+  else
+    echo "npm no encontrado. Ejecuta 'npm install' y 'npm run build' dentro de frontend/ cuando tengas Node.js."
+  fi
 fi
 
 # 8) Migraciones

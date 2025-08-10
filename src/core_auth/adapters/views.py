@@ -16,9 +16,8 @@ from django.contrib.auth.hashers import make_password, check_password
 # Set up logging
 logger = logging.getLogger(__name__)
 
-from .forms import RegisterForm, LoginForm, ResetRequestForm
+from .forms import RegisterForm, LoginForm, ResetRequestForm, EnforcedPasswordChangeForm
 from .models import CoreAuthProfile, PasswordResetRequest
-from django.contrib.auth.forms import PasswordChangeForm
 from .repository import DjangoAuthRepository
 from ..domain.use_cases import RegisterUserUseCase, LoginUserUseCase, LogoutUserUseCase
 
@@ -135,11 +134,11 @@ class PasswordChangeEnforcedView(LoginRequiredMixin, View):
     template_name = 'core_auth/password_change_enforced.html'
 
     def get(self, request, *args, **kwargs):
-        form = PasswordChangeForm(user=request.user)
+        form = EnforcedPasswordChangeForm(user=request.user)
         return render(request, self.template_name, {'form': form})
 
     def post(self, request, *args, **kwargs):
-        form = PasswordChangeForm(user=request.user, data=request.POST)
+        form = EnforcedPasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
             user = form.save()
             # Desactivar el flag de forzar cambio

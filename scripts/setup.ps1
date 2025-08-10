@@ -25,7 +25,9 @@
 param(
   [switch]$Dev = $false,
   [switch]$Test = $false,
-  [switch]$SkipMigrate = $false
+  [switch]$SkipMigrate = $false,
+  [string]$Requirements = 'notebook',
+  [switch]$NoFrontend = $false
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,7 +40,8 @@ function Write-Stage($msg) {
 Write-Stage "Verificando Python"
 $python = "$Env:LOCALAPPDATA\Programs\Python\Python310\python.exe"
 if (-not (Test-Path $python)) {
-  $python = (Get-Command python -ErrorAction SilentlyContinue)?.Source
+  $cmd = Get-Command python -ErrorAction SilentlyContinue
+  if ($null -ne $cmd) { $python = $cmd.Source }
 }
 if (-not $python) {
   throw "Python no encontrado. Instala Python 3.10+ y vuelve a intentar."
@@ -58,15 +61,31 @@ if (-not (Test-Path $venvPython)) { throw "No se encontró python en venv: $venv
 Write-Stage "Actualizando pip"
 & $venvPython -m pip install --upgrade pip
 
-# 4) Instalar dependencias base
-Write-Stage "Instalando dependencias base (requirements/lista_v3.txt)"
-$reqBase = Join-Path (Get-Location) "requirements/lista_v3.txt"
-if (-not (Test-Path $reqBase)) { throw "No existe $reqBase" }
+# 4) Instalar dependencias base (según selección)
+Write-Stage "Seleccionando requirements: $Requirements"
+$reqDir = Join-Path (Get-Location) "requirements"
+switch -Regex ($Requirements) {
+  '^(?i)dev$'        { $reqBase = Join-Path $reqDir 'dev.txt' ; break }
+  '^(?i)notebook$'   { $reqBase = Join-Path $reqDir 'notebook.txt' ; break }
+  '^(?i)lista(_)?v3$'{ $reqBase = Join-Path $reqDir 'lista_v3.txt' ; break }
+  default            {
+    # permitir ruta personalizada
+    if (Test-Path $Requirements) { $reqBase = (Resolve-Path $Requirements).Path }
+    else { throw "No se reconoce el requirements '$Requirements'. Use 'dev', 'notebook', 'lista_v3' o una ruta válida." }
+  }
+}
+Write-Stage "Instalando dependencias base ($reqBase)"
 & $venvPython -m pip install -r $reqBase
+if ($LASTEXITCODE -ne 0) {
+  throw "Fallo instalando dependencias base desde $reqBase. Revisa el archivo y tu versión de Python."
+}
 
 # 5) Paquetes requeridos no listados explícitamente en lista_v3.txt
-Write-Stage "Asegurando paquetes requeridos (djangorestframework, python-decouple)"
-& $venvPython -m pip install djangorestframework python-decouple
+Write-Stage "Asegurando paquetes requeridos (djangorestframework, python-decouple, django-allauth)"
+& $venvPython -m pip install djangorestframework python-decouple django-allauth
+if ($LASTEXITCODE -ne 0) {
+  throw "Fallo asegurando paquetes requeridos."
+}
 
 # 6) Dependencias de desarrollo (opcional)
 if ($Dev) {
@@ -74,6 +93,9 @@ if ($Dev) {
   $reqDev = Join-Path (Get-Location) "requirements/dev.txt"
   if (Test-Path $reqDev) {
     & $venvPython -m pip install -r $reqDev
+    if ($LASTEXITCODE -ne 0) {
+      throw "Fallo instalando dependencias de desarrollo desde $reqDev."
+    }
   } else {
     Write-Host "No se encontró requirements/dev.txt, se omite." -ForegroundColor Yellow
   }
@@ -107,9 +129,98 @@ GITHUB_SECRET=
   Write-Host "src/.env ya existe, no se modifica." -ForegroundColor Yellow
 }
 
+# 7.1) Frontend (Tailwind) por defecto a menos que se desactive
+if (-not $NoFrontend) {
+  Write-Stage "Configurando frontend con Tailwind"
+  $frontendDir = Join-Path (Get-Location) 'frontend'
+  if (-not (Test-Path $frontendDir)) { New-Item -ItemType Directory -Path $frontendDir | Out-Null }
+  if (-not (Test-Path (Join-Path $frontendDir 'src'))) { New-Item -ItemType Directory -Path (Join-Path $frontendDir 'src') | Out-Null }
+
+  $pkgPath = Join-Path $frontendDir 'package.json'
+  if (-not (Test-Path $pkgPath)) {
+    @"
+{
+  "name": "django-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css -w",
+    "build": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.10"
+  }
+}
+"@ | Set-Content -Encoding UTF8 $pkgPath
+  }
+
+  $tailwindCfg = Join-Path $frontendDir 'tailwind.config.js'
+  if (-not (Test-Path $tailwindCfg)) {
+    @"
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "../src/**/*.html",
+    "../src/**/templates/**/*.html",
+    "../templates/**/*.html"
+  ],
+  theme: { extend: {} },
+  plugins: [],
+};
+"@ | Set-Content -Encoding UTF8 $tailwindCfg
+  }
+
+  $postcssCfg = Join-Path $frontendDir 'postcss.config.js'
+  if (-not (Test-Path $postcssCfg)) {
+    @"
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+"@ | Set-Content -Encoding UTF8 $postcssCfg
+  }
+
+  $inputCss = Join-Path $frontendDir 'src/input.css'
+  if (-not (Test-Path $inputCss)) {
+    @"
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+"@ | Set-Content -Encoding UTF8 $inputCss
+  }
+
+  $staticCssDir = Join-Path (Get-Location) 'static/css'
+  if (-not (Test-Path $staticCssDir)) { New-Item -ItemType Directory -Path $staticCssDir -Force | Out-Null }
+
+  # Intentar npm install y build (si npm está disponible)
+  $npm = (Get-Command npm -ErrorAction SilentlyContinue)
+  if ($null -ne $npm) {
+    Write-Stage "Instalando dependencias npm"
+    Push-Location $frontendDir
+    try {
+      npm install
+      Write-Stage "Construyendo CSS con Tailwind"
+      npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify
+    } finally {
+      Pop-Location
+    }
+  } else {
+    Write-Host "npm no encontrado. Ejecuta 'npm install' y 'npm run build' dentro de frontend/ cuando tengas Node.js." -ForegroundColor Yellow
+  }
+}
+
 # 8) Migraciones
 if (-not $SkipMigrate) {
   Write-Stage "Ejecutando migraciones"
+  # Asegurar carpeta de base de datos SQLite
+  $srcData = Join-Path (Get-Location) 'src/data'
+  if (-not (Test-Path $srcData)) { New-Item -ItemType Directory -Path $srcData -Force | Out-Null }
+  # Crear migraciones antes de aplicar
+  & $venvPython .\src\manage.py makemigrations
   & $venvPython .\src\manage.py migrate
 }
 
