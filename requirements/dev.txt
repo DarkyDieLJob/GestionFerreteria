@@ -3,3 +3,4 @@ pytest-django
 pytest-cov
 black
 flake8
+commitizen>=3.24.0
