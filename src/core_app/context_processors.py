@@ -33,6 +33,7 @@ def app_meta(request):
     - ## [1.0.0] - YYYY-MM-DD
     - ## 1.0.0
     - ## v1.0.0
+    - ### [1.0.0] (YYYY-MM-DD)  # standard-version
     """
     app_name = getattr(settings, "NOMBRE_APLICACION", "Mi Aplicacion")
 
@@ -51,7 +52,12 @@ def app_meta(request):
             with open(changelog_path, "r", encoding="utf-8") as f:
                 content = f.read()
             # Buscar primera coincidencia de encabezado de versión
-            m = re.search(r"^##\s*(?:\[)?v?(\d+\.\d+\.\d+)(?:\])?\b", content, re.MULTILINE)
+            # Soporta H2/H3 (## o ###), con o sin 'v', con o sin corchetes, p.ej:
+            #   ## v1.2.0
+            #   ## 1.2.0
+            #   ## [1.2.0]
+            #   ### [1.2.1] (YYYY-MM-DD)  <- standard-version
+            m = re.search(r"^#{2,3}\s*(?:\[)?v?(\d+\.\d+\.\d+)(?:\])?\b", content, re.MULTILINE)
             if m:
                 version = m.group(1)
         except Exception:
