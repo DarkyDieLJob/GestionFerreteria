@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.3](https://github.com/DarkyDieLJob/DjangoProyects/compare/v1.2.2...v1.2.3) (2025-08-11)
+
+
+### Bug Fixes
+
+* **ci:** back-merge automático main -> pre-release con GitHub Actions ([413fae2](https://github.com/DarkyDieLJob/DjangoProyects/commit/413fae2a73622cb2c2ef6c4ebcf0956c74f8b8db))
+
 ### [1.2.2](https://github.com/DarkyDieLJob/DjangoProyects/compare/v1.2.1...v1.2.2) (2025-08-11)
 
 
