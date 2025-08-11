@@ -23,6 +23,22 @@ def home(request):
     return render(request, 'core_app/home.html', context)
 
 
+def terms(request):
+    """
+    Vista pública que renderiza los Términos de Servicio.
+    No requiere autenticación y muestra contenido estático.
+    """
+    return render(request, 'core_app/terms.html')
+
+
+def privacy(request):
+    """
+    Vista pública que renderiza la Política de Privacidad.
+    No requiere autenticación y muestra contenido estático.
+    """
+    return render(request, 'core_app/privacy.html')
+
+
 @staff_member_required
 def coverage_report(request):
     """
