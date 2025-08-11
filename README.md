@@ -204,13 +204,18 @@ python -m pytest -q
 ```
 .
 ├── README.md
+├── Dockerfile
+├── docker-compose.yml
+├── .dockerignore
 ├── requirements/              # archivos de dependencias
 │   ├── dev.txt
 │   ├── notebook.txt
-│   └── lista_v3.txt
+│   ├── lista_v3.txt
+│   └── runtime.txt            # dependencias mínimas de ejecución (Docker)
 ├── scripts/                   # scripts de automatización
 │   ├── setup.ps1              # Windows (PowerShell)
-│   └── setup.sh               # Linux/macOS (bash)
+│   ├── setup.sh               # Linux/macOS (bash)
+│   └── docker-entrypoint.sh   # entrypoint del contenedor
 ├── frontend/                  # Tailwind (generado por scripts)
 │   ├── package.json
 │   ├── tailwind.config.js
@@ -241,3 +246,22 @@ python -m pytest -q
 2. **Migraciones**: Cada aplicación puede tener su propia base de datos
 3. **Scaffolding**: `templates/app_templates/` se usa solo como plantilla de referencia. Nunca se ejecutan tests ni se mide cobertura allí. Al crear una nueva app, copiar la estructura a `src/<nueva_app>/` y recién entonces agregar código y tests.
 4. **Frontend**: Los scripts generan `frontend/` y compilan Tailwind a `static/css/tailwind.css`. Incluye el CSS en tus plantillas con `{% static 'css/tailwind.css' %}`.
+
+## Flujo de ramas y commits (resumen)
+
+Sigue `docs/GIT_AGENTES.md`:
+
+- Nunca trabajes directo en `main` o `pre-release`.
+- Si estás en `develop`: crea una rama `feature/{area}/{descripcion}` para empezar cambios.
+- Si estás en `pre-release` o `main`:
+  - Cambia a la rama `feature/*` pertinente, o
+  - Cambia a `develop` y crea la `feature/*` correspondiente.
+
+Convencional Commits (resumen):
+
+- Tipos: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
+- Ejemplos para esta dockerización:
+  - `feat(docker): agregar Dockerfile y entrypoint con build de Tailwind`
+  - `chore(docker): añadir .dockerignore`
+  - `feat(deps): crear requirements/runtime.txt para producción`
+  - `docs(docker): instrucciones de build y uso (compose con restart always)`
