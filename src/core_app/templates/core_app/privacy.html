@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="container mx-auto px-4 py-10">
+  <div class="max-w-3xl mx-auto">
+    <div class="mb-4 print:hidden">
+      <a href="javascript:history.back()" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+        <svg class="h-4 w-4 mr-2" aria-hidden="true"><use href="{% static 'icons/sprite.svg#icon-back' %}"></use></svg>
+        Volver
+      </a>
+    </div>
+
+    <header class="text-center">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-900">Política de Privacidad</h1>
+      <p class="mt-3 text-gray-600">Cómo recopilamos, usamos y protegemos tu información en {{ settings.NOMBRE_APLICACION }}</p>
+    </header>
+
+    <div class="mt-8 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 print:shadow-none print:ring-0 print:bg-white">
+      <div class="p-6 md:p-8 prose prose-slate lg:prose-lg max-w-none print:p-0">
+        <p>En {{ settings.NOMBRE_APLICACION }}, respetamos tu privacidad. Esta política describe cómo recopilamos, usamos y protegemos tu información.</p>
+
+        <section>
+          <h2 class="flex items-center">
+            <svg class="h-5 w-5 text-indigo-600 mr-2" aria-hidden="true"><use href="{% static 'icons/sprite.svg#icon-privacy-collect' %}"></use></svg>
+            1. Información que recopilamos
+          </h2>
+          <p>Recopilamos la información que nos proporcionas al registrarte y utilizar el servicio (por ejemplo, correo electrónico, teléfono opcional y los últimos 4 dígitos del DNI para recuperación de cuenta). También podemos recoger datos técnicos y de uso, como dirección IP, identificadores de dispositivo, tipo de navegador, páginas visitadas y cookies necesarias para el funcionamiento y la seguridad. No solicitamos información sensible a menos que sea estrictamente necesaria y debidamente informada.</p>
+        </section>
+
+        <div class="my-8 h-px bg-gray-200"></div>
+
+        <section>
+          <h2 class="flex items-center">
+            <svg class="h-5 w-5 text-indigo-600 mr-2" aria-hidden="true"><use href="{% static 'icons/sprite.svg#icon-privacy-use' %}"></use></svg>
+            2. Uso de la información
+          </h2>
+          <p>Usamos tus datos para: (a) prestar y mantener el servicio; (b) ayudarte con soporte y seguridad de la cuenta; (c) mejorar funcionalidades mediante análisis agregados; y (d) cumplir obligaciones legales. No vendemos tus datos. Podemos compartir información con proveedores que nos ayudan a operar (por ejemplo, hosting o correo transaccional), bajo acuerdos de confidencialidad y protección de datos. Conservamos los datos durante el tiempo necesario para la prestación del servicio y por los periodos exigidos por ley. Puedes ejercer tus derechos de acceso, rectificación o supresión contactándonos en el correo indicado en el sitio.</p>
+        </section>
+
+        <div class="my-8 h-px bg-gray-200"></div>
+
+        <p class="mt-6">Revisa también nuestros <a href="{% url 'core_app:terms' %}" class="text-indigo-600 hover:underline">Términos de Servicio</a>.</p>
+
+        <footer class="mt-10 pt-4 text-sm text-gray-500 border-t border-gray-200">
+          Última actualización: {% now "Y-m-d" %}
+        </footer>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
