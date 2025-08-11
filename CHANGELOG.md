@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.2](https://github.com/DarkyDieLJob/DjangoProyects/compare/v1.2.1...v1.2.2) (2025-08-11)
+
+
+### Bug Fixes
+
+* **ci:** otorgar permissions contents:write para crear releases con action-gh-release ([e14e3b9](https://github.com/DarkyDieLJob/DjangoProyects/commit/e14e3b9c119eeb4b9423258405912c5b9114addd))
+* **context:** reconocer encabezados standard-version en CHANGELOG (### [x.y.z]) ([dc30e5d](https://github.com/DarkyDieLJob/DjangoProyects/commit/dc30e5df978079358b3b68de51f4e6330714eabc))
+
 ### [1.2.1](https://github.com/DarkyDieLJob/DjangoProyects/compare/v1.2.0...v1.2.1) (2025-08-11)
 
 
