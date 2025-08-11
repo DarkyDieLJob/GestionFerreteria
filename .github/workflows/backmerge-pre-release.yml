@@ -1,0 +1,42 @@
+name: Backmerge main -> pre-release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  backmerge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all
+        run: |
+          git fetch origin +refs/heads/*:refs/remotes/origin/*
+
+      - name: Merge main -> pre-release
+        shell: bash
+        run: |
+          set -e
+          # Ensure we have both branches locally
+          git checkout -B pre-release origin/pre-release
+          # Try the merge (fast-forward or merge commit)
+          if git merge --no-ff origin/main -m "chore: back-merge main into pre-release (run $GITHUB_RUN_ID)"; then
+            git push origin pre-release
+            echo "Back-merge completed and pushed."
+          else
+            echo "Back-merge failed due to conflicts. Please resolve manually via a PR." >&2
+            exit 1
+          fi
