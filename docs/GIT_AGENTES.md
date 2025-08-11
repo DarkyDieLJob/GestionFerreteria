@@ -119,3 +119,29 @@ git checkout develop && git pull --ff-only && git merge --no-ff origin/pre-relea
 - Release: PR `pre-release` -> `main`, luego tag `vX.Y.Z` y push del tag.
  - Crear fix: `git checkout pre-release && git pull --ff-only && git checkout -b fix/{area}/{desc}`
  - Abrir PR fix a pre-release: `gh pr create --base pre-release --head fix/{area}/{desc} ...`
+
+## Versionado y Changelog (obligatorio: standard-version)
+
+Para evitar saltos de versión o doble etiquetado, el versionado y la generación del changelog se hacen EXCLUSIVAMENTE con `standard-version` siguiendo Conventional Commits.
+
+### Política
+- No crear tags manuales con `git tag` para releases normales.
+- No editar manualmente `CHANGELOG.md` (lo escribe `standard-version`).
+- Usar versiones semánticas: `major.minor.patch`.
+
+### Flujo recomendado
+1) Asegúrate de que `main` contenga el contenido a publicar (mergea `pre-release` -> `main`).
+2) En `main`, ejecutar una sola vez según el tipo de release:
+   - Patch: `npx standard-version --release-as patch`
+   - Minor: `npx standard-version --release-as minor`
+   - Major: `npx standard-version --release-as major`
+   (o sin `--release-as` para que infiera por commits)
+3) Publicar commit y tags:
+   - `git push --follow-tags origin main`
+4) Sincronizar ramas:
+   - `git checkout develop && git pull --ff-only && git merge --no-ff origin/main -m "chore: sync main -> develop (release)" && git push`
+   - (Opcional) `git checkout pre-release && git pull --ff-only && git merge --no-ff origin/main -m "chore: sync main -> pre-release (release)" && git push`
+
+### Notas
+- Si por error se creó un tag manual y luego se ejecutó `standard-version`, puede generarse un salto (p.ej. 1.1.0 → 1.2.0). Evitar mezclar ambos métodos.
+- Los commits deben seguir Conventional Commits para que `standard-version` pueda inferir el tipo de release correctamente.
