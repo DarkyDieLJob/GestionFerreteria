@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="container mx-auto px-4 py-10">
+  <div class="max-w-3xl mx-auto">
+    <div class="mb-4 print:hidden">
+      <a href="javascript:history.back()" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+        <svg class="h-4 w-4 mr-2" aria-hidden="true"><use href="{% static 'icons/sprite.svg#icon-back' %}"></use></svg>
+        Volver
+      </a>
+    </div>
+
+    <header class="text-center">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-900">Términos de Servicio</h1>
+      <p class="mt-3 text-gray-600">Condiciones de uso de {{ settings.NOMBRE_APLICACION }}</p>
+    </header>
+
+    <div class="mt-8 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 print:shadow-none print:ring-0 print:bg-white">
+      <div class="p-6 md:p-8 prose prose-slate lg:prose-lg max-w-none print:p-0">
+        <p>Bienvenido a {{ settings.NOMBRE_APLICACION }}. Al usar nuestro servicio, aceptas las condiciones detalladas a continuación.</p>
+
+        <section>
+          <h2 class="flex items-center">
+            <svg class="h-5 w-5 text-indigo-600 mr-2" aria-hidden="true"><use href="{% static 'icons/sprite.svg#icon-terms-use' %}"></use></svg>
+            1. Uso del Servicio
+          </h2>
+          <p>Eres responsable del uso que hagas de {{ settings.NOMBRE_APLICACION }} y de mantener la confidencialidad de tus credenciales. Te comprometes a no utilizar el servicio para actividades ilícitas, infringir derechos de terceros, introducir malware o intentar acceder a áreas no públicas. Podemos actualizar o interrumpir partes del servicio para mejorar rendimiento o seguridad; procuraremos minimizar impactos y, cuando sea razonable, avisar de cambios relevantes. Algunas funcionalidades pueden requerir requisitos técnicos mínimos y pueden no estar disponibles temporalmente por mantenimiento.</p>
+        </section>
+
+        <div class="my-8 h-px bg-gray-200"></div>
+
+        <section>
+          <h2 class="flex items-center">
+            <svg class="h-5 w-5 text-indigo-600 mr-2" aria-hidden="true"><use href="{% static 'icons/sprite.svg#icon-terms-ip' %}"></use></svg>
+            2. Propiedad Intelectual
+          </h2>
+          <p>{{ settings.NOMBRE_APLICACION }} y sus contenidos (código, diseño, marcas, logotipos y materiales) son propiedad de sus respectivos titulares y están protegidos por la normativa aplicable. No se concede licencia alguna más allá de lo necesario para usar el servicio conforme a estos términos. Si aportas contenido (por ejemplo, textos o archivos), declaras tener derechos para compartirlo y otorgas a {{ settings.NOMBRE_APLICACION }} una licencia no exclusiva para alojarlo y mostrarlo con el propósito de prestar el servicio. Si crees que algún contenido infringe derechos, contáctanos para que podamos revisarlo.</p>
+        </section>
+
+        <div class="my-8 h-px bg-gray-200"></div>
+
+        <p class="mt-6">Lee nuestra <a href="{% url 'core_app:privacy' %}" class="text-indigo-600 hover:underline">Política de Privacidad</a> para más información.</p>
+
+        <footer class="mt-10 pt-4 text-sm text-gray-500 border-t border-gray-200">
+          Última actualización: {% now "Y-m-d" %}
+        </footer>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

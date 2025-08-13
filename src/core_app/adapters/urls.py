@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from django.views.generic import TemplateView
 
 app_name = 'core_app'
 
@@ -9,5 +10,8 @@ urlpatterns = [
     path('coverage/', views.coverage_report, name='coverage'),
     path('coverage/assets/<path:path>', views.coverage_asset, name='coverage_asset'),
     path('coverage/raw/<path:path>', views.coverage_raw, name='coverage_raw'),
-    # path('', views.article_list, name='article_list'),
+
+    # vistas públicas estáticas
+    path('terms/', views.terms, name='terms'),
+    path('privacy/', views.privacy, name='privacy'),
 ]

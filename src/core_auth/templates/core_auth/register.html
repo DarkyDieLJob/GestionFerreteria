@@ -172,7 +172,7 @@
                     </div>
                     <div class="ml-3 text-sm">
                         <label for="{{ form.terms.id_for_label }}" class="font-medium text-gray-700">
-                            Acepto los <a href="#" class="text-indigo-600 hover:text-indigo-500">Términos de Servicio</a> y la <a href="#" class="text-indigo-600 hover:text-indigo-500">Política de Privacidad</a>
+                            Acepto los <a href="{% url 'core_app:terms' %}" class="text-indigo-600 hover:text-indigo-500">Términos de Servicio</a> y la <a href="{% url 'core_app:privacy' %}" class="text-indigo-600 hover:text-indigo-500">Política de Privacidad</a>
                         </label>
                         {% if form.terms.errors %}
                             {% for error in form.terms.errors %}
