@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <!-- Back arrow (20x20) -->
+  <symbol id="icon-back" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5A1 1 0 0110.707 4.293L7.414 7.586H17a1 1 0 110 2H7.414l3.293 3.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+  </symbol>
+
+  <!-- Privacy: information we collect (24x24 bell-like) -->
+  <symbol id="icon-privacy-collect" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2a7 7 0 017 7v1a4 4 0 002 3.464V18a2 2 0 01-2 2h-3a3 3 0 01-6 0H7a2 2 0 01-2-2v-4.536A4 4 0 007 10V9a7 7 0 015-6.708V2z"/>
+  </symbol>
+
+  <!-- Privacy: use of information (24x24 clock) -->
+  <symbol id="icon-privacy-use" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 3a9 9 0 100 18 9 9 0 000-18zm1 5a1 1 0 10-2 0v4a1 1 0 00.293.707l2.5 2.5a1 1 0 001.414-1.414L13 11.586V8z"/>
+  </symbol>
+
+  <!-- Terms: use of service (24x24 document) -->
+  <symbol id="icon-terms-use" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6 4a2 2 0 00-2 2v12a2 2 0 002 2h9a2 2 0 002-2V8.414A2 2 0 0016.414 7L13 3.586A2 2 0 0011.586 3H6zM8 12h5a1 1 0 010 2H8a1 1 0 110-2zm0 4h7a1 1 0 010 2H8a1 1 0 110-2z"/>
+  </symbol>
+
+  <!-- Terms: intellectual property (24x24 card/section) -->
+  <symbol id="icon-terms-ip" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M5 3a1 1 0 00-1 1v2h16V4a1 1 0 00-1-1H5zm16 5H3v10a2 2 0 002 2h14a2 2 0 002-2V8zM8 12h8a1 1 0 010 2H8a1 1 0 110-2z"/>
+  </symbol>
+</svg>
