@@ -100,6 +100,14 @@ Si falla alguna dependencia, asegúrate de tener herramientas de compilación b�
 
 Crea un archivo `.env` en `src/` (misma carpeta donde está `manage.py`):
 
+O, más simple, copia el archivo de ejemplo y edítalo:
+
+```bash
+cp src/.env.example src/.env
+```
+
+Si prefieres hacerlo manualmente, puedes crear el archivo con el siguiente contenido base:
+
 ```bash
 cat > src/.env << 'EOF'
 # Django
@@ -113,6 +121,12 @@ ALLOWED_HOSTS=127.0.0.1,localhost
 # Social auth (si aplica)
 GITHUB_CLIENT_ID=
 GITHUB_SECRET=
+ 
+ # Personalización de la app (opcional)
+ NOMBRE_APLICACION=DjangoProyects
+ WHATSAPP_CONTACT=+00 000 000 000
+ PASSWORD_RESET_TICKET_TTL_HOURS=48
+ TEMP_PASSWORD_LENGTH=16
 EOF
 ```
 
