@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 import importlib
 import os
-from decouple import AutoConfig
+from decouple import AutoConfig, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,12 +27,14 @@ config = AutoConfig(search_path=BASE_DIR)
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-qs+m*y43bgjxo3+ia5g09pr&46+z)&m)iztnz^%@7rrs_(pmrb'
+# Cargada desde variables de entorno (src/.env). Proveer un default de desarrollo.
+SECRET_KEY = config('SECRET_KEY', default='changeme_insecure_secret_key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', cast=bool, default=True)
 
-ALLOWED_HOSTS = []
+# Lista separada por comas: 127.0.0.1,localhost,mi-dominio.com
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='127.0.0.1,localhost')
 
 
 # Application definition
@@ -62,7 +64,7 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-SITE_ID = 2  # Requerido por django-allauthACCOUNT_EMAIL_VERIFICATION = 'none'  # Ajustar según necesidades
+SITE_ID = 2  # Requerido por django-allauth
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': [
