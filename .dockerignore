@@ -1,0 +1,27 @@
+# Ignorar entornos locales y artefactos
+venv/
+*.pyc
+__pycache__/
+.git/
+.gitignore
+.env
+src/.env
+node_modules/
+frontend/node_modules/
+.dist/
+.build/
+.coverage
+htmlcov/
+pytest.cache/
+.DS_Store
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Archivos no necesarios para build
+scripts/*.ps1
+scripts/setup.sh
+
+# Salidas estáticas que se pueden regenerar
+static/css/tailwind.css
