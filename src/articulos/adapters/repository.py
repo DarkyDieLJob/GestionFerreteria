@@ -1,0 +1,1 @@
+# Archivo del repositorio del adaptador

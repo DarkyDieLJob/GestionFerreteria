@@ -56,6 +56,11 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.github',  # Ejemplo: proveedor GitHub
     'core_app.apps.Core_appConfig',
     'core_auth.apps.Core_authConfig',
+    # Nuevas apps de negocio
+    'proveedores.apps.ProveedoresConfig',
+    'articulos.apps.ArticulosConfig',
+    'precios.apps.PreciosConfig',
+    'importaciones.apps.ImportacionesConfig',
 ]
 
 # Configuración de django-allauth
@@ -146,9 +151,10 @@ DATABASES = {
 
 # Importar configuraciones de bases de datos de aplicaciones
 for app in INSTALLED_APPS:
-    if app.startswith('core_') or app == 'cart':
+    app_name = app.split(".")[0]
+    if app_name.startswith('core_') or app_name in {'cart', 'proveedores', 'articulos', 'precios', 'importaciones'}:
         try:
-            module = importlib.import_module(f'{app.split(".")[0]}.config')
+            module = importlib.import_module(f'{app_name}.config')
             DATABASES.update(getattr(module, 'DATABASE', {}))
         except (ImportError, AttributeError):
             pass  # La aplicación no define una base de datos propia

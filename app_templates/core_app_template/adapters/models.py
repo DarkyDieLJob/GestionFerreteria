@@ -1,0 +1,1 @@
+# Archivo de modelos del adaptador

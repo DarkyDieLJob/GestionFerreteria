@@ -2,13 +2,18 @@
 
 from .settings import *
 
-# Use in-memory database for tests
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': ':memory:',
-    }
+# Use in-memory databases for tests; preserve negocio_db alias from base settings
+# Start from base settings.DATABASES so routers keep working
+DATABASES = DATABASES.copy()
+DATABASES['default'] = {
+    'ENGINE': 'django.db.backends.sqlite3',
+    'NAME': ':memory:',
 }
+# Ensure negocio_db exists for business apps tested with pytest
+DATABASES.setdefault('negocio_db', {
+    'ENGINE': 'django.db.backends.sqlite3',
+    'NAME': ':memory:',
+})
 
 # Speed up password hashing for tests
 PASSWORD_HASHERS = [
