@@ -19,7 +19,6 @@ import time
 import subprocess
 from pathlib import Path
 
-import schedule
 
 # Configurar entorno Django (añadir src al sys.path y cargar settings)
 CURRENT_FILE = Path(__file__).resolve()
@@ -65,7 +64,12 @@ def run_procesar_excel() -> None:
 
 
 def main() -> None:
-    # Programar la tarea diaria a las 00:00
+    # Programar la tarea diaria a las 00:00 (import perezoso de schedule)
+    try:
+        import schedule  # type: ignore
+    except ModuleNotFoundError:
+        print("La librería 'schedule' no está instalada. Instálala para usar el scheduler.")
+        return
     schedule.every().day.at("00:00").do(run_procesar_excel)
 
     print("Scheduler iniciado. Verificando tareas cada minuto...")
