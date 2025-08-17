@@ -1,0 +1,1 @@
+# Archivo de serializadores del adaptador

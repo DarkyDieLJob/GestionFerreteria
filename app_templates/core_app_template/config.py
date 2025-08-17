@@ -1,0 +1,1 @@
+# Configuración de la base de datos específica de la app

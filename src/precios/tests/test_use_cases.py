@@ -1,0 +1,1 @@
+# Pruebas para los casos de uso del dominio
