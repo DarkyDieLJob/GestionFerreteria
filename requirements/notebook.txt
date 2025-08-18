@@ -25,3 +25,4 @@ typing_extensions==4.14.1
 urllib3==2.5.0
 python-decouple
 commitizen>=3.24.0
+pandas

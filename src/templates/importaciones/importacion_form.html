@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{# Template de formulario de importación de Excel.
+   Hereda de base.html y define el bloque de contenido. #}
+
+{% block content %}
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold text-gray-900 flex items-center">
+        <i class="fas fa-file-import mr-3 text-indigo-600"></i>
+        Importación de Excel
+      </h1>
+      <p class="mt-2 text-sm text-gray-600">
+        Selecciona un archivo (.xlsx, .xls, .ods, .csv) con la lista de artículos
+        del proveedor para procesar la importación.
+      </p>
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-6">
+      <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <div>
+          <label for="id_archivo" class="block text-sm font-medium text-gray-700">Archivo</label>
+          <div class="mt-1">
+            {{ form.archivo }}
+          </div>
+          {% if form.archivo.errors %}
+            <p class="mt-2 text-sm text-red-600">{{ form.archivo.errors.0 }}</p>
+          {% endif %}
+          <p class="mt-2 text-xs text-gray-500">Formatos permitidos: .xlsx, .xls, .ods, .csv</p>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3">
+          <a href="{% url 'proveedores:proveedor_list' %}"
+             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            Cancelar
+          </a>
+          <button type="submit"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <i class="fas fa-upload mr-2"></i>
+            Subir y procesar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock content %}

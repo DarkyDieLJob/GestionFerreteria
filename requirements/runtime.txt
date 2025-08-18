@@ -5,3 +5,4 @@ djangorestframework==3.16.1
 python-decouple
 requests==2.32.4
 sqlparse==0.5.3
+pandas
