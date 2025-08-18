@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import User
 from django.apps import apps
 
 
@@ -91,7 +90,8 @@ class ArticuloSinRevisar(ArticuloBase):
     codigo_barras = models.CharField(max_length=50, blank=True, null=True)
     estado = models.CharField(max_length=20, choices=[('pendiente', 'Pendiente'), ('mapeado', 'Mapeado'), ('nuevo', 'Nuevo')])
     fecha_mapeo = models.DateTimeField(null=True, blank=True)
-    usuario = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    # Campo 'usuario' eliminado: no es necesario para la importación ni el mapeo y
+    # simplifica la relación, evitando dependencia con auth_user en la base 'default'.
     descuento = models.ForeignKey('precios.Descuento', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
