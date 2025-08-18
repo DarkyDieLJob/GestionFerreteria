@@ -10,6 +10,7 @@ from django.core.files.storage import FileSystemStorage
 # manteniendo a Django como capa de presentación.
 from importaciones.adapters.repository import ExcelRepository
 from importaciones.adapters.forms import ImportacionForm
+from proveedores.models import Proveedor
 
 # Nota: ImportacionForm se define en importaciones.adapters.forms y se integra aquí
 # como form_class de ImportacionCreateView.
@@ -81,3 +82,37 @@ class ImportacionPreviewView(View):
             "filas": filas,
         }
         return render(request, self.template_name, contexto)
+
+
+class ImportacionesLandingView(View):
+    """
+    Landing para seleccionar un proveedor y comenzar el flujo de importación.
+    - GET: muestra selector de proveedor.
+    - POST: redirige a importacion_create con el proveedor elegido.
+    """
+
+    template_name = "importaciones/landing.html"
+
+    def get(self, request, *args, **kwargs):
+        proveedores = (
+            Proveedor.objects.using("negocio_db").all().order_by("nombre")
+        )
+        return render(request, self.template_name, {"proveedores": proveedores})
+
+    def post(self, request, *args, **kwargs):
+        proveedor_id = request.POST.get("proveedor_id")
+        if not proveedor_id:
+            proveedores = (
+                Proveedor.objects.using("negocio_db").all().order_by("nombre")
+            )
+            return render(
+                request,
+                self.template_name,
+                {
+                    "proveedores": proveedores,
+                    "error": "Selecciona un proveedor para continuar.",
+                },
+            )
+        return redirect(
+            reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_id})
+        )

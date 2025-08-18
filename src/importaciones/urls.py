@@ -3,12 +3,19 @@ from django.urls import path
 from importaciones.adapters.views import (
     ImportacionCreateView,
     ImportacionPreviewView,
+    ImportacionesLandingView,
 )
 
 # Namespace para esta app, útil para usar reverse('importaciones:...')
 app_name = "importaciones"
 
 urlpatterns = [
+    # Landing para seleccionar proveedor y comenzar importación
+    path(
+        "",
+        ImportacionesLandingView.as_view(),
+        name="landing",
+    ),
     # Subir un archivo Excel para un proveedor específico.
     # Uso en reverse: reverse('importaciones:importacion_create', kwargs={'proveedor_id': 123})
     path(
