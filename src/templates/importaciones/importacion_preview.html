@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{# Template de vista previa de importación.
+   Hereda de base.html y define el bloque de contenido. #}
+
+{% block content %}
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-eye mr-3 text-indigo-600"></i>
+          Vista previa de importación
+        </h1>
+        <p class="mt-2 text-sm text-gray-600">
+          Mostrando las primeras 20 filas del archivo <span class="font-medium">{{ nombre_archivo }}</span> del proveedor #{{ proveedor_id }}.
+        </p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <a href="{% url 'proveedores:proveedor_list' %}"
+           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          Cancelar
+        </a>
+        <a href="{% url 'importaciones:importacion_create' proveedor_id %}"
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          <i class="fas fa-check mr-2"></i>
+          Confirmar y procesar
+        </a>
+      </div>
+    </div>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IVA</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bulto</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for fila in filas %}
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.codigo }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.descripcion }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.precio }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.iva|default:"0.21" }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.cant|default:"1" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="px-6 py-4 text-sm text-gray-500">No hay datos para mostrar.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

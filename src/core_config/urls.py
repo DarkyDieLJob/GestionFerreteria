@@ -30,5 +30,7 @@ urlpatterns = [
     # URLs de la app articulos (vistas y formularios de búsqueda/mapeo)
     path('proveedores/', include('proveedores.urls')),
     path('articulos/', include('articulos.urls')),
+    # URLs de la app importaciones (vistas para subir y previsualizar Excel)
+    path('importaciones/', include(('importaciones.urls', 'importaciones'), namespace='importaciones')),
 ]
 
