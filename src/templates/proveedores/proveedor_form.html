@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{# Template de formulario de proveedor. Hereda de base.html y define el bloque content. #}
+
+{% block content %}
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold text-gray-900">{% if object %}Editar Proveedor{% else %}Crear Proveedor{% endif %}</h1>
+      <p class="mt-1 text-sm text-gray-500">Complete los datos y guarde los cambios.</p>
+    </div>
+
+    <div class="bg-white shadow sm:rounded-lg">
+      <div class="px-6 py-6">
+        <form method="POST" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {% for field in form %}
+              <div class="sm:col-span-1">
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
+                <div class="mt-1">
+                  {{ field }}
+                </div>
+                {% if field.help_text %}
+                  <p class="mt-1 text-xs text-gray-500">{{ field.help_text|safe }}</p>
+                {% endif %}
+                {% for error in field.errors %}
+                  <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-6 flex items-center justify-end gap-3">
+            <a href="{% url 'proveedores:proveedor_list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Cancelar</a>
+            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+              <i class="fas fa-save mr-2"></i> Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
