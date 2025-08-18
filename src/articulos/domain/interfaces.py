@@ -86,13 +86,15 @@ class MapearArticuloPort:
 
     La operación debe actualizar las relaciones correspondientes (p. ej. ArticuloProveedor)
     según la implementación concreta del adaptador.
+
+    Nota: El parámetro usuario_id fue eliminado porque ArticuloSinRevisar no
+    usa un campo 'usuario' y el mapeo no depende de auth_user.
     """
 
     def mapear_articulo(
         self,
         articulo_s_revisar_id: Union[int, str],
         articulo_id: Union[int, str],
-        usuario_id: Union[int, str],
     ) -> Dict[str, Any]:
         """
         Mapea un ArticuloSinRevisar hacia un Articulo.
@@ -100,7 +102,6 @@ class MapearArticuloPort:
         Parametros:
         - articulo_s_revisar_id: Identificador del ArticuloSinRevisar a consolidar.
         - articulo_id: Identificador del Articulo destino.
-        - usuario_id: Identificador del usuario que realiza la acción (auditoría).
 
         Retorna:
         - Información del mapeo realizado (por ejemplo estado, ids resultantes, etc.).

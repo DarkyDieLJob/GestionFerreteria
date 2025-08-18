@@ -164,7 +164,7 @@ class MapeoRepository(MapearArticuloPort):
     Mapea un ArticuloSinRevisar a un Articulo y actualiza ArticuloProveedor.
     """
 
-    def mapear_articulo(self, articulo_s_revisar_id: Any, articulo_id: Any, usuario_id: Any) -> Dict[str, Any]:
+    def mapear_articulo(self, articulo_s_revisar_id: Any, articulo_id: Any) -> Dict[str, Any]:
         ArticuloSinRevisar = apps.get_model("articulos", "ArticuloSinRevisar")
         Articulo = apps.get_model("articulos", "Articulo")
         ArticuloProveedor = apps.get_model("articulos", "ArticuloProveedor")
@@ -181,14 +181,10 @@ class MapeoRepository(MapearArticuloPort):
             articulo=art, articulo_s_revisar=None
         )
 
-        # Marcar ASR como mapeado, usuario y fecha
+        # Marcar ASR como mapeado y fecha (usuario_id eliminado: el campo 'usuario' no es necesario
+        # para la importación/mapeo y evita dependencias con auth_user en la base 'default').
         asr.estado = "mapeado"
         asr.fecha_mapeo = timezone.now()
-        try:
-            # asignación directa al FK por id, evitando cargar auth.User
-            asr.usuario_id = int(usuario_id) if usuario_id is not None else None
-        except Exception:
-            asr.usuario_id = usuario_id
         asr.save(using="negocio_db")
 
         return {

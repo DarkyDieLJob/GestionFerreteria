@@ -11,6 +11,8 @@ Ejecutar con:
     python src/core_config/scheduler.py
 
 Nota: Este módulo inicializa Django para poder acceder a modelos y settings.
+Además, ArticuloSinRevisar no utiliza un campo 'usuario'; el procesamiento no
+depende de ninguna relación con auth_user.
 """
 
 import os
