@@ -4,3 +4,4 @@ pytest-cov
 black
 flake8
 commitizen>=3.24.0
+pandas

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+      <h1 class="text-2xl font-semibold text-gray-900 flex items-center">
+        <i class="fas fa-file-import mr-3 text-indigo-600"></i>
+        Importaciones
+      </h1>
+      <p class="mt-2 text-sm text-gray-600">
+        Selecciona un proveedor para iniciar la importación de un archivo.
+      </p>
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-6">
+      {% if error %}
+        <div class="mb-4 rounded-md p-4 bg-red-50 text-red-700">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-circle h-5 w-5"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm">{{ error }}</p>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <form method="post" class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+        {% csrf_token %}
+        <div class="sm:col-span-2">
+          <label for="proveedor_id" class="block text-sm font-medium text-gray-700">Proveedor</label>
+          <select id="proveedor_id" name="proveedor_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+            <option value="">-- Selecciona un proveedor --</option>
+            {% for p in proveedores %}
+              <option value="{{ p.id }}">{{ p.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="sm:col-span-1 flex items-end">
+          <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Continuar
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="mt-6 text-sm text-gray-500">
+      <p>
+        ¿No encuentras el proveedor? Ve a <a href="{% url 'proveedores:proveedor_list' %}" class="text-indigo-600 hover:text-indigo-700">Proveedores</a> para gestionarlos.
+      </p>
+    </div>
+  </div>
+{% endblock content %}
