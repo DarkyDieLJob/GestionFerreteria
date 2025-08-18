@@ -28,6 +28,7 @@ urlpatterns = [
     path('auth/', include(('core_auth.adapters.urls', 'core_auth'), namespace='core_auth')),
     path('dashboard/', include('core_app.adapters.urls', namespace='core_app')),  # Para el dashboard genérico
     # URLs de la app articulos (vistas y formularios de búsqueda/mapeo)
+    path('proveedores/', include('proveedores.urls')),
     path('articulos/', include('articulos.urls')),
 ]
 
