@@ -9,58 +9,47 @@ from django.core.files.storage import FileSystemStorage
 # Delegan la lógica de negocio al repositorio y a los casos de uso del dominio,
 # manteniendo a Django como capa de presentación.
 from importaciones.adapters.repository import ExcelRepository
-from importaciones.adapters.forms import ImportacionForm
+from importaciones.adapters.forms import ImportacionForm, PreviewHojaFormSet
+from importaciones.domain.use_cases import ImportarExcelUseCase
 from proveedores.models import Proveedor
 
 # Nota: ImportacionForm se define en importaciones.adapters.forms y se integra aquí
 # como form_class de ImportacionCreateView.
 
 
-class ImportacionCreateView(FormView):
+class ImportacionCreateView(View):
     """
-    Vista para subir un archivo Excel para un proveedor específico.
-
-    - template_name: plantilla del formulario.
-    - form_class: formulario simple con FileField (ImportacionForm).
-    - Al validar, almacena el archivo con FileSystemStorage y delega el
-      procesamiento al ExcelRepository.
-    - Finalmente redirige al listado de proveedores.
-
-    Nota: Las consultas a Proveedor/ConfigImportacion deben realizarse sobre la
-    base de datos 'negocio_db'. Esa política es respetada dentro del repositorio
-    (o en los modelos si se realizan consultas directas mediante .using('negocio_db')).
+    Vista de confirmación del nuevo flujo.
+    - GET: muestra resumen luego de agendar pendientes (CSV generados por hoja).
     """
 
-    template_name = "importaciones/importacion_form.html"
-    form_class = ImportacionForm
+    template_name = "importaciones/importacion_confirm.html"
 
-    def form_valid(self, form):
-        proveedor_id = self.kwargs.get("proveedor_id")
+    def get(self, request, *args, **kwargs):
+        proveedor_id = kwargs.get("proveedor_id")
+        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
 
-        # Guardar el archivo con el storage por defecto (MEDIA_ROOT)
-        archivo = form.cleaned_data["archivo"]
-        storage = FileSystemStorage()
-        nombre_archivo = storage.save(archivo.name, archivo)
+        # Mostrar pendientes sin procesar como resumen
+        from django.apps import apps
 
-        # Integración con repositorio: procesar el archivo utilizando la
-        # política de base de datos 'negocio_db' definida en el repositorio/modelos.
-        ExcelRepository().procesar_excel(proveedor_id, nombre_archivo)
-
-        # Redirigir al listado de proveedores (namespace 'proveedores').
-        return redirect(reverse("proveedores:proveedor_list"))
+        ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
+        pendientes = (
+            ArchivoPendiente.objects.using("negocio_db").filter(proveedor=proveedor, procesado=False)
+            .order_by("fecha_subida")
+        )
+        contexto = {
+            "proveedor": proveedor,
+            "pendientes": pendientes,
+        }
+        return render(request, self.template_name, contexto)
 
 
 class ImportacionPreviewView(View):
     """
-    Muestra una vista previa (primeras filas) del contenido del Excel
-    previamente subido para un proveedor.
-
-    - template_name: plantilla para renderizar la vista previa.
-    - En GET, obtiene proveedor_id y nombre_archivo desde la URL y delega en el
-      repositorio la lectura de las primeras filas.
-
-    Las operaciones de lectura/consulta respetan 'negocio_db' según
-    implementación del repositorio/modelos.
+    Vista de previsualización por hoja del Excel subido.
+    - GET: lista hojas y arma un formset para elegir configuración por hoja y start_row.
+           Incluye instructivo si existe en ConfigImportacion.
+    - POST: procesa formset y genera CSVs por hoja mediante el caso de uso; redirige a confirmación.
     """
 
     template_name = "importaciones/importacion_preview.html"
@@ -69,50 +58,140 @@ class ImportacionPreviewView(View):
         proveedor_id = kwargs.get("proveedor_id")
         nombre_archivo = kwargs.get("nombre_archivo")
 
-        # Obtener las primeras 20 filas para vista previa
-        filas = ExcelRepository().vista_previa_excel(
-            proveedor_id=proveedor_id,
-            nombre_archivo=nombre_archivo,
-            limite=20,
+        use_case = ImportarExcelUseCase(ExcelRepository())
+        hojas = use_case.listar_hojas(nombre_archivo=nombre_archivo)
+
+        # Inicializar formset una fila por hoja
+        initial = [{"hoja": h, "start_row": 0, "cargar": False} for h in hojas]
+        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+        formset = PreviewHojaFormSet(initial=initial, proveedor=proveedor)
+
+        # Instructivo (si existe en alguna configuración)
+        from django.apps import apps
+
+        ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
+        instructivos = list(
+            ConfigImportacion.objects.using("negocio_db").filter(proveedor=proveedor, instructivo__isnull=False).values_list("instructivo", flat=True)
         )
 
         contexto = {
-            "proveedor_id": proveedor_id,
+            "proveedor": proveedor,
             "nombre_archivo": nombre_archivo,
-            "filas": filas,
+            "formset": formset,
+            "hojas": hojas,
+            "instructivos": [i for i in instructivos if i],
         }
         return render(request, self.template_name, contexto)
+
+    def post(self, request, *args, **kwargs):
+        proveedor_id = kwargs.get("proveedor_id")
+        nombre_archivo = kwargs.get("nombre_archivo")
+        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+
+        formset = PreviewHojaFormSet(data=request.POST, proveedor=proveedor)
+        if not formset.is_valid():
+            # Re-render con errores
+            use_case = ImportarExcelUseCase(ExcelRepository())
+            hojas = use_case.listar_hojas(nombre_archivo=nombre_archivo)
+            contexto = {
+                "proveedor": proveedor,
+                "nombre_archivo": nombre_archivo,
+                "formset": formset,
+                "hojas": hojas,
+            }
+            return render(request, self.template_name, contexto)
+
+        # Construir selecciones para hojas marcadas con 'cargar'
+        selecciones = {}
+        for form in formset.forms:
+            cd = form.cleaned_data or {}
+            if not cd.get("cargar"):
+                continue
+            hoja = cd.get("hoja")
+            config = cd.get("config")
+            start_row = cd.get("start_row") or 0
+            if config:
+                selecciones[hoja] = {"config_id": config.pk, "start_row": int(start_row)}
+            else:
+                # Por ahora, requerimos config para agendar (FK obligatoria).
+                # Los overrides se validan en el form, pero no se encolan aún.
+                pass
+
+        if not selecciones:
+            # Nada seleccionado
+            use_case = ImportarExcelUseCase(ExcelRepository())
+            hojas = use_case.listar_hojas(nombre_archivo=nombre_archivo)
+            contexto = {
+                "proveedor": proveedor,
+                "nombre_archivo": nombre_archivo,
+                "formset": formset,
+                "hojas": hojas,
+                "warning": "No seleccionaste ninguna hoja para cargar.",
+            }
+            return render(request, self.template_name, contexto)
+
+        # Generar CSVs y encolar pendientes
+        use_case = ImportarExcelUseCase(ExcelRepository())
+        use_case.generar_csvs_por_hoja(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, selecciones=selecciones)
+
+        # Redirigir a vista de confirmación
+        return redirect(reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_id}))
 
 
 class ImportacionesLandingView(View):
     """
-    Landing para seleccionar un proveedor y comenzar el flujo de importación.
-    - GET: muestra selector de proveedor.
-    - POST: redirige a importacion_create con el proveedor elegido.
+    Landing del flujo de importación.
+    - GET: lista archivos pendientes y muestra selector de proveedor + upload.
+    - POST: recibe archivo + proveedor, guarda el archivo y redirige a preview.
     """
 
     template_name = "importaciones/landing.html"
 
     def get(self, request, *args, **kwargs):
-        proveedores = (
-            Proveedor.objects.using("negocio_db").all().order_by("nombre")
+        proveedores = Proveedor.objects.using("negocio_db").all().order_by("nombre")
+        from django.apps import apps
+
+        ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
+        pendientes = (
+            ArchivoPendiente.objects.using("negocio_db").select_related("proveedor", "config_usada").filter(procesado=False)
+            .order_by("fecha_subida")
         )
-        return render(request, self.template_name, {"proveedores": proveedores})
+        form = ImportacionForm()
+        contexto = {
+            "proveedores": proveedores,
+            "pendientes": pendientes,
+            "form": form,
+        }
+        return render(request, self.template_name, contexto)
 
     def post(self, request, *args, **kwargs):
         proveedor_id = request.POST.get("proveedor_id")
-        if not proveedor_id:
-            proveedores = (
-                Proveedor.objects.using("negocio_db").all().order_by("nombre")
+        form = ImportacionForm(request.POST, request.FILES)
+        proveedores = Proveedor.objects.using("negocio_db").all().order_by("nombre")
+        if not proveedor_id or not form.is_valid():
+            from django.apps import apps
+
+            ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
+            pendientes = (
+                ArchivoPendiente.objects.using("negocio_db").select_related("proveedor", "config_usada").filter(procesado=False)
+                .order_by("fecha_subida")
             )
-            return render(
-                request,
-                self.template_name,
-                {
-                    "proveedores": proveedores,
-                    "error": "Selecciona un proveedor para continuar.",
-                },
-            )
+            contexto = {
+                "proveedores": proveedores,
+                "pendientes": pendientes,
+                "form": form,
+                "error": "Selecciona proveedor y archivo válido.",
+            }
+            return render(request, self.template_name, contexto)
+
+        # Guardar el archivo y redirigir a vista previa
+        archivo = form.cleaned_data["archivo"]
+        storage = FileSystemStorage()
+        nombre_archivo = storage.save(archivo.name, archivo)
+
         return redirect(
-            reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_id})
+            reverse(
+                "importaciones:importacion_preview",
+                kwargs={"proveedor_id": int(proveedor_id), "nombre_archivo": nombre_archivo},
+            )
         )

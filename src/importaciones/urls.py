@@ -16,19 +16,17 @@ urlpatterns = [
         ImportacionesLandingView.as_view(),
         name="landing",
     ),
-    # Subir un archivo Excel para un proveedor específico.
-    # Uso en reverse: reverse('importaciones:importacion_create', kwargs={'proveedor_id': 123})
-    path(
-        "crear/<int:proveedor_id>/",
-        ImportacionCreateView.as_view(),
-        name="importacion_create",
-    ),
-    # Mostrar la vista previa del Excel subido para un proveedor y un nombre de archivo dados.
-    # Uso en reverse: reverse('importaciones:importacion_preview', kwargs={'proveedor_id': 123, 'nombre_archivo': 'archivo.xlsx'})
+    # Vista de previsualización del Excel subido (elige hojas/configs)
     path(
         "vista-previa/<int:proveedor_id>/<str:nombre_archivo>/",
         ImportacionPreviewView.as_view(),
         name="importacion_preview",
+    ),
+    # Vista de confirmación (muestra pendientes encolados para el proveedor)
+    path(
+        "confirmar/<int:proveedor_id>/",
+        ImportacionCreateView.as_view(),
+        name="importacion_create",
     ),
 ]
 
