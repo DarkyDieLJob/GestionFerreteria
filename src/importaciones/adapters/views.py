@@ -66,6 +66,16 @@ class ImportacionPreviewView(View):
         proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
         formset = PreviewHojaFormSet(initial=initial, proveedor=proveedor)
 
+        # Previews por hoja (primeras 20 filas) y columnas, para mostrar tablas
+        previews = {}
+        for hoja in hojas:
+            prev = use_case.get_preview_for_sheet(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, sheet_name=hoja)
+            previews[hoja] = {
+                "columnas": prev.get("columnas", []),
+                "filas": prev.get("filas", []),
+                "total_filas": prev.get("total_filas", 0),
+            }
+
         # Instructivo (si existe en alguna configuración)
         from django.apps import apps
 
@@ -79,6 +89,7 @@ class ImportacionPreviewView(View):
             "nombre_archivo": nombre_archivo,
             "formset": formset,
             "hojas": hojas,
+            "previews": previews,
             "instructivos": [i for i in instructivos if i],
         }
         return render(request, self.template_name, contexto)
@@ -93,45 +104,83 @@ class ImportacionPreviewView(View):
             # Re-render con errores
             use_case = ImportarExcelUseCase(ExcelRepository())
             hojas = use_case.listar_hojas(nombre_archivo=nombre_archivo)
+            # Volver a cargar previews para render
+            previews = {}
+            for hoja in hojas:
+                prev = use_case.get_preview_for_sheet(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, sheet_name=hoja)
+                previews[hoja] = {
+                    "columnas": prev.get("columnas", []),
+                    "filas": prev.get("filas", []),
+                    "total_filas": prev.get("total_filas", 0),
+                }
             contexto = {
                 "proveedor": proveedor,
                 "nombre_archivo": nombre_archivo,
                 "formset": formset,
                 "hojas": hojas,
+                "previews": previews,
             }
             return render(request, self.template_name, contexto)
 
         # Construir selecciones para hojas marcadas con 'cargar'
         selecciones = {}
+        repo = ExcelRepository()
+        use_case = ImportarExcelUseCase(repo)
         for form in formset.forms:
             cd = form.cleaned_data or {}
             if not cd.get("cargar"):
                 continue
             hoja = cd.get("hoja")
-            config = cd.get("config")
-            start_row = cd.get("start_row") or 0
-            if config:
-                selecciones[hoja] = {"config_id": config.pk, "start_row": int(start_row)}
-            else:
-                # Por ahora, requerimos config para agendar (FK obligatoria).
-                # Los overrides se validan en el form, pero no se encolan aún.
-                pass
+            start_row = int(cd.get("start_row") or 0)
+
+            # Resolver configuración: existente o nueva
+            config_obj = None
+            config_choice = cd.get("config_choice")
+            if config_choice and str(config_choice).isdigit():
+                # existente por id
+                config_obj = int(config_choice)
+            elif config_choice == "new":
+                # nueva: crear/actualizar atómicamente usando el adaptador
+                data_cfg = {
+                    "nombre_config": cd.get("nombre_config"),
+                    "col_codigo": cd.get("col_codigo"),
+                    "col_descripcion": cd.get("col_descripcion"),
+                    "col_precio": cd.get("col_precio"),
+                    "col_cant": cd.get("col_cant"),
+                    "col_iva": cd.get("col_iva"),
+                    "col_cod_barras": cd.get("col_cod_barras"),
+                    "col_marca": cd.get("col_marca"),
+                    "instructivo": cd.get("instructivo"),
+                }
+                created_cfg = repo.ensure_config(proveedor_id=proveedor_id, data=data_cfg)
+                config_obj = created_cfg.pk
+
+            if config_obj is not None:
+                selecciones[hoja] = {"config_id": int(config_obj), "start_row": start_row}
 
         if not selecciones:
             # Nada seleccionado
             use_case = ImportarExcelUseCase(ExcelRepository())
             hojas = use_case.listar_hojas(nombre_archivo=nombre_archivo)
+            previews = {}
+            for hoja in hojas:
+                prev = use_case.get_preview_for_sheet(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, sheet_name=hoja)
+                previews[hoja] = {
+                    "columnas": prev.get("columnas", []),
+                    "filas": prev.get("filas", []),
+                    "total_filas": prev.get("total_filas", 0),
+                }
             contexto = {
                 "proveedor": proveedor,
                 "nombre_archivo": nombre_archivo,
                 "formset": formset,
                 "hojas": hojas,
+                "previews": previews,
                 "warning": "No seleccionaste ninguna hoja para cargar.",
             }
             return render(request, self.template_name, contexto)
 
         # Generar CSVs y encolar pendientes
-        use_case = ImportarExcelUseCase(ExcelRepository())
         use_case.generar_csvs_por_hoja(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, selecciones=selecciones)
 
         # Redirigir a vista de confirmación
