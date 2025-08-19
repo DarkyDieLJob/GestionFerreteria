@@ -206,6 +206,11 @@ STATICFILES_DIRS = [
 # Directorio donde se recopilarán los archivos estáticos para producción
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Se creará en /src/staticfiles/
 
+# Media files (user uploads)
+# URL base y directorio donde se guardarán los archivos subidos
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Se creará en /src/media/
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 

@@ -15,6 +15,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from django.shortcuts import redirect
 from core_app.adapters.views import home, coverage_report, coverage_asset, coverage_raw
 
@@ -35,4 +37,9 @@ urlpatterns = [
     # URLs de la app precios (CRUD de descuentos)
     path('precios/', include('precios.urls')),
 ]
+
+
+# Servir archivos de medios en desarrollo
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
