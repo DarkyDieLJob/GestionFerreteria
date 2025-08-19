@@ -111,34 +111,34 @@
 
             <div class="mt-6">
               <h3 class="text-sm font-semibold text-gray-800 mb-2">Vista previa (primeras 20 filas)</h3>
-              {% with p=previews|default:{} %}
-                {% with hoja=form.initial.hoja %}
-                  {% if p and p[hoja] %}
+              {% with hoja=form.initial.hoja %}
+                {% for key, prev in previews.items %}
+                  {% if key == hoja %}
                     <div class="overflow-x-auto">
                       <table class="table-auto w-full border-collapse text-sm">
                         <thead>
                           <tr>
-                            {% for col in p[hoja].columnas %}
+                            {% for col in prev.columnas %}
                               <th class="border px-2 py-1 bg-gray-50 text-left">{{ col }}</th>
                             {% endfor %}
                           </tr>
                         </thead>
                         <tbody>
-                          {% for fila in p[hoja].filas %}
+                          {% for fila in prev.filas %}
                             <tr class="hover:bg-gray-50">
-                              {% for col in p[hoja].columnas %}
+                              {% for col in prev.columnas %}
                                 <td class="border px-2 py-1">{{ fila[col] }}</td>
                               {% endfor %}
                             </tr>
                           {% endfor %}
                         </tbody>
                       </table>
-                      <p class="mt-2 text-xs text-gray-500">Total filas en hoja: {{ p[hoja].total_filas }}</p>
+                      <p class="mt-2 text-xs text-gray-500">Total filas en hoja: {{ prev.total_filas }}</p>
                     </div>
-                  {% else %}
-                    <p class="text-xs text-gray-500">No hay datos para mostrar.</p>
                   {% endif %}
-                {% endwith %}
+                {% empty %}
+                  <p class="text-xs text-gray-500">No hay datos para mostrar.</p>
+                {% endfor %}
               {% endwith %}
             </div>
 
