@@ -35,6 +35,11 @@ class DescuentoForm(forms.ModelForm):
             "desde",
             "hasta",
         ]
+        widgets = {
+            # Activar selector nativo de fecha en navegadores (HTML5)
+            "desde": forms.DateInput(attrs={"type": "date", "class": "w-full"}),
+            "hasta": forms.DateInput(attrs={"type": "date", "class": "w-full"}),
+        }
 
     def clean_tipo(self):
         valor = (self.cleaned_data.get("tipo") or "").strip()
