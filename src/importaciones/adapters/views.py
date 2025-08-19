@@ -70,9 +70,12 @@ class ImportacionPreviewView(View):
         previews = {}
         for hoja in hojas:
             prev = use_case.get_preview_for_sheet(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, sheet_name=hoja)
+            columnas = prev.get("columnas", [])
+            filas_dicts = prev.get("filas", [])
+            filas_vals = [[(fila or {}).get(col) for col in columnas] for fila in filas_dicts]
             previews[hoja] = {
-                "columnas": prev.get("columnas", []),
-                "filas": prev.get("filas", []),
+                "columnas": columnas,
+                "filas": filas_vals,
                 "total_filas": prev.get("total_filas", 0),
             }
 
@@ -108,9 +111,12 @@ class ImportacionPreviewView(View):
             previews = {}
             for hoja in hojas:
                 prev = use_case.get_preview_for_sheet(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, sheet_name=hoja)
+                columnas = prev.get("columnas", [])
+                filas_dicts = prev.get("filas", [])
+                filas_vals = [[(fila or {}).get(col) for col in columnas] for fila in filas_dicts]
                 previews[hoja] = {
-                    "columnas": prev.get("columnas", []),
-                    "filas": prev.get("filas", []),
+                    "columnas": columnas,
+                    "filas": filas_vals,
                     "total_filas": prev.get("total_filas", 0),
                 }
             contexto = {
@@ -165,9 +171,12 @@ class ImportacionPreviewView(View):
             previews = {}
             for hoja in hojas:
                 prev = use_case.get_preview_for_sheet(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, sheet_name=hoja)
+                columnas = prev.get("columnas", [])
+                filas_dicts = prev.get("filas", [])
+                filas_vals = [[(fila or {}).get(col) for col in columnas] for fila in filas_dicts]
                 previews[hoja] = {
-                    "columnas": prev.get("columnas", []),
-                    "filas": prev.get("filas", []),
+                    "columnas": columnas,
+                    "filas": filas_vals,
                     "total_filas": prev.get("total_filas", 0),
                 }
             contexto = {

@@ -126,8 +126,8 @@
                         <tbody>
                           {% for fila in prev.filas %}
                             <tr class="hover:bg-gray-50">
-                              {% for col in prev.columnas %}
-                                <td class="border px-2 py-1">{{ fila[col] }}</td>
+                              {% for val in fila %}
+                                <td class="border px-2 py-1">{{ val }}</td>
                               {% endfor %}
                             </tr>
                           {% endfor %}
