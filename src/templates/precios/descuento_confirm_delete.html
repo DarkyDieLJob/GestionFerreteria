@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{#
+  Template: precios/descuento_confirm_delete.html
+  - Hereda de base.html
+  - Confirma la eliminación del Descuento
+  - Incluye enlace para cancelar volviendo al listado
+#}
+
+{% block title %}Eliminar descuento{% endblock %}
+
+{% block content %}
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Eliminar descuento</h1>
+        <p class="text-sm text-gray-600">Esta acción no se puede deshacer.</p>
+      </div>
+
+      <div class="rounded-md bg-red-50 p-4 mb-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle h-5 w-5 text-red-400"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-red-800">
+              ¿Seguro que quieres eliminar el descuento <strong>{{ object.tipo }}</strong>?
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <form method="POST" class="flex items-center justify-end gap-3">
+        {% csrf_token %}
+        <a href="{% url 'precios:descuento_list' %}"
+           class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm bg-white text-gray-700 hover:bg-gray-50">Cancelar</a>
+        <button type="submit"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">
+          Eliminar
+        </button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
