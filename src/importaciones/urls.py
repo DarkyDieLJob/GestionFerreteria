@@ -5,7 +5,6 @@ from importaciones.adapters.views import (
     ImportacionPreviewView,
     ImportacionesLandingView,
     ConfigImportacionDetailView,
-    ArchivoPendienteEditView,
     ArchivoPendienteDeleteView,
 )
 
@@ -37,12 +36,7 @@ urlpatterns = [
         ImportacionCreateView.as_view(),
         name="importacion_create",
     ),
-    # Editar/Eliminar pendiente
-    path(
-        "pendiente/<int:proveedor_id>/<int:pendiente_id>/editar/",
-        ArchivoPendienteEditView.as_view(),
-        name="pendiente_edit",
-    ),
+    # Eliminar pendiente
     path(
         "pendiente/<int:proveedor_id>/<int:pendiente_id>/eliminar/",
         ArchivoPendienteDeleteView.as_view(),

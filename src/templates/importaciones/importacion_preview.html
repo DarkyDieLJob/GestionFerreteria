@@ -41,14 +41,20 @@
         <p class="text-sm text-gray-600">Selecciona qué hojas cargar, ajusta mapeos y la fila inicial (0 para considerar todo el archivo). Puedes elegir una configuración existente o crear una nueva para reutilizarla en el futuro.</p>
       </div>
 
+      {% if warning %}
+        <div class="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded p-3">
+          {{ warning }}
+        </div>
+      {% endif %}
+
       <div class="space-y-8">
         {% for form in formset.forms %}
-          <div class="border rounded-md p-4 js-sheet-block" data-hoja="{{ form.initial.hoja }}">
+          <div class="border rounded-md p-4 js-sheet-block" data-hoja="{{ form.hoja.value }}">
             {# Hoja (hidden) #}
             {{ form.hoja }}
 
             <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-gray-900">Hoja: <span class="text-indigo-700">{{ form.initial.hoja }}</span></h2>
+              <h2 class="text-lg font-semibold text-gray-900">Hoja: <span class="text-indigo-700">{{ form.hoja.value }}</span></h2>
               <label class="inline-flex items-center">
                 {{ form.cargar }}
                 <span class="ml-2 text-sm text-gray-700">Cargar esta hoja</span>
@@ -111,7 +117,7 @@
 
             <div class="mt-6">
               <h3 class="text-sm font-semibold text-gray-800 mb-2">Vista previa (primeras 20 filas)</h3>
-              {% with hoja=form.initial.hoja %}
+              {% with hoja=form.hoja.value %}
                 {% for key, prev in previews.items %}
                   {% if key == hoja %}
                     <div class="overflow-x-auto">
@@ -209,6 +215,22 @@
         // Nota: mantenemos visible para permitir editar incluso configs existentes
       }
 
+      function focusSheetFromHash() {
+        const hash = window.location.hash || '';
+        const m = hash.match(/#hoja=([^&]+)/);
+        if (!m) return;
+        const hoja = decodeURIComponent(m[1]);
+        const block = document.querySelector(`.js-sheet-block[data-hoja="${CSS.escape(hoja)}"]`);
+        if (block) {
+          block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          block.classList.add('ring-2', 'ring-indigo-500');
+          setTimeout(() => block.classList.remove('ring-2', 'ring-indigo-500'), 1500);
+          // marcar "Cargar esta hoja" si existe el checkbox
+          const cargar = block.querySelector('input[type="checkbox"][name$="-cargar"]');
+          if (cargar) cargar.checked = true;
+        }
+      }
+
       function attachHandlers() {
         document.querySelectorAll('.js-sheet-block').forEach(block => {
           const select = block.querySelector('select[name$="-config_choice"]');
@@ -239,10 +261,16 @@
         });
       }
 
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', attachHandlers);
-      } else {
+      function init() {
         attachHandlers();
+        focusSheetFromHash();
+        window.addEventListener('hashchange', focusSheetFromHash);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
       }
     })();
   </script>

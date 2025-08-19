@@ -61,41 +61,6 @@ class ImportacionCreateView(View):
         return render(request, self.template_name, contexto)
 
 
-class ArchivoPendienteEditView(View):
-    template_name = "importaciones/pendiente_edit.html"
-
-    def get(self, request, proveedor_id: int, pendiente_id: int):
-        from django.apps import apps
-        proveedor = get_object_or_404(Proveedor.objects.using("negocio_db"), pk=proveedor_id)
-        ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
-        obj = get_object_or_404(ArchivoPendiente.objects.using("negocio_db").select_related("config_usada"), pk=pendiente_id, proveedor=proveedor)
-        ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
-        configs = list(ConfigImportacion.objects.using("negocio_db").filter(proveedor=proveedor).order_by("nombre_config"))
-        contexto = {
-            "proveedor": proveedor,
-            "obj": obj,
-            "configs": configs,
-        }
-        return render(request, self.template_name, contexto)
-
-    def post(self, request, proveedor_id: int, pendiente_id: int):
-        from django.apps import apps
-        proveedor = get_object_or_404(Proveedor.objects.using("negocio_db"), pk=proveedor_id)
-        ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
-        obj = get_object_or_404(ArchivoPendiente.objects.using("negocio_db"), pk=pendiente_id, proveedor=proveedor)
-        # Campos editables: solo config_usada (la hoja no es editable)
-        config_id = request.POST.get("config_usada")
-        updates = {}
-        if config_id:
-            ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
-            cfg = ConfigImportacion.objects.using("negocio_db").filter(pk=config_id, proveedor=proveedor).first()
-            if cfg:
-                updates["config_usada_id"] = cfg.pk
-        if updates:
-            type(obj).objects.using("negocio_db").filter(pk=obj.pk).update(**updates)
-        return redirect(reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_id}))
-
-
 class ArchivoPendienteDeleteView(View):
     def post(self, request, proveedor_id: int, pendiente_id: int):
         from django.apps import apps

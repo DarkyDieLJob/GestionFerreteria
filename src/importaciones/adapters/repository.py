@@ -215,6 +215,7 @@ class ExcelRepository(ImportarExcelPort):
                     proveedor=proveedor,
                     ruta_csv=hoja_a_csv[hoja],
                     hoja_origen=hoja,
+                    nombre_archivo_origen=nombre_archivo,
                     config_usada=config,
                 )
                 creados.append((hoja, hoja_a_csv[hoja]))

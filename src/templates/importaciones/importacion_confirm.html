@@ -48,8 +48,12 @@
                   {% endif %}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                  <a href="{% url 'importaciones:pendiente_edit' proveedor_id=proveedor.id pendiente_id=item.obj.id %}"
-                     class="text-indigo-600 hover:text-indigo-800 mr-3">Editar</a>
+                  {% if item.obj.nombre_archivo_origen %}
+                    <a href="{% url 'importaciones:importacion_preview' proveedor_id=proveedor.id nombre_archivo=item.obj.nombre_archivo_origen %}#hoja={{ item.obj.hoja_origen|urlencode }}"
+                       class="text-indigo-600 hover:text-indigo-800 mr-3">Editar</a>
+                  {% else %}
+                    <span class="text-gray-400 mr-3" title="Requiere archivo original">Editar</span>
+                  {% endif %}
                   <form action="{% url 'importaciones:pendiente_delete' proveedor_id=proveedor.id pendiente_id=item.obj.id %}"
                         method="post" class="inline">
                     {% csrf_token %}

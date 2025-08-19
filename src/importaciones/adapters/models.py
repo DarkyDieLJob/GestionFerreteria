@@ -23,5 +23,7 @@ class ArchivoPendiente(models.Model):
     ruta_csv = models.CharField(max_length=255)
     hoja_origen = models.CharField(max_length=255)
     config_usada = models.ForeignKey('importaciones.ConfigImportacion', on_delete=models.PROTECT)
+    # Para reconfigurar/volver a la vista de previsualización del Excel original
+    nombre_archivo_origen = models.CharField(max_length=255, blank=True, null=True)
     fecha_subida = models.DateTimeField(auto_now_add=True)
     procesado = models.BooleanField(default=False)
