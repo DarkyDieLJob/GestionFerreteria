@@ -10,7 +10,7 @@ la base de datos "negocio_db".
 """
 
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 import pandas as pd
 from django.apps import apps
@@ -40,17 +40,34 @@ class ExcelRepository(ImportarExcelPort):
         Descuento = apps.get_model("precios", "Descuento")
         return Proveedor, ConfigImportacion, ArchivoPendiente, PrecioDeLista, ArticuloSinRevisar, Descuento
 
-    def vista_previa_excel(self, proveedor_id: Any, nombre_archivo: str) -> Dict[str, Any]:
+    def vista_previa_excel(self, proveedor_id: Any, nombre_archivo: str, sheet_name: Optional[str] = None) -> Dict[str, Any]:
         """
-        Lee el Excel y devuelve las primeras 20 filas con las columnas disponibles.
+        Lee el archivo y devuelve preview (primeras 20 filas) de una hoja específica si
+        `sheet_name` está definido. También devuelve las columnas.
         No realiza escrituras en base de datos.
+
+        Soporta .xlsx/.xls/.ods mediante pandas y .csv por ruta directa.
         """
         file_path = self.storage.path(nombre_archivo)
-        df = pd.read_excel(file_path)
+        _, ext = os.path.splitext(nombre_archivo.lower())
+
+        if ext == ".csv":
+            df = pd.read_csv(file_path)
+            hoja = None
+        else:
+            # Excel / ODS: seleccionar hoja si se solicita
+            if sheet_name is not None:
+                df = pd.read_excel(file_path, sheet_name=sheet_name)
+                hoja = sheet_name
+            else:
+                df = pd.read_excel(file_path)
+                hoja = getattr(getattr(df, "name", None), "name", None) or None
+
         preview_rows: List[Dict[str, Any]] = df.head(20).fillna("").to_dict(orient="records")
         return {
             "proveedor_id": proveedor_id,
             "archivo": nombre_archivo,
+            "sheet_name": hoja,
             "columnas": list(df.columns),
             "filas": preview_rows,
             "total_filas": int(len(df)),
@@ -64,6 +81,72 @@ class ExcelRepository(ImportarExcelPort):
         except Exception as exc:
             raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc
         return list(xls.sheet_names)
+
+    def get_configs_for_proveedor(self, proveedor_id: Any) -> List[Dict[str, Any]]:
+        """
+        Obtiene las configuraciones disponibles para un proveedor, como lista de dicts
+        apta para poblar choices del formulario o inicializar datos en la vista.
+        Accede a la BD de negocio (negocio_db).
+        """
+        Proveedor, ConfigImportacion, *_ = self._load_models()
+        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+        configs = (
+            ConfigImportacion.objects.using("negocio_db")
+            .filter(proveedor=proveedor)
+            .order_by("nombre_config", "id")
+        )
+        salida: List[Dict[str, Any]] = []
+        for c in configs:
+            salida.append(
+                {
+                    "id": c.pk,
+                    "nombre_config": c.nombre_config,
+                    "col_codigo": c.col_codigo,
+                    "col_descripcion": c.col_descripcion,
+                    "col_precio": c.col_precio,
+                    "col_cant": c.col_cant,
+                    "col_iva": c.col_iva,
+                    "col_cod_barras": c.col_cod_barras,
+                    "col_marca": c.col_marca,
+                    "instructivo": c.instructivo,
+                }
+            )
+        return salida
+
+    def ensure_config(self, proveedor_id: Any, data: Dict[str, Any]):
+        """
+        Crea (o devuelve existente) una ConfigImportacion para el proveedor según
+        nombre_config y mapeos. Usa transacción atómica en negocio_db.
+        """
+        Proveedor, ConfigImportacion, *_ = self._load_models()
+        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+        nombre = data.get("nombre_config") or "default"
+        defaults = {
+            "col_codigo": data.get("col_codigo"),
+            "col_descripcion": data.get("col_descripcion"),
+            "col_precio": data.get("col_precio"),
+            "col_cant": data.get("col_cant"),
+            "col_iva": data.get("col_iva"),
+            "col_cod_barras": data.get("col_cod_barras"),
+            "col_marca": data.get("col_marca"),
+            "instructivo": data.get("instructivo") or "",
+        }
+        with transaction.atomic(using="negocio_db"):
+            obj, created = ConfigImportacion.objects.using("negocio_db").get_or_create(
+                proveedor=proveedor,
+                nombre_config=nombre,
+                defaults=defaults,
+            )
+            if not created:
+                # Actualizar campos si cambiaron (edición en vista previa)
+                changed = False
+                for k, v in defaults.items():
+                    if getattr(obj, k) != v and v is not None:
+                        setattr(obj, k, v)
+                        changed = True
+                if changed:
+                    obj.save(using="negocio_db")
+        return obj
 
     def generar_csvs_por_hoja(
         self,
