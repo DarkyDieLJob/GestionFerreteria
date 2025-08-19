@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-check-circle mr-3 text-green-600"></i>
+          Importación encolada
+        </h1>
+        <p class="mt-2 text-sm text-gray-600">
+          Se generaron CSVs y se encolaron como pendientes para el proveedor <span class="font-medium">{{ proveedor.nombre }}</span>.
+        </p>
+      </div>
+      <div>
+        <a href="{% url 'importaciones:landing' %}"
+           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          Ir a inicio
+        </a>
+      </div>
+    </div>
+
+    <div class="bg-white shadow-md rounded overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archivo CSV</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hoja</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Configuración</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha subida</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for pend in pendientes %}
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-700">{{ pend.archivo_csv }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.hoja }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.config_usada.nombre_config|default:'-' }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.fecha_subida|date:"Y-m-d H:i" }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-xs">
+                  {% if pend.procesado %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-green-800 bg-green-100">Procesado</span>
+                  {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-yellow-800 bg-yellow-100">Pendiente</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="px-6 py-4 text-sm text-gray-500">No hay archivos pendientes para este proveedor.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mt-6 text-sm text-gray-600">
+      <p>El procesamiento de pendientes se realizará desde el script o comando correspondiente.</p>
+    </div>
+  </div>
+{% endblock content %}
