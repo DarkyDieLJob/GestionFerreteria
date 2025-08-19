@@ -5,6 +5,8 @@ from importaciones.adapters.views import (
     ImportacionPreviewView,
     ImportacionesLandingView,
     ConfigImportacionDetailView,
+    ArchivoPendienteEditView,
+    ArchivoPendienteDeleteView,
 )
 
 # Namespace para esta app, útil para usar reverse('importaciones:...')
@@ -34,6 +36,17 @@ urlpatterns = [
         "confirmar/<int:proveedor_id>/",
         ImportacionCreateView.as_view(),
         name="importacion_create",
+    ),
+    # Editar/Eliminar pendiente
+    path(
+        "pendiente/<int:proveedor_id>/<int:pendiente_id>/editar/",
+        ArchivoPendienteEditView.as_view(),
+        name="pendiente_edit",
+    ),
+    path(
+        "pendiente/<int:proveedor_id>/<int:pendiente_id>/eliminar/",
+        ArchivoPendienteDeleteView.as_view(),
+        name="pendiente_delete",
     ),
 ]
 

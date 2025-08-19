@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-semibold text-gray-900 mb-4">Editar pendiente</h1>
+    <p class="text-sm text-gray-600 mb-6">Proveedor: <span class="font-medium">{{ proveedor.nombre }}</span></p>
+
+    <form method="post" class="bg-white shadow rounded p-6 space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Hoja</label>
+        <input type="text" name="hoja" value="{{ obj.hoja }}" class="mt-1 block w-full border rounded px-3 py-2" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Configuración</label>
+        <select name="config_usada" class="mt-1 block w-full border rounded px-3 py-2">
+          <option value="">-- Sin configuración --</option>
+          {% for c in configs %}
+            <option value="{{ c.id }}" {% if obj.config_usada and c.id == obj.config_usada.id %}selected{% endif %}>{{ c.nombre_config }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex justify-end space-x-3">
+        <a href="{% url 'importaciones:importacion_create' proveedor_id=proveedor.id %}"
+           class="px-4 py-2 rounded border">Cancelar</a>
+        <button type="submit" class="px-4 py-2 rounded bg-indigo-600 text-white">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+{% endblock content %}

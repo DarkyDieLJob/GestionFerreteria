@@ -2,6 +2,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.urls import reverse
+import logging
 from django.views.generic import FormView
 from django.views import View
 from django.core.files.storage import FileSystemStorage
@@ -35,14 +36,78 @@ class ImportacionCreateView(View):
 
         ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
         pendientes = (
-            ArchivoPendiente.objects.using("negocio_db").filter(proveedor=proveedor, procesado=False)
+            ArchivoPendiente.objects.using("negocio_db").select_related("config_usada")
+            .filter(proveedor=proveedor, procesado=False)
             .order_by("fecha_subida")
         )
+        # Preparar datos de presentación (nombre de archivo limpio, hoja)
+        import os
+        pendientes_display = []
+        for p in pendientes:
+            try:
+                archivo_name = getattr(p.archivo_csv, "name", None) or getattr(p, "archivo_csv", None) or ""
+            except Exception:
+                archivo_name = str(p.archivo_csv) if hasattr(p, "archivo_csv") else ""
+            base_name = os.path.basename(archivo_name) if archivo_name else "-"
+            hoja = getattr(p, "hoja", None) or "-"
+            pendientes_display.append({
+                "obj": p,
+                "archivo_base": base_name,
+                "hoja": hoja,
+            })
         contexto = {
             "proveedor": proveedor,
-            "pendientes": pendientes,
+            "pendientes": pendientes_display,
         }
         return render(request, self.template_name, contexto)
+
+
+class ArchivoPendienteEditView(View):
+    template_name = "importaciones/pendiente_edit.html"
+
+    def get(self, request, proveedor_id: int, pendiente_id: int):
+        from django.apps import apps
+        proveedor = get_object_or_404(Proveedor.objects.using("negocio_db"), pk=proveedor_id)
+        ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
+        obj = get_object_or_404(ArchivoPendiente.objects.using("negocio_db").select_related("config_usada"), pk=pendiente_id, proveedor=proveedor)
+        ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
+        configs = list(ConfigImportacion.objects.using("negocio_db").filter(proveedor=proveedor).order_by("nombre_config"))
+        contexto = {
+            "proveedor": proveedor,
+            "obj": obj,
+            "configs": configs,
+        }
+        return render(request, self.template_name, contexto)
+
+    def post(self, request, proveedor_id: int, pendiente_id: int):
+        from django.apps import apps
+        proveedor = get_object_or_404(Proveedor.objects.using("negocio_db"), pk=proveedor_id)
+        ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
+        obj = get_object_or_404(ArchivoPendiente.objects.using("negocio_db"), pk=pendiente_id, proveedor=proveedor)
+        # Campos editables mínimos: hoja y config_usada
+        hoja = request.POST.get("hoja")
+        config_id = request.POST.get("config_usada")
+        updates = {}
+        if hoja is not None:
+            updates["hoja"] = hoja
+        if config_id:
+            ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
+            cfg = ConfigImportacion.objects.using("negocio_db").filter(pk=config_id, proveedor=proveedor).first()
+            if cfg:
+                updates["config_usada_id"] = cfg.pk
+        if updates:
+            type(obj).objects.using("negocio_db").filter(pk=obj.pk).update(**updates)
+        return redirect(reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_id}))
+
+
+class ArchivoPendienteDeleteView(View):
+    def post(self, request, proveedor_id: int, pendiente_id: int):
+        from django.apps import apps
+        proveedor = get_object_or_404(Proveedor.objects.using("negocio_db"), pk=proveedor_id)
+        ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
+        obj = get_object_or_404(ArchivoPendiente.objects.using("negocio_db"), pk=pendiente_id, proveedor=proveedor)
+        type(obj).objects.using("negocio_db").filter(pk=obj.pk).delete()
+        return redirect(reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_id}))
 
 
 class ImportacionPreviewView(View):
@@ -98,17 +163,28 @@ class ImportacionPreviewView(View):
         }
         return render(request, self.template_name, contexto)
 
-    def post(self, request, *args, **kwargs):
-        proveedor_id = kwargs.get("proveedor_id")
-        nombre_archivo = kwargs.get("nombre_archivo")
-        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+    def post(self, request, proveedor_id: int, nombre_archivo: str):
+        logger = logging.getLogger(__name__)
+        logger.info(
+            "[ImportacionPreviewView] POST recibido proveedor_id=%s nombre_archivo=%s",
+            proveedor_id,
+            nombre_archivo,
+        )
+        proveedor = get_object_or_404(Proveedor.objects.using("negocio_db"), pk=proveedor_id)
+
+        # Instructivos disponibles del proveedor (para re-render de POST)
+        from django.apps import apps
+        ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
+        instructivos = list(
+            ConfigImportacion.objects.using("negocio_db").filter(proveedor=proveedor, instructivo__isnull=False).values_list("instructivo", flat=True)
+        )
 
         formset = PreviewHojaFormSet(data=request.POST, proveedor=proveedor)
         if not formset.is_valid():
-            # Re-render con errores
+            logger.warning("[ImportacionPreviewView] formset inválido: errors=%s", formset.errors)
+            # Re-render con errores y previews
             use_case = ImportarExcelUseCase(ExcelRepository())
             hojas = use_case.listar_hojas(nombre_archivo=nombre_archivo)
-            # Volver a cargar previews para render
             previews = {}
             for hoja in hojas:
                 prev = use_case.get_preview_for_sheet(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, sheet_name=hoja)
@@ -126,29 +202,37 @@ class ImportacionPreviewView(View):
                 "hojas": hojas,
                 "previews": previews,
                 "formset": formset,
+                "instructivos": instructivos,
             }
             return render(request, self.template_name, contexto)
 
-        # Construir selecciones para hojas marcadas con 'cargar'
+        # Procesar cada formulario del formset
         selecciones = {}
-        repo = ExcelRepository()
-        use_case = ImportarExcelUseCase(repo)
-        for form in formset.forms:
-            cd = form.cleaned_data or {}
+        for form in formset:
+            cd = form.cleaned_data
             if not cd.get("cargar"):
+                logger.debug("[ImportacionPreviewView] hoja=%s no marcada para cargar", cd.get("hoja"))
                 continue
             hoja = cd.get("hoja")
-            start_row = int(cd.get("start_row") or 0)
-
-            # Resolver configuración: existente o nueva
+            start_row = cd.get("start_row") or 0
+            choice = cd.get("config_choice")
+            logger.debug(
+                "[ImportacionPreviewView] hoja=%s cargar=True start_row=%s choice=%s",
+                hoja,
+                start_row,
+                choice,
+            )
+            # Configuración: existente o nueva
             config_obj = None
             config_choice = cd.get("config_choice")
             if config_choice and str(config_choice).isdigit():
                 # existente por id
                 config_obj = int(config_choice)
-            elif config_choice == "new":
-                # nueva: crear/actualizar atómicamente usando el adaptador
+            if choice in ("", "__new__"):
+                # Crear o asegurar configuración
+                repo = ExcelRepository()
                 data_cfg = {
+                    "proveedor_id": proveedor_id,
                     "nombre_config": cd.get("nombre_config"),
                     "col_codigo": cd.get("col_codigo"),
                     "col_descripcion": cd.get("col_descripcion"),
@@ -159,14 +243,18 @@ class ImportacionPreviewView(View):
                     "col_marca": cd.get("col_marca"),
                     "instructivo": cd.get("instructivo"),
                 }
+                logger.info("[ImportacionPreviewView] creando/asegurando config nueva para hoja=%s datos=%s", hoja, data_cfg)
                 created_cfg = repo.ensure_config(proveedor_id=proveedor_id, data=data_cfg)
                 config_obj = created_cfg.pk
-
+            else:
+                logger.debug("[ImportacionPreviewView] usando config existente id=%s para hoja=%s", choice, hoja)
+                
             if config_obj is not None:
                 selecciones[hoja] = {"config_id": int(config_obj), "start_row": start_row}
 
         if not selecciones:
             # Nada seleccionado
+            logger.info("[ImportacionPreviewView] no hay hojas seleccionadas; se re-renderiza la vista")
             use_case = ImportarExcelUseCase(ExcelRepository())
             hojas = use_case.listar_hojas(nombre_archivo=nombre_archivo)
             previews = {}
@@ -187,14 +275,18 @@ class ImportacionPreviewView(View):
                 "previews": previews,
                 "formset": formset,
                 "warning": "No seleccionaste ninguna hoja para cargar.",
+                "instructivos": instructivos,
             }
             return render(request, self.template_name, contexto)
 
         # Generar CSVs y encolar pendientes
+        logger.info("[ImportacionPreviewView] generando CSVs selecciones=%s", selecciones)
+        use_case = ImportarExcelUseCase(ExcelRepository())
         use_case.generar_csvs_por_hoja(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, selecciones=selecciones)
 
-        # Redirigir a vista de confirmación
-        return redirect(reverse("importaciones:confirmacion", kwargs={"proveedor_id": proveedor_id, "nombre_archivo": nombre_archivo}))
+        # Redirigir a vista de confirmación existente en urls (importacion_create)
+        logger.info("[ImportacionPreviewView] redireccionando a importacion_create proveedor_id=%s", proveedor_id)
+        return redirect(reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_id}))
 
 
 class ImportacionesLandingView(View):
