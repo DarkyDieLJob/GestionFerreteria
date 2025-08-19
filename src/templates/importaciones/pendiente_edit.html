@@ -8,8 +8,9 @@
     <form method="post" class="bg-white shadow rounded p-6 space-y-4">
       {% csrf_token %}
       <div>
-        <label class="block text-sm font-medium text-gray-700">Hoja</label>
-        <input type="text" name="hoja" value="{{ obj.hoja }}" class="mt-1 block w-full border rounded px-3 py-2" />
+        <label class="block text-sm font-medium text-gray-700">Hoja de origen</label>
+        <input type="text" value="{{ obj.hoja_origen }}" class="mt-1 block w-full border rounded px-3 py-2 bg-gray-100" readonly />
+        <p class="mt-1 text-xs text-gray-500">La hoja no es editable aquí. Para reconfigurar, usa el flujo de carga y vista previa para seleccionar y configurar la hoja.</p>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">Configuración</label>

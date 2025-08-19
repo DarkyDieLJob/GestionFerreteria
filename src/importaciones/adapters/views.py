@@ -44,12 +44,11 @@ class ImportacionCreateView(View):
         import os
         pendientes_display = []
         for p in pendientes:
-            try:
-                archivo_name = getattr(p.archivo_csv, "name", None) or getattr(p, "archivo_csv", None) or ""
-            except Exception:
-                archivo_name = str(p.archivo_csv) if hasattr(p, "archivo_csv") else ""
+            # Mostrar nombre base del CSV pendiente (ruta_csv)
+            archivo_name = getattr(p, "ruta_csv", "") or ""
             base_name = os.path.basename(archivo_name) if archivo_name else "-"
-            hoja = getattr(p, "hoja", None) or "-"
+            # La hoja debe provenir de hoja_origen
+            hoja = getattr(p, "hoja_origen", None) or "-"
             pendientes_display.append({
                 "obj": p,
                 "archivo_base": base_name,
@@ -84,12 +83,9 @@ class ArchivoPendienteEditView(View):
         proveedor = get_object_or_404(Proveedor.objects.using("negocio_db"), pk=proveedor_id)
         ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
         obj = get_object_or_404(ArchivoPendiente.objects.using("negocio_db"), pk=pendiente_id, proveedor=proveedor)
-        # Campos editables mínimos: hoja y config_usada
-        hoja = request.POST.get("hoja")
+        # Campos editables: solo config_usada (la hoja no es editable)
         config_id = request.POST.get("config_usada")
         updates = {}
-        if hoja is not None:
-            updates["hoja"] = hoja
         if config_id:
             ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
             cfg = ConfigImportacion.objects.using("negocio_db").filter(pk=config_id, proveedor=proveedor).first()
