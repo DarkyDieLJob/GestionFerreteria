@@ -61,10 +61,11 @@ class ConversionServiceTest(TestCase):
     def test_convert_multi_sheet_with_start_rows(self):
         # Mock multi-hojas y start_row por hoja
         fake_df1 = Mock()
-        fake_df1.iloc.return_value = fake_df1
+        # iloc is subscriptable, configure __getitem__
+        fake_df1.iloc.__getitem__.return_value = fake_df1
         fake_df1.reset_index.return_value = fake_df1
         fake_df2 = Mock()
-        fake_df2.iloc.return_value = fake_df2
+        fake_df2.iloc.__getitem__.return_value = fake_df2
         fake_df2.reset_index.return_value = fake_df2
 
         class FakeExcelFile:
