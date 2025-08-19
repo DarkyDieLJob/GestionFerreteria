@@ -1,5 +1,6 @@
 # Archivo de vistas del adaptador
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.urls import reverse
 from django.views.generic import FormView
 from django.views import View
@@ -90,10 +91,10 @@ class ImportacionPreviewView(View):
         contexto = {
             "proveedor": proveedor,
             "nombre_archivo": nombre_archivo,
-            "formset": formset,
             "hojas": hojas,
             "previews": previews,
-            "instructivos": [i for i in instructivos if i],
+            "formset": formset,
+            "instructivos": instructivos,
         }
         return render(request, self.template_name, contexto)
 
@@ -122,9 +123,9 @@ class ImportacionPreviewView(View):
             contexto = {
                 "proveedor": proveedor,
                 "nombre_archivo": nombre_archivo,
-                "formset": formset,
                 "hojas": hojas,
                 "previews": previews,
+                "formset": formset,
             }
             return render(request, self.template_name, contexto)
 
@@ -182,9 +183,9 @@ class ImportacionPreviewView(View):
             contexto = {
                 "proveedor": proveedor,
                 "nombre_archivo": nombre_archivo,
-                "formset": formset,
                 "hojas": hojas,
                 "previews": previews,
+                "formset": formset,
                 "warning": "No seleccionaste ninguna hoja para cargar.",
             }
             return render(request, self.template_name, contexto)
@@ -193,7 +194,7 @@ class ImportacionPreviewView(View):
         use_case.generar_csvs_por_hoja(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, selecciones=selecciones)
 
         # Redirigir a vista de confirmación
-        return redirect(reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_id}))
+        return redirect(reverse("importaciones:confirmacion", kwargs={"proveedor_id": proveedor_id, "nombre_archivo": nombre_archivo}))
 
 
 class ImportacionesLandingView(View):
@@ -253,3 +254,77 @@ class ImportacionesLandingView(View):
                 kwargs={"proveedor_id": int(proveedor_id), "nombre_archivo": nombre_archivo},
             )
         )
+
+
+class ConfigImportacionDetailView(View):
+    """Devuelve en JSON los datos de una ConfigImportacion del proveedor dado.
+
+    GET params:
+      - id: ID de la configuración
+    """
+
+    def get(self, request, proveedor_id: int):
+        config_id = request.GET.get("id")
+        if not config_id:
+            return HttpResponseBadRequest("Falta parámetro id")
+        try:
+            config_id_int = int(config_id)
+        except ValueError:
+            return HttpResponseBadRequest("Parámetro id inválido")
+
+        from django.apps import apps
+
+        ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
+        try:
+            obj = (
+                ConfigImportacion.objects.using("negocio_db")
+                .filter(proveedor_id=proveedor_id, id=config_id_int)
+                .only(
+                    "id",
+                    "nombre_config",
+                    "col_codigo",
+                    "col_descripcion",
+                    "col_precio",
+                    "col_cant",
+                    "col_iva",
+                    "col_cod_barras",
+                    "col_marca",
+                    "instructivo",
+                )
+                .first()
+            )
+        except Exception:
+            obj = (
+                ConfigImportacion.objects
+                .filter(proveedor_id=proveedor_id, id=config_id_int)
+                .only(
+                    "id",
+                    "nombre_config",
+                    "col_codigo",
+                    "col_descripcion",
+                    "col_precio",
+                    "col_cant",
+                    "col_iva",
+                    "col_cod_barras",
+                    "col_marca",
+                    "instructivo",
+                )
+                .first()
+            )
+
+        if not obj:
+            return HttpResponseBadRequest("Configuración no encontrada para este proveedor")
+
+        data = {
+            "id": obj.id,
+            "nombre_config": obj.nombre_config,
+            "col_codigo": obj.col_codigo,
+            "col_descripcion": obj.col_descripcion,
+            "col_precio": obj.col_precio,
+            "col_cant": obj.col_cant,
+            "col_iva": obj.col_iva,
+            "col_cod_barras": obj.col_cod_barras,
+            "col_marca": obj.col_marca,
+            "instructivo": obj.instructivo,
+        }
+        return JsonResponse(data)

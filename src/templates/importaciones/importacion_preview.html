@@ -43,7 +43,7 @@
 
       <div class="space-y-8">
         {% for form in formset.forms %}
-          <div class="border rounded-md p-4">
+          <div class="border rounded-md p-4 js-sheet-block" data-hoja="{{ form.initial.hoja }}">
             {# Hoja (hidden) #}
             {{ form.hoja }}
 
@@ -67,8 +67,8 @@
               </div>
             </div>
 
-            <div class="mt-4">
-              <h3 class="text-sm font-semibold text-gray-800">Nueva configuración (si corresponde)</h3>
+            <div class="mt-4 js-new-config" data-new-config="true">
+              <h3 class="text-sm font-semibold text-gray-800">Nueva configuración (o editar existente)</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                 <div>
                   <label class="block text-sm font-medium text-gray-700">Nombre</label>
@@ -167,4 +167,83 @@
       </div>
     </div>
   </div>
+  <script>
+    (function() {
+      const apiBase = "{% url 'importaciones:config_detail' proveedor_id=proveedor.id %}";
+      const apiUrl = function(id) { return apiBase + "?id=" + encodeURIComponent(id); };
+
+      function findField(container, suffix) {
+        return container.querySelector(`[name$="-${suffix}"]`);
+      }
+
+      function clearFields(container) {
+        const fields = ['nombre_config','col_codigo','col_descripcion','col_precio','col_cant','col_iva','col_cod_barras','col_marca','instructivo'];
+        fields.forEach(f => {
+          const el = findField(container, f);
+          if (el) el.value = '';
+        });
+      }
+
+      function fillFields(container, data) {
+        const mapping = {
+          nombre_config: 'nombre_config',
+          col_codigo: 'col_codigo',
+          col_descripcion: 'col_descripcion',
+          col_precio: 'col_precio',
+          col_cant: 'col_cant',
+          col_iva: 'col_iva',
+          col_cod_barras: 'col_cod_barras',
+          col_marca: 'col_marca',
+          instructivo: 'instructivo',
+        };
+        Object.keys(mapping).forEach(key => {
+          const el = findField(container, mapping[key]);
+          if (el) el.value = (data[key] ?? '');
+        });
+      }
+
+      function setNewConfigVisibility(container, show) {
+        const section = container.querySelector('.js-new-config');
+        if (!section) return;
+        section.style.display = show ? '' : '';
+        // Nota: mantenemos visible para permitir editar incluso configs existentes
+      }
+
+      function attachHandlers() {
+        document.querySelectorAll('.js-sheet-block').forEach(block => {
+          const select = block.querySelector('select[name$="-config_choice"]');
+          if (!select) return;
+          const onChange = () => {
+            const val = select.value;
+            if (!val || val === '__new__') {
+              clearFields(block);
+              setNewConfigVisibility(block, true);
+              return;
+            }
+            fetch(apiUrl(val))
+              .then(resp => {
+                if (!resp.ok) throw new Error('No se pudo obtener la configuración');
+                return resp.json();
+              })
+              .then(data => {
+                fillFields(block, data);
+                setNewConfigVisibility(block, true);
+              })
+              .catch(err => {
+                console.error(err);
+              });
+          };
+          select.addEventListener('change', onChange);
+          // disparo inicial por si viene preseleccionado
+          onChange();
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachHandlers);
+      } else {
+        attachHandlers();
+      }
+    })();
+  </script>
 {% endblock content %}

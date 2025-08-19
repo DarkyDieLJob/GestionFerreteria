@@ -4,6 +4,7 @@ from importaciones.adapters.views import (
     ImportacionCreateView,
     ImportacionPreviewView,
     ImportacionesLandingView,
+    ConfigImportacionDetailView,
 )
 
 # Namespace para esta app, útil para usar reverse('importaciones:...')
@@ -21,6 +22,12 @@ urlpatterns = [
         "vista-previa/<int:proveedor_id>/<str:nombre_archivo>/",
         ImportacionPreviewView.as_view(),
         name="importacion_preview",
+    ),
+    # API: Detalle de configuración por proveedor (JSON)
+    path(
+        "api/configuracion/<int:proveedor_id>/",
+        ConfigImportacionDetailView.as_view(),
+        name="config_detail",
     ),
     # Vista de confirmación (muestra pendientes encolados para el proveedor)
     path(
