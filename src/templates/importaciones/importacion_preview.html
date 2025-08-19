@@ -38,46 +38,108 @@
       {{ formset.management_form }}
 
       <div class="mb-4">
-        <p class="text-sm text-gray-600">Selecciona qué hojas cargar, la configuración y la fila inicial (0 para considerar todo el archivo). Luego confirma para generar CSVs y encolarlos.</p>
+        <p class="text-sm text-gray-600">Selecciona qué hojas cargar, ajusta mapeos y la fila inicial (0 para considerar todo el archivo). Puedes elegir una configuración existente o crear una nueva para reutilizarla en el futuro.</p>
       </div>
 
-      <div class="space-y-6">
+      <div class="space-y-8">
         {% for form in formset.forms %}
           <div class="border rounded-md p-4">
+            {# Hoja (hidden) #}
             {{ form.hoja }}
-            <div class="grid grid-cols-1 lg:grid-cols-6 gap-4">
-              <div class="lg:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Hoja</label>
-                <div class="mt-1 text-sm text-gray-900">{{ form.initial.hoja }}</div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Cargar</label>
-                <div class="mt-2">{{ form.cargar }}</div>
-              </div>
-              <div class="lg:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Configuración</label>
-                <div class="mt-1">{{ form.config }}</div>
-                <p class="mt-1 text-xs text-gray-500">Debe pertenecer al proveedor seleccionado.</p>
-              </div>
+
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-gray-900">Hoja: <span class="text-indigo-700">{{ form.initial.hoja }}</span></h2>
+              <label class="inline-flex items-center">
+                {{ form.cargar }}
+                <span class="ml-2 text-sm text-gray-700">Cargar esta hoja</span>
+              </label>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700">Fila inicial</label>
                 <div class="mt-1">{{ form.start_row }}</div>
               </div>
+              <div class="md:col-span-3">
+                <label class="block text-sm font-medium text-gray-700">Configuración</label>
+                <div class="mt-1">{{ form.config_choice }}</div>
+                <p class="mt-1 text-xs text-gray-500">Elige una existente o selecciona "Nueva configuración" para definir los mapeos a continuación.</p>
+              </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Columna Código (override)</label>
-                <div class="mt-1">{{ form.col_codigo }}</div>
+            <div class="mt-4">
+              <h3 class="text-sm font-semibold text-gray-800">Nueva configuración (si corresponde)</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Nombre</label>
+                  <div class="mt-1">{{ form.nombre_config }}</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Columna Código</label>
+                  <div class="mt-1">{{ form.col_codigo }}</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Columna Descripción</label>
+                  <div class="mt-1">{{ form.col_descripcion }}</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Columna Precio</label>
+                  <div class="mt-1">{{ form.col_precio }}</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Columna Cantidad</label>
+                  <div class="mt-1">{{ form.col_cant }}</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Columna IVA</label>
+                  <div class="mt-1">{{ form.col_iva }}</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Columna Código de Barras</label>
+                  <div class="mt-1">{{ form.col_cod_barras }}</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Columna Marca</label>
+                  <div class="mt-1">{{ form.col_marca }}</div>
+                </div>
+                <div class="md:col-span-3">
+                  <label class="block text-sm font-medium text-gray-700">Instructivo</label>
+                  <div class="mt-1">{{ form.instructivo }}</div>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Columna Descripción (override)</label>
-                <div class="mt-1">{{ form.col_descripcion }}</div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Columna Precio (override)</label>
-                <div class="mt-1">{{ form.col_precio }}</div>
-              </div>
+            </div>
+
+            <div class="mt-6">
+              <h3 class="text-sm font-semibold text-gray-800 mb-2">Vista previa (primeras 20 filas)</h3>
+              {% with p=previews|default:{} %}
+                {% with hoja=form.initial.hoja %}
+                  {% if p and p[hoja] %}
+                    <div class="overflow-x-auto">
+                      <table class="table-auto w-full border-collapse text-sm">
+                        <thead>
+                          <tr>
+                            {% for col in p[hoja].columnas %}
+                              <th class="border px-2 py-1 bg-gray-50 text-left">{{ col }}</th>
+                            {% endfor %}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for fila in p[hoja].filas %}
+                            <tr class="hover:bg-gray-50">
+                              {% for col in p[hoja].columnas %}
+                                <td class="border px-2 py-1">{{ fila[col] }}</td>
+                              {% endfor %}
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                      <p class="mt-2 text-xs text-gray-500">Total filas en hoja: {{ p[hoja].total_filas }}</p>
+                    </div>
+                  {% else %}
+                    <p class="text-xs text-gray-500">No hay datos para mostrar.</p>
+                  {% endif %}
+                {% endwith %}
+              {% endwith %}
             </div>
 
             {% if form.errors %}
