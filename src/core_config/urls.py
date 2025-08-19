@@ -32,5 +32,7 @@ urlpatterns = [
     path('articulos/', include('articulos.urls')),
     # URLs de la app importaciones (vistas para subir y previsualizar Excel)
     path('importaciones/', include(('importaciones.urls', 'importaciones'), namespace='importaciones')),
+    # URLs de la app precios (CRUD de descuentos)
+    path('precios/', include('precios.urls')),
 ]
 

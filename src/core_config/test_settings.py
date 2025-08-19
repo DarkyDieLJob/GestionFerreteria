@@ -31,6 +31,16 @@ logging.disable(logging.CRITICAL)
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app != 'debug_toolbar']
 MIDDLEWARE = [m for m in MIDDLEWARE if m != 'debug_toolbar.middleware.DebugToolbarMiddleware']
 
+# Ensure precios app is available in tests (needed for importing precios.models and URL conf)
+# Normalize to avoid duplicate labels (e.g., 'precios' and 'precios.apps.PreciosConfig')
+_normalized = []
+for app in INSTALLED_APPS:
+    if app == 'precios' or app.startswith('precios.'):
+        # skip for now; we'll add a single canonical entry below
+        continue
+    _normalized.append(app)
+INSTALLED_APPS = _normalized + ['precios']
+
 # Use faster password hasher for tests
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
