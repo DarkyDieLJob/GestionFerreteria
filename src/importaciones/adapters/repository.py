@@ -220,6 +220,17 @@ class ExcelRepository(ImportarExcelPort):
                 )
                 creados.append((hoja, hoja_a_csv[hoja]))
 
+        # Borrar el archivo original (Excel/ODS) una vez generados los CSVs y creados los pendientes.
+        # No borrar si el archivo ya era un .csv
+        try:
+            _, ext = os.path.splitext(nombre_archivo.lower())
+            if ext != ".csv":
+                # Usar el storage para borrar por nombre (respetando MEDIA_ROOT)
+                self.storage.delete(nombre_archivo)
+        except Exception:
+            # Falla silenciosa: no bloquear el flujo por no poder borrar
+            pass
+
         return creados
 
     def _col_to_index(self, value: Any, default: int) -> int:
