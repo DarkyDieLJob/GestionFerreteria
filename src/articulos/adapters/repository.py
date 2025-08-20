@@ -94,63 +94,54 @@ class BusquedaRepository(BuscarArticuloPort):
         code: str = norm["code"] or ""
         abbr: Optional[str] = norm["abbr"]
 
-        PrecioDeLista = apps.get_model("precios", "PrecioDeLista")
-        ArticuloSinRevisar = apps.get_model("articulos", "ArticuloSinRevisar")
+        # Solo devolvemos ArticuloProveedor en los resultados
         ArticuloProveedor = apps.get_model("articulos", "ArticuloProveedor")
 
         results: List[Dict[str, Any]] = []
 
-        # PrecioDeLista: match exacto del código normalizado y opcionalmente abreviatura por proveedor
-        qs_pl: QuerySet = PrecioDeLista.objects.using("negocio_db").select_related("proveedor").filter(codigo=code)
-        if abbr:
-            qs_pl = qs_pl.filter(proveedor__abreviatura__iexact=abbr)
-        for pl in qs_pl[:50]:
-            results.append(
-                {
-                    "tipo": "precio_lista",
-                    "id": pl.id,
-                    "codigo": getattr(pl, "get_codigo_completo", lambda: f"{pl.codigo}{pl.proveedor.abreviatura}")(),
-                    "descripcion": pl.descripcion,
-                    "proveedor": pl.proveedor.abreviatura,
-                    "precio": float(pl.precio),
-                }
-            )
+        # Prefijo a buscar (sin la barra final) para permitir coincidencias por inicio
+        prefix = code.rstrip("/")
 
         # ArticuloProveedor: buscar por codigo_proveedor y abreviatura
-        base_no_slash = code.rstrip("/")
+        base_no_slash = prefix
         qs_ap: QuerySet = ArticuloProveedor.objects.using("negocio_db").select_related(
             "proveedor", "precio_de_lista", "articulo"
         )
-        qs_ap = qs_ap.filter(codigo_proveedor=base_no_slash)
+        qs_ap = qs_ap.filter(codigo_proveedor__istartswith=base_no_slash).order_by("codigo_proveedor")
         if abbr:
             qs_ap = qs_ap.filter(proveedor__abreviatura__iexact=abbr)
         for ap in qs_ap[:50]:
             codigo = getattr(ap, "get_codigo_completo", lambda: f"{ap.codigo_proveedor}/{ap.proveedor.abreviatura}")()
+            precios_calc = ap.generar_precios(cantidad=1, pago_efectivo=False)
+            puede_mapear = ap.articulo_id is None
+            pendiente_id = ap.articulo_s_revisar_id if puede_mapear else None
             results.append(
                 {
-                    "tipo": "articulo_proveedor",
                     "id": ap.id,
-                    "codigo": codigo,
+                    "tipo": "articulo_proveedor",
+                    "codigo": ap.get_codigo_completo(),
                     "descripcion": ap.descripcion_proveedor,
                     "proveedor": ap.proveedor.abreviatura,
-                    "precio": float(ap.precio),
-                }
-            )
-
-        # ArticuloSinRevisar: buscar por codigo_proveedor y abreviatura
-        qs_asr: QuerySet = ArticuloSinRevisar.objects.using("negocio_db").select_related("proveedor")
-        qs_asr = qs_asr.filter(codigo_proveedor=base_no_slash)
-        if abbr:
-            qs_asr = qs_asr.filter(proveedor__abreviatura__iexact=abbr)
-        for asr in qs_asr[:50]:
-            results.append(
-                {
-                    "tipo": "articulo_sin_revisar",
-                    "id": asr.id,
-                    "codigo": f"{asr.codigo_proveedor}/{asr.proveedor.abreviatura}",
-                    "descripcion": asr.descripcion_proveedor,
-                    "proveedor": asr.proveedor.abreviatura,
-                    "precio": float(asr.precio),
+                    "precios": {
+                        "base": float(precios_calc.get("base", 0)),
+                        "final": float(precios_calc.get("final", 0)),
+                        "final_efectivo": float(precios_calc.get("final_efectivo", 0)),
+                        "bulto": float(precios_calc.get("bulto", 0)),
+                        "final_bulto": float(precios_calc.get("final_bulto", 0)),
+                        "final_bulto_efectivo": float(precios_calc.get("final_bulto_efectivo", 0)),
+                        "cantidad_bulto_aplicada": int(precios_calc.get("cantidad_bulto_aplicada", 1)),
+                        "descuento_tipo": (ap.descuento.tipo if getattr(ap, "descuento", None) else "Sin Descuento"),
+                        # Debug fields (passthrough si existen)
+                        "debug_descuento_bulto": precios_calc.get("debug_descuento_bulto"),
+                        "debug_cantidad_bulto_politica": precios_calc.get("debug_cantidad_bulto_politica"),
+                        "debug_bulto_articulo": precios_calc.get("debug_bulto_articulo"),
+                        "debug_min_qty": precios_calc.get("debug_min_qty"),
+                        "debug_applied_qty": precios_calc.get("debug_applied_qty"),
+                        "debug_aplica_descuento_bulto": precios_calc.get("debug_aplica_descuento_bulto"),
+                        "debug_factor_descuento_bulto": precios_calc.get("debug_factor_descuento_bulto"),
+                    },
+                    "puede_mapear": puede_mapear,
+                    "pendiente_id": pendiente_id,
                 }
             )
 
@@ -180,6 +171,31 @@ class MapeoRepository(MapearArticuloPort):
         ArticuloProveedor.objects.using("negocio_db").filter(articulo_s_revisar=asr).update(
             articulo=art, articulo_s_revisar=None
         )
+
+        # Consolidar por PrecioDeLista: asegurar un único ArticuloProveedor por cada precio_de_lista
+        # Si hay múltiples AP con el mismo precio_de_lista, conservar el primero y eliminar el resto
+        from django.db import transaction
+        with transaction.atomic(using="negocio_db"):
+            dups = (
+                ArticuloProveedor.objects.using("negocio_db")
+                .values("precio_de_lista")
+                .order_by("precio_de_lista")
+            )
+            seen = set()
+            for row in dups:
+                pl_id = row["precio_de_lista"]
+                if pl_id in seen or pl_id is None:
+                    continue
+                seen.add(pl_id)
+                qs = (
+                    ArticuloProveedor.objects.using("negocio_db")
+                    .filter(precio_de_lista_id=pl_id)
+                    .order_by("id")
+                )
+                keep = qs.first()
+                extra_ids = list(qs.values_list("id", flat=True))[1:]
+                if extra_ids:
+                    ArticuloProveedor.objects.using("negocio_db").filter(id__in=extra_ids).delete()
 
         # Marcar ASR como mapeado y fecha (usuario_id eliminado: el campo 'usuario' no es necesario
         # para la importación/mapeo y evita dependencias con auth_user en la base 'default').

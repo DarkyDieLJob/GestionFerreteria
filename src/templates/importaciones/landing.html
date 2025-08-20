@@ -69,8 +69,8 @@
               {% for pend in pendientes %}
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.proveedor.nombre }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-700">{{ pend.archivo_csv }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.hoja }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-700">{{ pend.ruta_csv }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.hoja_origen }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.config_usada.nombre_config|default:'-' }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.fecha_subida|date:"Y-m-d H:i" }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-xs">

@@ -13,7 +13,7 @@ from django.views.generic import ListView
 
 from ..domain.use_cases import BuscarArticuloUseCase, MapearArticuloUseCase
 from .repository import BusquedaRepository, MapeoRepository
-from .forms import MapearArticuloForm
+from .forms import MapearArticuloForm, EditArticuloProveedorForm
 
 
 class BuscarArticuloView(ListView):
@@ -144,3 +144,34 @@ def mapear_articulo(request, pendiente_id: int):
         "form": form,
     }
     return render(request, "articulos/mapear_articulo.html", contexto)
+
+
+def editar_articulo_proveedor(request, ap_id: int):
+    """
+    Edita campos de ArticuloProveedor y su PrecioDeLista relacionado:
+    - dividir (AP)
+    - descuento (AP)
+    - bulto (en PrecioDeLista asociado)
+    """
+
+    ArticuloProveedor = apps.get_model("articulos", "ArticuloProveedor")
+
+    ap = ArticuloProveedor.objects.using("negocio_db").select_related("precio_de_lista").get(pk=ap_id)
+
+    if request.method == "POST":
+        form = EditArticuloProveedorForm(request.POST, instance=ap)
+        if form.is_valid():
+            form.save()
+            # Volver a la búsqueda manteniendo query si vino
+            q = request.GET.get("q") or request.POST.get("q")
+            if q:
+                return redirect(f"/articulos/buscar/?q={q}")
+            return redirect("articulos:buscar_articulos")
+    else:
+        form = EditArticuloProveedorForm(instance=ap)
+
+    contexto = {
+        "ap": ap,
+        "form": form,
+    }
+    return render(request, "articulos/editar_articulo_proveedor.html", contexto)
