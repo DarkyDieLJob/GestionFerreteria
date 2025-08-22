@@ -210,3 +210,9 @@ src/staticfiles/*
 frontend/*
 src/data/*
 static/*
+
+# Django migrations (exclude all apps' migrations)
+src/**/migrations/
+
+# Media uploads (should not be versioned)
+src/media/
