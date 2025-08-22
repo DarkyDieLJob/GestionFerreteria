@@ -1,7 +1,6 @@
 [run]
 source = 
-    core_auth
-    core_app
+    src
 branch = True
 omit = 
     */tests/*
@@ -9,13 +8,21 @@ omit =
     */__pycache__/*
     */__init__.py
     */templates/*
+    templates/*
+    templates/app_templates/*
+    src/media/*
+    venv/*
+    .venv/*
     */admin.py
     */apps.py
-    */urls.py
     */settings.py
     */asgi.py
     */wsgi.py
     */manage.py
+    src/core_config/settings.py
+    src/core_config/urls.py
+    src/core_config/asgi.py
+    src/core_config/wsgi.py
 
 [report]
 # Regexes for lines to exclude from consideration
