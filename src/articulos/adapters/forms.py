@@ -38,9 +38,9 @@ class MapearArticuloForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         Articulo = apps.get_model("articulos", "Articulo")
-        # Poblar choices con artículos existentes en la base de negocio
+        # Poblar choices con artículos existentes usando la base por defecto
         opciones: List[Tuple[str, str]] = [("", "Crear nuevo")]
-        for art in Articulo.objects.using("negocio_db").all()[:500]:
+        for art in Articulo.objects.all()[:500]:
             etiqueta = f"{getattr(art, 'codigo_barras', '')} - {getattr(art, 'nombre', getattr(art, 'descripcion', ''))}"
             opciones.append((str(art.id), etiqueta))
         self.fields["articulo_id"].choices = opciones
@@ -82,7 +82,7 @@ class EditArticuloProveedorForm(ModelForm):
         super().__init__(*args, **kwargs)
         Descuento = apps.get_model("precios", "Descuento")
         # Poblamos el queryset de descuento y set de widgets
-        self.fields["descuento"].queryset = Descuento.objects.using("negocio_db").all()
+        self.fields["descuento"].queryset = Descuento.objects.all()
         self.fields["descuento"].required = False
 
         # Inicializamos bulto desde el PrecioDeLista relacionado
@@ -116,7 +116,7 @@ class EditArticuloProveedorForm(ModelForm):
             pl = ap.precio_de_lista
             if getattr(pl, "bulto", None) != bulto_val:
                 pl.bulto = bulto_val
-                pl.save(using="negocio_db")
+                pl.save()
         if commit:
-            ap.save(using="negocio_db")
+            ap.save()
         return ap

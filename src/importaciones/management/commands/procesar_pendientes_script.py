@@ -1,9 +1,12 @@
 import os
+import logging
 from typing import Any
 
 from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.db import transaction
+
+logger = logging.getLogger("importaciones.cmd")
 
 
 class Command(BaseCommand):
@@ -25,9 +28,9 @@ class Command(BaseCommand):
         # Importador CSV
         from importaciones.services.importador_csv import importar_csv
 
-        # Utilizar la base de datos 'negocio_db'
+        # Usar siempre la base por defecto
         qs = (
-            ArchivoPendiente.objects.using("negocio_db")
+            ArchivoPendiente.objects
             .select_related("proveedor", "config_usada")
             .filter(procesado=False)
             .order_by("fecha_subida")
@@ -67,10 +70,42 @@ class Command(BaseCommand):
             col_codigo_idx = col_to_index(getattr(config, "col_codigo", None), 0)
             col_desc_idx = col_to_index(getattr(config, "col_descripcion", None), 1)
             col_precio_idx = col_to_index(getattr(config, "col_precio", None), 2)
+            col_cant_idx = col_to_index(getattr(config, "col_cant", None), -1)
+            if col_cant_idx < 0:
+                col_cant_idx = None
+            col_iva_idx = col_to_index(getattr(config, "col_iva", None), -1)
+            if col_iva_idx < 0:
+                col_iva_idx = None
+            col_cod_barras_idx = col_to_index(getattr(config, "col_cod_barras", None), -1)
+            if col_cod_barras_idx < 0:
+                col_cod_barras_idx = None
+            col_marca_idx = col_to_index(getattr(config, "col_marca", None), -1)
+            if col_marca_idx < 0:
+                col_marca_idx = None
 
             self.stdout.write(f"- {proveedor.nombre} :: {ap.hoja_origen} -> {ap.ruta_csv}")
+            try:
+                logger.info(
+                    "Idxs usados (0-based): codigo=%s desc=%s precio=%s cant=%s iva=%s barras=%s marca=%s | letras: codigo=%s desc=%s precio=%s cant=%s iva=%s barras=%s marca=%s",
+                    col_codigo_idx,
+                    col_desc_idx,
+                    col_precio_idx,
+                    (col_cant_idx if col_cant_idx is not None else None),
+                    (col_iva_idx if col_iva_idx is not None else None),
+                    (col_cod_barras_idx if col_cod_barras_idx is not None else None),
+                    (col_marca_idx if col_marca_idx is not None else None),
+                    getattr(config, "col_codigo", None),
+                    getattr(config, "col_descripcion", None),
+                    getattr(config, "col_precio", None),
+                    getattr(config, "col_cant", None),
+                    getattr(config, "col_iva", None),
+                    getattr(config, "col_cod_barras", None),
+                    getattr(config, "col_marca", None),
+                )
+            except Exception:
+                pass
 
-            with transaction.atomic(using="negocio_db"):
+            with transaction.atomic():
                 stats = importar_csv(
                     proveedor=proveedor,
                     ruta_csv=ap.ruta_csv,
@@ -78,10 +113,14 @@ class Command(BaseCommand):
                     col_codigo_idx=col_codigo_idx,
                     col_descripcion_idx=col_desc_idx,
                     col_precio_idx=col_precio_idx,
+                    col_cant_idx=col_cant_idx,
+                    col_iva_idx=col_iva_idx,
+                    col_cod_barras_idx=col_cod_barras_idx,
+                    col_marca_idx=col_marca_idx,
                     dry_run=False,
                 )
                 ap.procesado = True
-                ap.save(using="negocio_db", update_fields=["procesado"])
+                ap.save(update_fields=["procesado"])
 
             # Intentar borrar el archivo CSV
             try:

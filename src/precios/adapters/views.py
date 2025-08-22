@@ -3,9 +3,8 @@
 Vistas de la app precios (capa adapters) siguiendo arquitectura hexagonal.
 
 Notas:
-- Estas vistas operan explícitamente contra la base de datos 'negocio_db',
-  respetando los routers/aliases definidos en core_config (ver database_routers.py).
-- Los nombres de URL están namespaced bajo 'precios' y se usan con reverse,
+ - Estas vistas operan contra la base de datos por defecto.
+ - Los nombres de URL están namespaced bajo 'precios' y se usan con reverse,
   por ejemplo: reverse('precios:descuento_list').
 """
 
@@ -22,7 +21,7 @@ from precios.adapters.forms import DescuentoForm  # Integración con formularios
 class DescuentoListView(ListView):
     """Lista de descuentos.
 
-    - Usa la base de datos 'negocio_db' para leer.
+    - Usa la base de datos por defecto para leer.
     - Permite una búsqueda opcional por 'tipo' vía querystring 'q'.
     """
 
@@ -31,8 +30,8 @@ class DescuentoListView(ListView):
     context_object_name = "descuentos"
 
     def get_queryset(self):
-        # Base: todos los descuentos desde la DB de negocio
-        qs = Descuento.objects.using("negocio_db").all()
+        # Base: todos los descuentos desde la DB por defecto
+        qs = Descuento.objects.all()
         # Búsqueda opcional por tipo
         q = (self.request.GET.get("q", "") or "").strip()
         if q:
@@ -50,7 +49,7 @@ class DescuentoListView(ListView):
 class DescuentoCreateView(CreateView):
     """Crear un descuento.
 
-    - Guarda explícitamente en 'negocio_db'.
+    - Guarda en la base por defecto.
     - Redirige a la lista al finalizar.
     """
 
@@ -61,9 +60,9 @@ class DescuentoCreateView(CreateView):
     success_url = reverse_lazy("precios:descuento_list")
 
     def form_valid(self, form):
-        # Guardar en la base de datos de negocio explícitamente
+        # Guardar en la base de datos por defecto
         self.object = form.save(commit=False)
-        self.object.save(using="negocio_db")
+        self.object.save()
         # Si hubiera M2M, se requeriría guardarlas manualmente; no aplica aquí
         return redirect(self.get_success_url())
 
@@ -71,7 +70,7 @@ class DescuentoCreateView(CreateView):
 class DescuentoUpdateView(UpdateView):
     """Editar un descuento.
 
-    - Consulta y guarda usando 'negocio_db'.
+    - Consulta y guarda usando la base por defecto.
     - Reutiliza la misma plantilla y campos del create.
     """
 
@@ -82,20 +81,20 @@ class DescuentoUpdateView(UpdateView):
     success_url = reverse_lazy("precios:descuento_list")
 
     def get_queryset(self):
-        # Asegura que el objeto a editar provenga de 'negocio_db'
-        return Descuento.objects.using("negocio_db").all()
+        # Asegura que el objeto a editar provenga de la base por defecto
+        return Descuento.objects.all()
 
     def form_valid(self, form):
-        # Guardar cambios en la base negocio
+        # Guardar cambios en la base por defecto
         self.object = form.save(commit=False)
-        self.object.save(using="negocio_db")
+        self.object.save()
         return redirect(self.get_success_url())
 
 
 class DescuentoDeleteView(DeleteView):
     """Eliminar un descuento.
 
-    - Consulta contra 'negocio_db'.
+    - Consulta contra la base por defecto.
     - Tras eliminar, redirige a la lista.
     """
 
@@ -104,5 +103,5 @@ class DescuentoDeleteView(DeleteView):
     success_url = reverse_lazy("precios:descuento_list")
 
     def get_queryset(self):
-        # Asegura que el objeto a eliminar provenga de 'negocio_db'
-        return Descuento.objects.using("negocio_db").all()
+        # Asegura que el objeto a eliminar provenga de la base por defecto
+        return Descuento.objects.all()

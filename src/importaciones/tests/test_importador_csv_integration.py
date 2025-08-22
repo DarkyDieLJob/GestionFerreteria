@@ -12,7 +12,7 @@ FIXTURES_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 
 class ImportadorCSVIntegrationTest(TestCase):
-    databases = {'default', 'negocio_db'}
+    databases = {'default'}
 
     def setUp(self):
         self.prov = Proveedor.objects.create(nombre="Proveedor Import", abreviatura="pi")

@@ -1,11 +1,12 @@
-from pathlib import Path
-
 # Configuración de la base de datos específica de la app
-BASE_DIR = Path(__file__).resolve().parents[1]
+# templates/app_template/config.py
+from pathlib import Path
+'''
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DATABASE = {
-    'negocio_db': {
+    'core_app_db': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': str(BASE_DIR / 'data' / 'negocio.sqlite3'),
+        'NAME': BASE_DIR / 'data/db_core_app.sqlite3',
     }
 }
-# Configuración de la base de datos específica de la app
+'''

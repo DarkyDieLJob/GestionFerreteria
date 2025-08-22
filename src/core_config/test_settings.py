@@ -1,19 +1,24 @@
 """Test settings for core_config."""
 
 from .settings import *
+import os
 
 # Use in-memory databases for tests; preserve negocio_db alias from base settings
 # Start from base settings.DATABASES so routers keep working
 DATABASES = DATABASES.copy()
+# Use a single file-based SQLite DB for all aliases to avoid separate in-memory connections
+# Ensure data directory exists
+_DATA_DIR = BASE_DIR / 'data'
+os.makedirs(_DATA_DIR, exist_ok=True)
+_TEST_DB_PATH = _DATA_DIR / 'test_default.sqlite3'
 DATABASES['default'] = {
     'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': ':memory:',
+    'NAME': _TEST_DB_PATH,
 }
-# Ensure negocio_db exists for business apps tested with pytest
-DATABASES.setdefault('negocio_db', {
-    'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': ':memory:',
-})
+# Alias other names to the same DB so using="negocio_db" etc. hit the same database
+DATABASES['negocio_db'] = {**DATABASES['default'], 'TEST': {'MIRROR': 'default'}}
+DATABASES['articles_db'] = {**DATABASES['default'], 'TEST': {'MIRROR': 'default'}}
+DATABASES['cart_db'] = {**DATABASES['default'], 'TEST': {'MIRROR': 'default'}}
 
 # Speed up password hashing for tests
 PASSWORD_HASHERS = [

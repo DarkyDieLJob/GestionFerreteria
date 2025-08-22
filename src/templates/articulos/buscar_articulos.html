@@ -43,15 +43,17 @@
                       <div>Final Bulto: ${{ resultado.precios.final_bulto }}</div>
                       <div>Bulto Efectivo: ${{ resultado.precios.final_bulto_efectivo }}</div>
                       <div class="col-span-2 text-gray-500">
-                        Cantidad para descuento por bulto: {{ resultado.precios.cantidad_bulto_aplicada }}
+                        Cantidad por bulto del artículo: {{ resultado.precios.debug_bulto_articulo }}
+                      </div>
+                      <div class="col-span-2 text-gray-500">
+                        Umbral de descuento por bulto (política): {{ resultado.precios.debug_cantidad_bulto_politica }}
                       </div>
                       <div class="col-span-2 text-gray-500">
                         Descuento: {{ resultado.precios.descuento_tipo }}
                       </div>
-                      <div class="col-span-2 text-gray-400 mt-1 hidden">
+                      <div class="col-span-2 text-gray-400 mt-1">
                         <!-- Debug info -->
                         <div>DBG desc.bulto: {{ resultado.precios.debug_descuento_bulto }}</div>
-                        <div>DBG cant_bulto desc.: {{ resultado.precios.debug_cantidad_bulto_politica }}</div>
                         <div>DBG bulto artículo: {{ resultado.precios.debug_bulto_articulo }}</div>
                         <div>DBG min_qty: {{ resultado.precios.debug_min_qty }}</div>
                         <div>DBG applied_qty: {{ resultado.precios.debug_applied_qty }}</div>

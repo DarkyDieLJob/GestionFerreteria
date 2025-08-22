@@ -32,6 +32,9 @@ SECRET_KEY = config('SECRET_KEY', default='changeme_insecure_secret_key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', cast=bool, default=True)
+# Toggle para exponer campos de depuración en cálculos de precios.
+# Si no está definido en .env, por defecto permanece desactivado.
+DEBUG_INFO = config('DEBUG_INFO', cast=bool, default=False)
 
 # Lista separada por comas: 127.0.0.1,localhost,mi-dominio.com
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='127.0.0.1,localhost')
@@ -149,14 +152,21 @@ DATABASES = {
     }
 }
 
+# Alias de conexiones para compatibilidad: todas apuntan a la misma BD que 'default'
+# Esto permite que using="negocio_db" (u otros) funcione sin mantener múltiples archivos/BDs.
+DATABASES['negocio_db'] = DATABASES['default']
+DATABASES['articles_db'] = DATABASES['default']
+DATABASES['cart_db'] = DATABASES['default']
+
 # Importar configuraciones de bases de datos de aplicaciones
 for app in INSTALLED_APPS:
     app_name = app.split(".")[0]
-    if app_name.startswith('core_') or app_name in {'cart', 'proveedores', 'articulos', 'precios', 'importaciones'}:
+    if app_name.startswith('core_') or app_name in {'proveedores', 'articulos', 'precios', 'importaciones'}:
         try:
             module = importlib.import_module(f'{app_name}.config')
             DATABASES.update(getattr(module, 'DATABASE', {}))
-        except (ImportError, AttributeError):
+        except (ImportError, AttributeError) as e:
+            print(e)
             pass  # La aplicación no define una base de datos propia
 
 DATABASE_ROUTERS = ['core_config.database_routers.DynamicDatabaseRouter']
@@ -236,3 +246,42 @@ WHATSAPP_CONTACT = config('WHATSAPP_CONTACT', default='+00 000 000 000')
 # Parámetros del flujo de recuperación sin email
 PASSWORD_RESET_TICKET_TTL_HOURS = int(config('PASSWORD_RESET_TICKET_TTL_HOURS', default=48))
 TEMP_PASSWORD_LENGTH = int(config('TEMP_PASSWORD_LENGTH', default=16))
+
+# Logging: enviar a consola y habilitar DEBUG para importaciones en modo DEBUG
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '%(asctime)s %(levelname)s [%(name)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': True,
+        },
+        'importaciones.importador': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        'importaciones.repository': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        'importaciones.cmd': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+    },
+}

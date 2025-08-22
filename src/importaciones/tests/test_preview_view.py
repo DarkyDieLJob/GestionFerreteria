@@ -24,21 +24,25 @@ def test_get_preview_renders_sections(client: Client):
     ]
 
     class _DummyProveedor:
-        nombre = "Proveedor X"
+        def __init__(self, pk):
+            self.id = pk
+            self.pk = pk
+            self.nombre = "Proveedor X"
+        def __getitem__(self, key):
+            if key in ("id", "pk"):
+                return self.pk
+            raise KeyError(key)
 
-    dummy_proveedor_obj = _DummyProveedor()
+    dummy_proveedor_obj = _DummyProveedor(proveedor_id)
 
     with patch("importaciones.adapters.views.ImportarExcelUseCase", return_value=mock_use_case), \
          patch("importaciones.adapters.views.ExcelRepository"), \
-         patch("importaciones.adapters.views.Proveedor") as MockProveedor, \
          patch("importaciones.adapters.views.apps") as mock_apps:
-        # Proveedor mock using("negocio_db").get(...)
-        MockProveedor.objects.using.return_value.get.return_value = dummy_proveedor_obj
         # Instructivos via apps.get_model(...)
         mock_cfg_model = MagicMock()
         mock_cfg_qs = MagicMock()
         mock_cfg_qs.filter.return_value.values_list.return_value = []
-        mock_cfg_model.objects.using.return_value = mock_cfg_qs
+        mock_cfg_model.objects = mock_cfg_qs
         mock_apps.get_model.return_value = mock_cfg_model
 
         resp = client.get(url)
@@ -73,19 +77,28 @@ def test_post_creates_and_generates(client: Client):
     ]
 
     class _DummyProveedor:
-        nombre = "Proveedor Y"
+        def __init__(self, pk):
+            self.id = pk
+            self.pk = pk
+            self.nombre = "Proveedor Y"
+        def __getitem__(self, key):
+            if key in ("id", "pk"):
+                return self.pk
+            raise KeyError(key)
 
-    dummy_proveedor_obj = _DummyProveedor()
+    dummy_proveedor_obj = _DummyProveedor(proveedor_id)
 
     with patch("importaciones.adapters.views.ImportarExcelUseCase", return_value=mock_use_case), \
          patch("importaciones.adapters.views.ExcelRepository") as MockRepo, \
          patch("importaciones.adapters.views.Proveedor") as MockProveedor, \
          patch("importaciones.adapters.views.apps") as mock_apps:
         # Proveedor and instructivos mocks
+        MockProveedor.objects.get.return_value = dummy_proveedor_obj
         MockProveedor.objects.using.return_value.get.return_value = dummy_proveedor_obj
         mock_cfg_model = MagicMock()
         mock_cfg_qs = MagicMock()
         mock_cfg_qs.filter.return_value.values_list.return_value = []
+        mock_cfg_model.objects = mock_cfg_qs
         mock_cfg_model.objects.using.return_value = mock_cfg_qs
         mock_apps.get_model.return_value = mock_cfg_model
 
@@ -104,12 +117,13 @@ def test_post_creates_and_generates(client: Client):
          patch("importaciones.adapters.views.ExcelRepository") as MockRepo, \
          patch("importaciones.adapters.views.Proveedor") as MockProveedor, \
          patch("importaciones.adapters.views.apps") as mock_apps:
-        MockProveedor.objects.using.return_value.get.return_value = dummy_proveedor_obj
         mock_cfg_model = MagicMock()
         mock_cfg_qs = MagicMock()
         mock_cfg_qs.filter.return_value.values_list.return_value = []
-        mock_cfg_model.objects.using.return_value = mock_cfg_qs
+        mock_cfg_model.objects = mock_cfg_qs
         mock_apps.get_model.return_value = mock_cfg_model
+        MockProveedor.objects.get.return_value = dummy_proveedor_obj
+        MockProveedor.objects.using.return_value.get.return_value = dummy_proveedor_obj
 
         repo_instance = MockRepo.return_value
         repo_instance.ensure_config.side_effect = _ensure_config_side_effect

@@ -1,6 +1,6 @@
 import os
 import io
-from unittest.mock import Mock
+from unittest.mock import MagicMock as Mock
 from django.test import TestCase
 
 from importaciones.services.conversion import convertir_a_csv, _get_pandas

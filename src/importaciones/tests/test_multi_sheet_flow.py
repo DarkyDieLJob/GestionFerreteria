@@ -10,12 +10,12 @@ pytest.importorskip("pandas", reason="multi-sheet flow usa pandas; se puede mock
 
 
 @pytest.fixture
-@pytest.mark.django_db(databases=["negocio_db"])  # usamos la DB de negocio
+@pytest.mark.django_db  # usar base por defecto
 def proveedor_y_configs():
     Proveedor = apps.get_model("proveedores", "Proveedor")
     ConfigImportacion = apps.get_model("importaciones", "ConfigImportacion")
 
-    prov = Proveedor.objects.using("negocio_db").create(
+    prov = Proveedor.objects.create(
         nombre="Prov Multi",
         abreviatura="PM",
         descuento_comercial=0.0,
@@ -23,7 +23,7 @@ def proveedor_y_configs():
         margen_ganancia_efectivo=0.9,
         margen_ganancia_bulto=0.95,
     )
-    cfg1 = ConfigImportacion.objects.using("negocio_db").create(
+    cfg1 = ConfigImportacion.objects.create(
         proveedor=prov,
         nombre_config="default",
         col_codigo="A",
@@ -31,7 +31,7 @@ def proveedor_y_configs():
         col_precio="C",
         instructivo="Instrucciones test",
     )
-    cfg2 = ConfigImportacion.objects.using("negocio_db").create(
+    cfg2 = ConfigImportacion.objects.create(
         proveedor=prov,
         nombre_config="alt",
         col_codigo=0,
@@ -41,7 +41,7 @@ def proveedor_y_configs():
     return prov, cfg1, cfg2
 
 
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_repository_generar_csvs_por_hoja_crea_pendientes(monkeypatch, tmp_path, proveedor_y_configs):
     prov, cfg1, cfg2 = proveedor_y_configs
 
@@ -79,13 +79,13 @@ def test_repository_generar_csvs_por_hoja_crea_pendientes(monkeypatch, tmp_path,
     assert len(creados) == 2
 
     ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
-    qs = ArchivoPendiente.objects.using("negocio_db").filter(proveedor=prov, procesado=False)
+    qs = ArchivoPendiente.objects.filter(proveedor=prov, procesado=False)
     assert qs.count() == 2
     hojas = {ap.hoja_origen for ap in qs}
     assert hojas == {"Hoja1", "Hoja2"}
 
 
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_command_procesar_pendientes_script_monkeypatched(monkeypatch, tmp_path, proveedor_y_configs):
     prov, cfg1, _ = proveedor_y_configs
     ArchivoPendiente = apps.get_model("importaciones", "ArchivoPendiente")
@@ -94,7 +94,7 @@ def test_command_procesar_pendientes_script_monkeypatched(monkeypatch, tmp_path,
     csv_path = tmp_path / "pend.csv"
     csv_path.write_text("codigo,descripcion,precio\n1,Prod,100\n")
 
-    ap = ArchivoPendiente.objects.using("negocio_db").create(
+    ap = ArchivoPendiente.objects.create(
         proveedor=prov,
         ruta_csv=str(csv_path),
         hoja_origen="Hoja1",
@@ -117,12 +117,12 @@ def test_command_procesar_pendientes_script_monkeypatched(monkeypatch, tmp_path,
     call_command("procesar_pendientes_script", verbosity=0)
 
     # Verificar procesado y borrado de archivo
-    ap.refresh_from_db(using="negocio_db")
+    ap.refresh_from_db()
     assert ap.procesado is True
     assert not os.path.exists(str(csv_path))
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # vistas: GET y POST formset
+@pytest.mark.django_db  # vistas: GET y POST formset
 def test_preview_get_and_post_formset_flow(client, monkeypatch, proveedor_y_configs):
     prov, cfg1, cfg2 = proveedor_y_configs
 
@@ -168,7 +168,7 @@ def test_preview_get_and_post_formset_flow(client, monkeypatch, proveedor_y_conf
     assert called["selecciones"] == {"Hoja1": {"config_id": cfg1.pk, "start_row": 2}}
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # integración mínima del landing -> preview
+@pytest.mark.django_db  # integración mínima del landing -> preview
 def test_landing_post_redirects_to_preview(client, monkeypatch, tmp_path, proveedor_y_configs, settings):
     prov, *_ = proveedor_y_configs
 

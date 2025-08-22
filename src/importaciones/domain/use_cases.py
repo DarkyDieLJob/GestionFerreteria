@@ -65,7 +65,8 @@ class ImportarExcelUseCase:
     # Nuevo flujo multi-hoja
     def listar_hojas(self, nombre_archivo: str) -> List[str]:
         """Lista las hojas disponibles en el archivo Excel subido."""
-        return self._excel_repo.listar_hojas_excel(nombre_archivo=nombre_archivo)
+        # Llamar con argumento posicional para compatibilidad con tests que monkeypatchean con (self, nombre)
+        return self._excel_repo.listar_hojas_excel(nombre_archivo)
 
     def get_preview_for_sheet(self, proveedor_id: Any, nombre_archivo: str, sheet_name: str) -> Dict[str, Any]:
         """

@@ -6,7 +6,7 @@ Implementa el puerto `ImportarExcelPort` del dominio de importaciones
 usando Django ORM, pandas y almacenamiento de archivos del sistema.
 
 Todas las lecturas/escrituras de base de datos se realizan contra
-la base de datos "negocio_db".
+la base de datos por defecto ("default").
 """
 
 import os
@@ -16,10 +16,12 @@ import pandas as pd
 from django.apps import apps
 from django.core.files.storage import FileSystemStorage
 from django.db import transaction
+import logging
 
 from ..domain.use_cases import ImportarExcelPort
 from ..services.conversion import convertir_a_csv
 
+logger = logging.getLogger("importaciones.repository")
 
 class ExcelRepository(ImportarExcelPort):
     """
@@ -89,9 +91,9 @@ class ExcelRepository(ImportarExcelPort):
         Accede a la BD de negocio (negocio_db).
         """
         Proveedor, ConfigImportacion, *_ = self._load_models()
-        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+        proveedor = Proveedor.objects.get(pk=proveedor_id)
         configs = (
-            ConfigImportacion.objects.using("negocio_db")
+            ConfigImportacion.objects
             .filter(proveedor=proveedor)
             .order_by("nombre_config", "id")
         )
@@ -119,7 +121,7 @@ class ExcelRepository(ImportarExcelPort):
         nombre_config y mapeos. Usa transacción atómica en negocio_db.
         """
         Proveedor, ConfigImportacion, *_ = self._load_models()
-        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+        proveedor = Proveedor.objects.get(pk=proveedor_id)
         nombre = data.get("nombre_config") or "default"
         defaults = {
             "col_codigo": data.get("col_codigo"),
@@ -131,8 +133,8 @@ class ExcelRepository(ImportarExcelPort):
             "col_marca": data.get("col_marca"),
             "instructivo": data.get("instructivo") or "",
         }
-        with transaction.atomic(using="negocio_db"):
-            obj, created = ConfigImportacion.objects.using("negocio_db").get_or_create(
+        with transaction.atomic():
+            obj, created = ConfigImportacion.objects.get_or_create(
                 proveedor=proveedor,
                 nombre_config=nombre,
                 defaults=defaults,
@@ -145,7 +147,7 @@ class ExcelRepository(ImportarExcelPort):
                         setattr(obj, k, v)
                         changed = True
                 if changed:
-                    obj.save(using="negocio_db")
+                    obj.save()
         return obj
 
     def generar_csvs_por_hoja(
@@ -163,7 +165,7 @@ class ExcelRepository(ImportarExcelPort):
         """
         Proveedor, ConfigImportacion, ArchivoPendiente, *_ = self._load_models()
 
-        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+        proveedor = Proveedor.objects.get(pk=proveedor_id)
 
         file_path = self.storage.path(nombre_archivo)
         # Validar existencia de hojas
@@ -185,7 +187,7 @@ class ExcelRepository(ImportarExcelPort):
             cfg_id = cfg.get("config_id")
             if cfg_id is None:
                 raise ValueError(f"Falta config_id para la hoja '{hoja}'")
-            config = ConfigImportacion.objects.using("negocio_db").filter(pk=cfg_id, proveedor=proveedor).first()
+            config = ConfigImportacion.objects.filter(pk=cfg_id, proveedor=proveedor).first()
             if not config:
                 raise ValueError(f"ConfigImportacion {cfg_id} no pertenece al proveedor o no existe")
             sr = int(cfg.get("start_row", 0))
@@ -207,11 +209,11 @@ class ExcelRepository(ImportarExcelPort):
         hoja_a_csv = dict(zip(sheet_list, out_paths))
 
         creados: List[Tuple[str, str]] = []
-        with transaction.atomic(using="negocio_db"):
+        with transaction.atomic():
             for hoja, cfg in selecciones.items():
                 cfg_id = int(cfg["config_id"])  # validado arriba
-                config = ConfigImportacion.objects.using("negocio_db").get(pk=cfg_id)
-                ap = ArchivoPendiente.objects.using("negocio_db").create(
+                config = ConfigImportacion.objects.get(pk=cfg_id)
+                ap = ArchivoPendiente.objects.create(
                     proveedor=proveedor,
                     ruta_csv=hoja_a_csv[hoja],
                     hoja_origen=hoja,
@@ -260,7 +262,11 @@ class ExcelRepository(ImportarExcelPort):
 
         from ..services.importador_csv import importar_csv
 
-        pendientes = ArchivoPendiente.objects.using("negocio_db").select_related("proveedor", "config_usada").filter(procesado=False)
+        pendientes = ArchivoPendiente.objects.select_related("proveedor", "config_usada").filter(procesado=False)
+        try:
+            logger.info("Procesando pendientes: count=%s", pendientes.count())
+        except Exception:
+            pass
 
         resultados: List[Dict[str, Any]] = []
         for ap in pendientes:
@@ -271,8 +277,41 @@ class ExcelRepository(ImportarExcelPort):
             col_codigo_idx = self._col_to_index(getattr(config, "col_codigo", None), 0)
             col_desc_idx = self._col_to_index(getattr(config, "col_descripcion", None), 1)
             col_precio_idx = self._col_to_index(getattr(config, "col_precio", None), 2)
+            col_cant_idx = self._col_to_index(getattr(config, "col_cant", None), -1)
+            if col_cant_idx < 0:
+                col_cant_idx = None
+            col_iva_idx = self._col_to_index(getattr(config, "col_iva", None), -1)
+            if col_iva_idx < 0:
+                col_iva_idx = None
+            col_cod_barras_idx = self._col_to_index(getattr(config, "col_cod_barras", None), -1)
+            if col_cod_barras_idx < 0:
+                col_cod_barras_idx = None
+            col_marca_idx = self._col_to_index(getattr(config, "col_marca", None), -1)
+            if col_marca_idx < 0:
+                col_marca_idx = None
 
-            with transaction.atomic(using="negocio_db"):
+            try:
+                logger.info(
+                    "Config columnas (letras): codigo=%s desc=%s precio=%s cant=%s iva=%s barras=%s marca=%s | índices (0-based): codigo=%s desc=%s precio=%s cant=%s iva=%s barras=%s marca=%s",
+                    getattr(config, "col_codigo", None),
+                    getattr(config, "col_descripcion", None),
+                    getattr(config, "col_precio", None),
+                    getattr(config, "col_cant", None),
+                    getattr(config, "col_iva", None),
+                    getattr(config, "col_cod_barras", None),
+                    getattr(config, "col_marca", None),
+                    col_codigo_idx,
+                    col_desc_idx,
+                    col_precio_idx,
+                    (col_cant_idx if col_cant_idx is not None else None),
+                    (col_iva_idx if col_iva_idx is not None else None),
+                    (col_cod_barras_idx if col_cod_barras_idx is not None else None),
+                    (col_marca_idx if col_marca_idx is not None else None),
+                )
+            except Exception:
+                pass
+
+            with transaction.atomic():
                 stats = importar_csv(
                     proveedor=proveedor,
                     ruta_csv=ap.ruta_csv,
@@ -280,11 +319,25 @@ class ExcelRepository(ImportarExcelPort):
                     col_codigo_idx=col_codigo_idx,
                     col_descripcion_idx=col_desc_idx,
                     col_precio_idx=col_precio_idx,
+                    col_cant_idx=col_cant_idx,
+                    col_iva_idx=col_iva_idx,
+                    col_cod_barras_idx=col_cod_barras_idx,
+                    col_marca_idx=col_marca_idx,
                     dry_run=False,
                 )
                 # marcar como procesado
                 ap.procesado = True
-                ap.save(using="negocio_db", update_fields=["procesado"])
+                ap.save(update_fields=["procesado"])
+
+            try:
+                logger.info(
+                    "Resultado importación: leidas=%s validas=%s descartadas=%s",
+                    getattr(stats, "filas_leidas", None),
+                    getattr(stats, "filas_validas", None),
+                    getattr(stats, "filas_descartadas", None),
+                )
+            except Exception:
+                pass
 
             resultados.append({
                 "proveedor_id": proveedor.pk,
@@ -306,8 +359,8 @@ class ExcelRepository(ImportarExcelPort):
             raise ValueError("El archivo no contiene hojas")
         # Intentar usar la primera configuración disponible del proveedor
         Proveedor, ConfigImportacion, *_ = self._load_models()
-        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
-        config = ConfigImportacion.objects.using("negocio_db").filter(proveedor=proveedor).first()
+        proveedor = Proveedor.objects.get(pk=proveedor_id)
+        config = ConfigImportacion.objects.filter(proveedor=proveedor).first()
         if not config:
             raise ValueError("No hay ConfigImportacion para el proveedor")
         self.generar_csvs_por_hoja(proveedor_id, nombre_archivo, {hojas[0]: {"config_id": config.pk, "start_row": 0}})

@@ -20,7 +20,7 @@ urlpatterns = [
     ),
     # Vista de previsualización del Excel subido (elige hojas/configs)
     path(
-        "vista-previa/<int:proveedor_id>/<str:nombre_archivo>/",
+        "preview/<int:proveedor_id>/<str:nombre_archivo>/",
         ImportacionPreviewView.as_view(),
         name="importacion_preview",
     ),

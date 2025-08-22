@@ -26,12 +26,12 @@ def descuento_factory():
             "hasta": None,
         }
         defaults.update(overrides)
-        return Descuento.objects.using("negocio_db").create(**defaults)
+        return Descuento.objects.create(**defaults)
 
     return _make
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # Base negocio_db
+@pytest.mark.django_db
 class TestDescuentoViews:
     def test_descuento_list_view_get(self, client, descuento_factory):
         d1 = descuento_factory(tipo="Alpha")
@@ -80,8 +80,8 @@ class TestDescuentoViews:
         assert resp.status_code == 302
         assert resp.headers.get("Location", "").endswith(reverse("precios:descuento_list"))
 
-        # Verificar creación en negocio_db
-        assert Descuento.objects.using("negocio_db").filter(tipo="Promo X").exists()
+        # Verificar creación en default
+        assert Descuento.objects.filter(tipo="Promo X").exists()
 
     def test_descuento_update_view_get(self, client, descuento_factory):
         d = descuento_factory(tipo="Original")
@@ -107,7 +107,7 @@ class TestDescuentoViews:
         assert resp.status_code == 302
         assert resp.headers.get("Location", "").endswith(reverse("precios:descuento_list"))
 
-        d_refreshed = Descuento.objects.using("negocio_db").get(pk=d.pk)
+        d_refreshed = Descuento.objects.get(pk=d.pk)
         assert d_refreshed.tipo == "Modificado"
         assert d_refreshed.cantidad_bulto == 2
 
@@ -123,4 +123,4 @@ class TestDescuentoViews:
         resp = client.post(url)
         assert resp.status_code == 302
         assert resp.headers.get("Location", "").endswith(reverse("precios:descuento_list"))
-        assert not Descuento.objects.using("negocio_db").filter(pk=d.pk).exists()
+        assert not Descuento.objects.filter(pk=d.pk).exists()

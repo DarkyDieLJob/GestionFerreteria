@@ -12,10 +12,10 @@ pytest.importorskip("pandas", reason="Se requieren dependencias de importaciones
 
 
 @pytest.fixture
-@pytest.mark.django_db(databases=["negocio_db"])  # usamos la base de negocio
+@pytest.mark.django_db  # usar base por defecto
 def proveedor_config():
     """Crea un Proveedor y su ConfigImportacion en la base negocio_db."""
-    proveedor = Proveedor.objects.using("negocio_db").create(
+    proveedor = Proveedor.objects.create(
         nombre="Proveedor Test",
         abreviatura="PT",
         descuento_comercial=0.0,
@@ -23,7 +23,7 @@ def proveedor_config():
         margen_ganancia_efectivo=0.90,
         margen_ganancia_bulto=0.95,
     )
-    ConfigImportacion.objects.using("negocio_db").create(
+    ConfigImportacion.objects.create(
         proveedor=proveedor,
         col_codigo="A",
         col_descripcion="B",
@@ -34,7 +34,7 @@ def proveedor_config():
     return proveedor
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # nueva vista: landing GET
+@pytest.mark.django_db  # nueva vista: landing GET
 def test_landing_get_lists_proveedores_and_pendientes(client, proveedor_config, monkeypatch):
     url = reverse("importaciones:landing")
     resp = client.get(url)
@@ -43,7 +43,7 @@ def test_landing_get_lists_proveedores_and_pendientes(client, proveedor_config, 
     assert b"proveedor_id" in resp.content
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # landing POST redirige a preview
+@pytest.mark.django_db  # landing POST redirige a preview
 def test_landing_post_redirects_to_preview_min(client, monkeypatch, tmp_path, settings, proveedor_config):
     # Mock listar_hojas para que preview funcione tras redirigir
     from importaciones.adapters.repository import ExcelRepository
@@ -61,7 +61,7 @@ def test_landing_post_redirects_to_preview_min(client, monkeypatch, tmp_path, se
     assert resp.status_code in (301, 302)
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # preview GET basado en hojas
+@pytest.mark.django_db  # preview GET basado en hojas
 def test_importacion_preview_get_lists_sheets(client, monkeypatch, proveedor_config):
     from importaciones.adapters.repository import ExcelRepository
     monkeypatch.setattr(ExcelRepository, "listar_hojas_excel", lambda self, nombre: ["H1", "H2"], raising=True)

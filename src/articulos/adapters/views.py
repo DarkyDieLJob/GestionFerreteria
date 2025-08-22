@@ -57,9 +57,9 @@ def mapear_articulo(request, pendiente_id: int):
     Articulo = apps.get_model("articulos", "Articulo")
     ArticuloSinRevisar = apps.get_model("articulos", "ArticuloSinRevisar")
 
-    # Siempre leemos el pendiente desde la base de negocio
+    # Leer el pendiente usando la base de datos por defecto
     pendiente = (
-        ArticuloSinRevisar.objects.using("negocio_db").select_related("proveedor", "descuento").get(pk=pendiente_id)
+        ArticuloSinRevisar.objects.select_related("proveedor", "descuento").get(pk=pendiente_id)
     )
 
     if request.method == "POST":
@@ -72,11 +72,11 @@ def mapear_articulo(request, pendiente_id: int):
 
             # Usar artículo existente si se seleccionó
             if articulo_id:
-                art = Articulo.objects.using("negocio_db").get(pk=articulo_id)
+                art = Articulo.objects.get(pk=articulo_id)
             else:
                 # Crear o actualizar Articulo en base de negocio
                 if codigo_barras:
-                    art, _created = Articulo.objects.using("negocio_db").get_or_create(
+                    art, _created = Articulo.objects.get_or_create(
                         codigo_barras=codigo_barras,
                         defaults={"descripcion": descripcion},
                     )
@@ -84,10 +84,10 @@ def mapear_articulo(request, pendiente_id: int):
                     if not _created and descripcion:
                         if getattr(art, "descripcion", None) != descripcion:
                             art.descripcion = descripcion
-                            art.save(using="negocio_db")
+                            art.save()
                 else:
                     # Si no hay código de barras, crear un Articulo genérico con descripción
-                    art = Articulo.objects.using("negocio_db").create(descripcion=descripcion)
+                    art = Articulo.objects.create(descripcion=descripcion)
 
             # Ejecutar caso de uso de mapeo (adaptador MapeoRepository).
             # Nota: el caso de uso aún invoca el puerto con 'usuario_id', se adapta localmente.
@@ -156,7 +156,7 @@ def editar_articulo_proveedor(request, ap_id: int):
 
     ArticuloProveedor = apps.get_model("articulos", "ArticuloProveedor")
 
-    ap = ArticuloProveedor.objects.using("negocio_db").select_related("precio_de_lista").get(pk=ap_id)
+    ap = ArticuloProveedor.objects.select_related("precio_de_lista").get(pk=ap_id)
 
     if request.method == "POST":
         form = EditArticuloProveedorForm(request.POST, instance=ap)
