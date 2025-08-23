@@ -53,17 +53,21 @@ def coverage_report(request):
     if not enabled:
         raise Http404("Coverage report not available")
 
-    # htmlcov vive en la raíz del repo cuando se ejecuta pytest desde la raíz.
-    # BASE_DIR suele apuntar a src/, por lo que subimos un nivel.
+    # Intentar en dos ubicaciones: repo/htmlcov (pytest desde raíz) y src/htmlcov (pytest desde src)
     base_dir = Path(getattr(settings, 'BASE_DIR', Path(__file__).resolve().parent.parent))
-    report_path = (base_dir.parent / 'htmlcov' / 'index.html').resolve()
+    candidates = [
+        (base_dir.parent / 'htmlcov' / 'index.html').resolve(),
+        (base_dir / 'htmlcov' / 'index.html').resolve(),
+    ]
+    report_path = next((p for p in candidates if p.exists()), None)
 
-    if not report_path.exists():
+    if report_path is None:
         raise Http404("Coverage report not found. Ejecuta pytest para generar htmlcov/")
 
     content = report_path.read_text(encoding='utf-8')
     # Inyectamos una etiqueta <base> para que los enlaces relativos (CSS/JS/otras páginas)
-    # apunten a /coverage/raw/
+    # apunten a la ruta absoluta /coverage/raw/ (mapeada en core_config.urls),
+    # que funciona desde cualquier namespace (incluido /dashboard/coverage/)
     if '<base ' not in content:
         content = content.replace('<head>', '<head>\n  <base href="/coverage/raw/">', 1)
     return HttpResponse(content, content_type='text/html')
@@ -82,7 +86,10 @@ def coverage_asset(request, path: str):
         raise Http404("Coverage assets not available")
 
     base_dir = Path(getattr(settings, 'BASE_DIR', Path(__file__).resolve().parent.parent))
-    htmlcov_dir = (base_dir.parent / 'htmlcov').resolve()
+    # Soportar repo/htmlcov y src/htmlcov
+    repo_htmlcov = (base_dir.parent / 'htmlcov').resolve()
+    src_htmlcov = (base_dir / 'htmlcov').resolve()
+    htmlcov_dir = repo_htmlcov if repo_htmlcov.exists() else src_htmlcov
 
     # Normalizamos la ruta solicitada y evitamos path traversal
     requested = (htmlcov_dir / path).resolve()
@@ -111,7 +118,10 @@ def coverage_raw(request, path: str):
         raise Http404("Coverage raw not available")
 
     base_dir = Path(getattr(settings, 'BASE_DIR', Path(__file__).resolve().parent.parent))
-    htmlcov_dir = (base_dir.parent / 'htmlcov').resolve()
+    # Soportar repo/htmlcov y src/htmlcov
+    repo_htmlcov = (base_dir.parent / 'htmlcov').resolve()
+    src_htmlcov = (base_dir / 'htmlcov').resolve()
+    htmlcov_dir = repo_htmlcov if repo_htmlcov.exists() else src_htmlcov
     requested = (htmlcov_dir / path).resolve()
     try:
         requested.relative_to(htmlcov_dir)
