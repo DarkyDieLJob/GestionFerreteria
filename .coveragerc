@@ -1,0 +1,26 @@
+[run]
+branch = True
+source =
+    articulos
+
+[report]
+omeit =
+    */tests/*
+    */migrations/*
+    */__init__.py
+    */settings.py
+    */wsgi.py
+    */asgi.py
+    manage.py
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.
+    def __repr__
+    def __str__
+    def __unicode__
+    @abstractmethod
+    @overload
+    pass
+
+[html]
+directory = htmlcov
