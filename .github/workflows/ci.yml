@@ -74,6 +74,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements/notebook.txt
 
+      - name: Prepare DB (sync tables)
+        working-directory: src
+        env:
+          DJANGO_SETTINGS_MODULE: core_config.test_settings
+        run: |
+          python manage.py migrate --run-syncdb --noinput
+
       - name: Run tests
         working-directory: src
         env:
