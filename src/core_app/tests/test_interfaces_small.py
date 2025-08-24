@@ -3,6 +3,7 @@ import types
 
 def test_core_app_repository_abstract_pass_lines_executed():
     from core_app.ports.interfaces import Core_appRepository
+
     # Access unbound functions and call them to execute the 'pass' lines
     save_fn = Core_appRepository.__dict__["save"]
     get_all_fn = Core_appRepository.__dict__["get_all"]

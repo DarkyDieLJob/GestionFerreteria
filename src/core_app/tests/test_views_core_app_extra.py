@@ -8,19 +8,26 @@ pytestmark = pytest.mark.django_db
 
 def make_staff_user(django_user_model):
     return django_user_model.objects.create_user(
-        username="staff2", email="staff2@example.com", password="pass1234", is_staff=True
+        username="staff2",
+        email="staff2@example.com",
+        password="pass1234",
+        is_staff=True,
     )
 
 
 @override_settings(DEBUG=True)
-def test_coverage_report_enabled_via_debug_when_setting_unset(tmp_path, settings, django_user_model):
+def test_coverage_report_enabled_via_debug_when_setting_unset(
+    tmp_path, settings, django_user_model
+):
     # COVERAGE_VIEW_ENABLED no definido (None) => debe usar DEBUG
     fake_src = tmp_path / "src"
     fake_src.mkdir()
     htmlcov = tmp_path / "htmlcov"
     htmlcov.mkdir()
     index = htmlcov / "index.html"
-    index.write_text("<html><head><title>cov</title></head><body>ok</body></html>", encoding="utf-8")
+    index.write_text(
+        "<html><head><title>cov</title></head><body>ok</body></html>", encoding="utf-8"
+    )
 
     settings.COVERAGE_VIEW_ENABLED = None
     settings.BASE_DIR = str(fake_src)
@@ -34,13 +41,18 @@ def test_coverage_report_enabled_via_debug_when_setting_unset(tmp_path, settings
 
 
 @override_settings()
-def test_coverage_report_does_not_duplicate_base_tag(tmp_path, settings, django_user_model):
+def test_coverage_report_does_not_duplicate_base_tag(
+    tmp_path, settings, django_user_model
+):
     fake_src = tmp_path / "src"
     fake_src.mkdir()
     htmlcov = tmp_path / "htmlcov"
     htmlcov.mkdir()
     index = htmlcov / "index.html"
-    index.write_text("<html><head><base href=\"/coverage/raw/\"></head><body>ok</body></html>", encoding="utf-8")
+    index.write_text(
+        '<html><head><base href="/coverage/raw/"></head><body>ok</body></html>',
+        encoding="utf-8",
+    )
 
     settings.COVERAGE_VIEW_ENABLED = True
     settings.BASE_DIR = str(fake_src)
@@ -53,7 +65,7 @@ def test_coverage_report_does_not_duplicate_base_tag(tmp_path, settings, django_
     assert resp.status_code == 200
     body = resp.content.decode("utf-8")
     # Debe existir solo una etiqueta base
-    assert body.count("<base href=\"/coverage/raw/\">") == 1
+    assert body.count('<base href="/coverage/raw/">') == 1
 
 
 @override_settings(DEBUG=False, COVERAGE_VIEW_ENABLED=False)

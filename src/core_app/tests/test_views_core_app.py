@@ -62,7 +62,9 @@ def test_coverage_report_enabled_serves_index_with_base_injected(tmp_path, setti
     htmlcov = tmp_path / "htmlcov"
     htmlcov.mkdir()
     index = htmlcov / "index.html"
-    index.write_text("<html><head><title>cov</title></head><body>ok</body></html>", encoding="utf-8")
+    index.write_text(
+        "<html><head><title>cov</title></head><body>ok</body></html>", encoding="utf-8"
+    )
 
     settings.COVERAGE_VIEW_ENABLED = True
     settings.BASE_DIR = str(fake_src)
@@ -75,7 +77,7 @@ def test_coverage_report_enabled_serves_index_with_base_injected(tmp_path, setti
     assert resp.status_code == 200
     body = resp.content.decode("utf-8")
     # Debe inyectar <base href="/coverage/raw/">
-    assert "<base href=\"/coverage/raw/\">" in body
+    assert '<base href="/coverage/raw/">' in body
     assert "cov" in body
 
 

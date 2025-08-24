@@ -6,6 +6,7 @@ from django.http import HttpResponse, Http404, FileResponse
 from pathlib import Path
 from .models import Core_app
 
+
 @login_required
 def home(request):
     """
@@ -14,13 +15,13 @@ def home(request):
     """
     user = request.user
     context = {
-        'user': user,
-        'full_name': user.get_full_name() or user.username,
-        'email': user.email,
-        'last_login': user.last_login,
-        'date_joined': user.date_joined,
+        "user": user,
+        "full_name": user.get_full_name() or user.username,
+        "email": user.email,
+        "last_login": user.last_login,
+        "date_joined": user.date_joined,
     }
-    return render(request, 'core_app/home.html', context)
+    return render(request, "core_app/home.html", context)
 
 
 def terms(request):
@@ -28,7 +29,7 @@ def terms(request):
     Vista pública que renderiza los Términos de Servicio.
     No requiere autenticación y muestra contenido estático.
     """
-    return render(request, 'core_app/terms.html')
+    return render(request, "core_app/terms.html")
 
 
 def privacy(request):
@@ -36,7 +37,7 @@ def privacy(request):
     Vista pública que renderiza la Política de Privacidad.
     No requiere autenticación y muestra contenido estático.
     """
-    return render(request, 'core_app/privacy.html')
+    return render(request, "core_app/privacy.html")
 
 
 @staff_member_required
@@ -45,32 +46,34 @@ def coverage_report(request):
     Vista solo para staff que sirve el reporte HTML de cobertura generado en htmlcov/index.html.
     Por defecto solo está disponible si DEBUG=True o si COVERAGE_VIEW_ENABLED=True en settings.
     """
-    enabled = getattr(settings, 'COVERAGE_VIEW_ENABLED', None)
+    enabled = getattr(settings, "COVERAGE_VIEW_ENABLED", None)
     if enabled is None:
         # Si no está definido explícitamente, permitir solo en DEBUG
-        enabled = getattr(settings, 'DEBUG', False)
+        enabled = getattr(settings, "DEBUG", False)
 
     if not enabled:
         raise Http404("Coverage report not available")
 
     # Intentar en dos ubicaciones: repo/htmlcov (pytest desde raíz) y src/htmlcov (pytest desde src)
-    base_dir = Path(getattr(settings, 'BASE_DIR', Path(__file__).resolve().parent.parent))
+    base_dir = Path(
+        getattr(settings, "BASE_DIR", Path(__file__).resolve().parent.parent)
+    )
     candidates = [
-        (base_dir.parent / 'htmlcov' / 'index.html').resolve(),
-        (base_dir / 'htmlcov' / 'index.html').resolve(),
+        (base_dir.parent / "htmlcov" / "index.html").resolve(),
+        (base_dir / "htmlcov" / "index.html").resolve(),
     ]
     report_path = next((p for p in candidates if p.exists()), None)
 
     if report_path is None:
         raise Http404("Coverage report not found. Ejecuta pytest para generar htmlcov/")
 
-    content = report_path.read_text(encoding='utf-8')
+    content = report_path.read_text(encoding="utf-8")
     # Inyectamos una etiqueta <base> para que los enlaces relativos (CSS/JS/otras páginas)
     # apunten a la ruta absoluta /coverage/raw/ (mapeada en core_config.urls),
     # que funciona desde cualquier namespace (incluido /dashboard/coverage/)
-    if '<base ' not in content:
-        content = content.replace('<head>', '<head>\n  <base href="/coverage/raw/">', 1)
-    return HttpResponse(content, content_type='text/html')
+    if "<base " not in content:
+        content = content.replace("<head>", '<head>\n  <base href="/coverage/raw/">', 1)
+    return HttpResponse(content, content_type="text/html")
 
 
 @staff_member_required
@@ -79,16 +82,18 @@ def coverage_asset(request, path: str):
     Sirve archivos estáticos generados por coverage dentro de htmlcov/ (CSS/JS/imagenes),
     protegido para staff y sólo si la vista está habilitada (DEBUG o COVERAGE_VIEW_ENABLED=True).
     """
-    enabled = getattr(settings, 'COVERAGE_VIEW_ENABLED', None)
+    enabled = getattr(settings, "COVERAGE_VIEW_ENABLED", None)
     if enabled is None:
-        enabled = getattr(settings, 'DEBUG', False)
+        enabled = getattr(settings, "DEBUG", False)
     if not enabled:
         raise Http404("Coverage assets not available")
 
-    base_dir = Path(getattr(settings, 'BASE_DIR', Path(__file__).resolve().parent.parent))
+    base_dir = Path(
+        getattr(settings, "BASE_DIR", Path(__file__).resolve().parent.parent)
+    )
     # Soportar repo/htmlcov y src/htmlcov
-    repo_htmlcov = (base_dir.parent / 'htmlcov').resolve()
-    src_htmlcov = (base_dir / 'htmlcov').resolve()
+    repo_htmlcov = (base_dir.parent / "htmlcov").resolve()
+    src_htmlcov = (base_dir / "htmlcov").resolve()
     htmlcov_dir = repo_htmlcov if repo_htmlcov.exists() else src_htmlcov
 
     # Normalizamos la ruta solicitada y evitamos path traversal
@@ -102,7 +107,7 @@ def coverage_asset(request, path: str):
     if not requested.exists() or not requested.is_file():
         raise Http404("Asset not found")
 
-    return FileResponse(open(requested, 'rb'))
+    return FileResponse(open(requested, "rb"))
 
 
 @staff_member_required
@@ -111,16 +116,18 @@ def coverage_raw(request, path: str):
     Sirve cualquier archivo dentro de htmlcov/ (incluye otras páginas HTML enlazadas desde index.html).
     Protegido y sólo disponible si la vista está habilitada.
     """
-    enabled = getattr(settings, 'COVERAGE_VIEW_ENABLED', None)
+    enabled = getattr(settings, "COVERAGE_VIEW_ENABLED", None)
     if enabled is None:
-        enabled = getattr(settings, 'DEBUG', False)
+        enabled = getattr(settings, "DEBUG", False)
     if not enabled:
         raise Http404("Coverage raw not available")
 
-    base_dir = Path(getattr(settings, 'BASE_DIR', Path(__file__).resolve().parent.parent))
+    base_dir = Path(
+        getattr(settings, "BASE_DIR", Path(__file__).resolve().parent.parent)
+    )
     # Soportar repo/htmlcov y src/htmlcov
-    repo_htmlcov = (base_dir.parent / 'htmlcov').resolve()
-    src_htmlcov = (base_dir / 'htmlcov').resolve()
+    repo_htmlcov = (base_dir.parent / "htmlcov").resolve()
+    src_htmlcov = (base_dir / "htmlcov").resolve()
     htmlcov_dir = repo_htmlcov if repo_htmlcov.exists() else src_htmlcov
     requested = (htmlcov_dir / path).resolve()
     try:
@@ -129,4 +136,4 @@ def coverage_raw(request, path: str):
         raise Http404("Invalid path")
     if not requested.exists() or not requested.is_file():
         raise Http404("File not found")
-    return FileResponse(open(requested, 'rb'))
+    return FileResponse(open(requested, "rb"))
