@@ -85,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: htmlcov
-          path: htmlcov
+          path: src/htmlcov
 
   # Example staging deploy (disabled placeholder)
   deploy-staging:
