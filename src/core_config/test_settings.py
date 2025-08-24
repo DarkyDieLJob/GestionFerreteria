@@ -36,15 +36,20 @@ logging.disable(logging.CRITICAL)
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app != 'debug_toolbar']
 MIDDLEWARE = [m for m in MIDDLEWARE if m != 'debug_toolbar.middleware.DebugToolbarMiddleware']
 
-# Ensure precios app is available in tests (needed for importing precios.models and URL conf)
-# Normalize to avoid duplicate labels (e.g., 'precios' and 'precios.apps.PreciosConfig')
+# Ensure domain apps are available in tests so tables are created even without migrations.
+# Normalize to avoid duplicate labels (e.g., 'app' and 'app.apps.Config').
 _normalized = []
+_skip_roots = {"precios", "articulos", "importaciones", "proveedores"}
 for app in INSTALLED_APPS:
-    if app == 'precios' or app.startswith('precios.'):
-        # skip for now; we'll add a single canonical entry below
+    root = app.split(".apps.")[0]
+    if root in _skip_roots:
+        # skip for now; we will add canonical entries below
         continue
     _normalized.append(app)
-INSTALLED_APPS = _normalized + ['precios']
+
+# Add canonical app labels once
+_domain_apps = ["precios", "articulos", "importaciones", "proveedores"]
+INSTALLED_APPS = _normalized + _domain_apps
 
 # Use faster password hasher for tests
 PASSWORD_HASHERS = [
