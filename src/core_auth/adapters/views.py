@@ -6,20 +6,25 @@ from django.views import View
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth import login, update_session_auth_hash
 from django.core.exceptions import ValidationError
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
 from django.conf import settings
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import make_password
 
-# Set up logging
-logger = logging.getLogger(__name__)
-
-from .forms import RegisterForm, LoginForm, ResetRequestForm, EnforcedPasswordChangeForm
+from .forms import (
+    RegisterForm,
+    LoginForm,
+    ResetRequestForm,
+    EnforcedPasswordChangeForm,
+)
 from .models import CoreAuthProfile, PasswordResetRequest
 from .repository import DjangoAuthRepository
 from ..domain.use_cases import RegisterUserUseCase, LoginUserUseCase, LogoutUserUseCase
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 auth_repository = DjangoAuthRepository()
@@ -41,7 +46,8 @@ class RegisterView(View):
 
     def post(self, request, *args, **kwargs):
         """Procesa el formulario de registro."""
-        # Aceptar también 'password' como alias para password1/password2 (compatibilidad con pruebas)
+        # Aceptar también 'password' como alias
+        # para password1/password2 (compatibilidad con pruebas)
         if "password" in request.POST and "password1" not in request.POST:
             data = request.POST.copy()
             data["password1"] = request.POST["password"]
