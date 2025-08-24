@@ -47,10 +47,10 @@ jobs:
           flake8 --version
 
       - name: Run black (check)
-        run: black --check src scripts
+        run: black --check src/core_app src/core_auth scripts
 
       - name: Run flake8
-        run: flake8 src scripts
+        run: flake8 src/core_app src/core_auth scripts
 
   test:
     name: Tests (pytest + coverage)
