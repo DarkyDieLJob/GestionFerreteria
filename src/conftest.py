@@ -95,6 +95,16 @@ sys.path.insert(0, str(root_dir))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core_config.test_settings")
 
 # Fixtures
+@pytest.fixture(scope="session", autouse=True)
+def _apply_migrations_for_tests(django_db_setup, django_db_blocker):
+    """Ensure DB tables exist even when migrations are disabled.
+
+    In CI we disable migrations to avoid relying on migration files. This fixture
+    forces Django to create tables using migrate --run-syncdb before any test runs.
+    """
+    from django.core.management import call_command
+    with django_db_blocker.unblock():
+        call_command("migrate", run_syncdb=True, interactive=False, verbosity=0)
 @pytest.fixture
 def user():
     """Create a test user."""
