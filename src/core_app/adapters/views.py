@@ -4,7 +4,6 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
 from django.http import HttpResponse, Http404, FileResponse
 from pathlib import Path
-from .models import Core_app
 
 
 @login_required
