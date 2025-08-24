@@ -1,10 +1,11 @@
 [run]
 branch = True
 source =
-    articulos
+    src/core_auth
+    src/core_app
 
 [report]
-omeit =
+omit =
     */tests/*
     */migrations/*
     */__init__.py
@@ -12,6 +13,8 @@ omeit =
     */wsgi.py
     */asgi.py
     manage.py
+    templates/*
+    templates/app_templates/*
 exclude_lines =
     pragma: no cover
     if __name__ == .__main__.
