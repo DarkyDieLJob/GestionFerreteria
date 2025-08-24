@@ -85,7 +85,7 @@ jobs:
         working-directory: src
         env:
           DJANGO_SETTINGS_MODULE: core_config.test_settings
-        run: pytest -q
+        run: pytest -q --reuse-db
 
       - name: Upload coverage HTML
         if: always()

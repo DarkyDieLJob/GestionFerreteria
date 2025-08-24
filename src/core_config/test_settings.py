@@ -14,6 +14,10 @@ _TEST_DB_PATH = _DATA_DIR / 'test_default.sqlite3'
 DATABASES['default'] = {
     'ENGINE': 'django.db.backends.sqlite3',
     'NAME': _TEST_DB_PATH,
+    # Use the same file for the Django test database so the CI pre-migration step applies
+    'TEST': {
+        'NAME': _TEST_DB_PATH,
+    },
 }
 # Alias other names to the same DB so using="negocio_db" etc. hit the same database
 DATABASES['negocio_db'] = {**DATABASES['default'], 'TEST': {'MIRROR': 'default'}}
