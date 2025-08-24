@@ -112,7 +112,8 @@ def coverage_asset(request, path: str):
 @staff_member_required
 def coverage_raw(request, path: str):
     """
-    Sirve cualquier archivo dentro de htmlcov/ (incluye otras páginas HTML enlazadas desde index.html).
+    Sirve cualquier archivo dentro de htmlcov/
+    (incluye otras páginas HTML enlazadas desde index.html).
     Protegido y sólo disponible si la vista está habilitada.
     """
     enabled = getattr(settings, "COVERAGE_VIEW_ENABLED", None)

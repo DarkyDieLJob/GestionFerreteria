@@ -1,6 +1,5 @@
 from typing import Optional
 from django.contrib.auth import get_user_model, authenticate, logout
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, DatabaseError
 from django.http import HttpRequest
 

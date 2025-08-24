@@ -1,4 +1,3 @@
-from typing import Optional
 from django.contrib.auth.models import User
 from django.http import HttpRequest
 from django.core.exceptions import ValidationError
@@ -142,9 +141,8 @@ class LoginUserUseCase:
                 print(
                     f"[ERROR] Error messages: {getattr(error, 'messages', 'No messages')}"
                 )
-                print(
-                    f"[ERROR] Error message_dict: {getattr(error, 'message_dict', 'No message_dict')}"
-                )
+                msg_dict = getattr(error, "message_dict", "No message_dict")
+                print(f"[ERROR] Error message_dict: {msg_dict}")
                 raise error
 
             print("\n[SUCCESS] Authentication successful")

@@ -95,7 +95,8 @@ class PasswordResetRequest(models.Model):
         related_name="processed_reset_requests",
     )
 
-    # Contraseña temporal (se genera pero no se activa hasta la entrega). Guardar solo hash; opcionalmente una vista previa en memoria.
+    # Contraseña temporal (se genera pero no se activa hasta la entrega).
+    # Guardar solo hash; opcionalmente una vista previa en memoria.
     temp_password_hash = models.CharField(max_length=255, blank=True, default="")
     temp_password_preview = models.CharField(
         max_length=64,

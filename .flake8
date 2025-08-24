@@ -13,3 +13,4 @@ exclude =
 per-file-ignores =
     src/core_app/tests/*: F401, F841, F811, E501
     src/core_auth/tests/*: F401, F841, F811, E501
+    src/core_auth/adapters/forms.py: E501
