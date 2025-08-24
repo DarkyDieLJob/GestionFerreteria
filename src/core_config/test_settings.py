@@ -65,3 +65,13 @@ EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 # La vista /coverage/ sólo se habilita si DEBUG=True o si esta bandera está en True.
 # En tests no es necesario habilitarla.
 COVERAGE_VIEW_ENABLED = False
+
+# Deshabilitar migraciones durante tests: Django creará tablas con --run-syncdb
+# Esto permite que la suite no dependa de archivos de migración presentes en el repo/CI.
+class DisableMigrations(dict):
+    def __contains__(self, item):
+        return True
+    def __getitem__(self, item):
+        return None
+
+MIGRATION_MODULES = DisableMigrations()
