@@ -103,8 +103,18 @@ def _apply_migrations_for_tests(django_db_setup, django_db_blocker):
     forces Django to create tables using migrate --run-syncdb before any test runs.
     """
     from django.core.management import call_command
+    from django.conf import settings as dj_settings
+    aliases = ["default", "negocio_db", "articles_db", "cart_db"]
     with django_db_blocker.unblock():
-        call_command("migrate", run_syncdb=True, interactive=False, verbosity=0)
+        for alias in aliases:
+            if alias in dj_settings.DATABASES:
+                call_command(
+                    "migrate",
+                    database=alias,
+                    run_syncdb=True,
+                    interactive=False,
+                    verbosity=0,
+                )
 @pytest.fixture
 def user():
     """Create a test user."""
