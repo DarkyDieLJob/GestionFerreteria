@@ -75,3 +75,7 @@ class DisableMigrations(dict):
         return None
 
 MIGRATION_MODULES = DisableMigrations()
+
+# Deshabilitar routers de BD en tests para evitar que el ruteo a aliases no-default
+# impida la creación de tablas vía syncdb en CI. Todas las operaciones usarán 'default'.
+DATABASE_ROUTERS = []
