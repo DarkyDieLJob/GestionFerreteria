@@ -57,12 +57,20 @@ class ExcelRepository(ImportarExcelPort):
             df = pd.read_csv(file_path)
             hoja = None
         else:
+            # Seleccionar engine de pandas según la extensión
+            engine = None
+            if ext == ".xlsx":
+                engine = "openpyxl"
+            elif ext == ".xls":
+                engine = "xlrd"
+            elif ext == ".ods":
+                engine = "odf"
             # Excel / ODS: seleccionar hoja si se solicita
             if sheet_name is not None:
-                df = pd.read_excel(file_path, sheet_name=sheet_name)
+                df = pd.read_excel(file_path, sheet_name=sheet_name, engine=engine)
                 hoja = sheet_name
             else:
-                df = pd.read_excel(file_path)
+                df = pd.read_excel(file_path, engine=engine)
                 hoja = getattr(getattr(df, "name", None), "name", None) or None
 
         preview_rows: List[Dict[str, Any]] = df.head(20).fillna("").to_dict(orient="records")
@@ -78,8 +86,16 @@ class ExcelRepository(ImportarExcelPort):
     def listar_hojas_excel(self, nombre_archivo: str) -> List[str]:
         """Devuelve la lista de hojas disponibles en el Excel subido."""
         file_path = self.storage.path(nombre_archivo)
+        _, ext = os.path.splitext(nombre_archivo.lower())
+        engine = None
+        if ext == ".xlsx":
+            engine = "openpyxl"
+        elif ext == ".xls":
+            engine = "xlrd"
+        elif ext == ".ods":
+            engine = "odf"
         try:
-            xls = pd.ExcelFile(file_path)
+            xls = pd.ExcelFile(file_path, engine=engine)
         except Exception as exc:
             raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc
         return list(xls.sheet_names)
