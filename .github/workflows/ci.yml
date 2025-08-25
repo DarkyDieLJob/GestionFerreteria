@@ -93,8 +93,9 @@ jobs:
         working-directory: src
         env:
           DJANGO_SETTINGS_MODULE: core_config.test_settings
+          USE_MIGRATIONS: "1"
         run: |
-          python manage.py migrate --run-syncdb --noinput
+          python manage.py migrate --noinput
 
       - name: Verify tables after migrate
         working-directory: src
@@ -119,6 +120,8 @@ jobs:
         working-directory: src
         env:
           DJANGO_SETTINGS_MODULE: core_config.test_settings
+          USE_MIGRATIONS: "1"
+          PYTEST_ADDOPTS: ""
         run: pytest -q --reuse-db
 
       - name: Upload coverage HTML

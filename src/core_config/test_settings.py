@@ -40,20 +40,7 @@ logging.disable(logging.CRITICAL)
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app != 'debug_toolbar']
 MIDDLEWARE = [m for m in MIDDLEWARE if m != 'debug_toolbar.middleware.DebugToolbarMiddleware']
 
-# Ensure domain apps are available in tests so tables are created even without migrations.
-# Normalize to avoid duplicate labels (e.g., 'app' and 'app.apps.Config').
-_normalized = []
-_skip_roots = {"precios", "articulos", "importaciones", "proveedores"}
-for app in INSTALLED_APPS:
-    root = app.split(".apps.")[0]
-    if root in _skip_roots:
-        # skip for now; we will add canonical entries below
-        continue
-    _normalized.append(app)
-
-# Add canonical app labels once
-_domain_apps = ["precios", "articulos", "importaciones", "proveedores"]
-INSTALLED_APPS = _normalized + _domain_apps
+# Keep INSTALLED_APPS from base settings as-is to use each app's AppConfig
 
 # Use faster password hasher for tests
 PASSWORD_HASHERS = [
@@ -75,15 +62,18 @@ EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 # En tests no es necesario habilitarla.
 COVERAGE_VIEW_ENABLED = False
 
-# Deshabilitar migraciones durante tests: Django creará tablas con --run-syncdb
-# Esto permite que la suite no dependa de archivos de migración presentes en el repo/CI.
-class DisableMigrations(dict):
-    def __contains__(self, item):
-        return True
-    def __getitem__(self, item):
-        return None
-
-MIGRATION_MODULES = DisableMigrations()
+# Controlar uso de migraciones por variable de entorno
+# Por defecto (local), se deshabilitan migraciones para acelerar tests.
+# En CI, exportar USE_MIGRATIONS=1 para aplicar migraciones reales.
+if os.getenv("USE_MIGRATIONS", "0") == "1":
+    MIGRATION_MODULES = {}
+else:
+    class DisableMigrations(dict):
+        def __contains__(self, item):
+            return True
+        def __getitem__(self, item):
+            return None
+    MIGRATION_MODULES = DisableMigrations()
 
 # Deshabilitar routers de BD en tests para evitar que el ruteo a aliases no-default
 # impida la creación de tablas vía syncdb en CI. Todas las operaciones usarán 'default'.
