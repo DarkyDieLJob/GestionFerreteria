@@ -6,77 +6,96 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core_auth', '0002_coreauthprofile_passwordresetrequest'),
+        ("core_auth", "0002_coreauthprofile_passwordresetrequest"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='passwordresetrequest',
-            name='identifier_submitted',
+            model_name="passwordresetrequest",
+            name="identifier_submitted",
         ),
         migrations.AddField(
-            model_name='coreauthprofile',
-            name='dni_last4_hash',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="coreauthprofile",
+            name="dni_last4_hash",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
         migrations.AddField(
-            model_name='coreauthprofile',
-            name='phone_number',
-            field=models.CharField(blank=True, default='', max_length=32),
+            model_name="coreauthprofile",
+            name="phone_number",
+            field=models.CharField(blank=True, default="", max_length=32),
         ),
         migrations.AddField(
-            model_name='coreauthprofile',
-            name='recovery_hint',
-            field=models.CharField(blank=True, default='Últimos 4 del DNI', max_length=64),
+            model_name="coreauthprofile",
+            name="recovery_hint",
+            field=models.CharField(
+                blank=True, default="Últimos 4 del DNI", max_length=64
+            ),
         ),
         migrations.AddField(
-            model_name='passwordresetrequest',
-            name='delivered_at',
-            field=models.DateTimeField(blank=True, help_text='Cuando se activó y entregó al usuario', null=True),
+            model_name="passwordresetrequest",
+            name="delivered_at",
+            field=models.DateTimeField(
+                blank=True, help_text="Cuando se activó y entregó al usuario", null=True
+            ),
         ),
         migrations.AddField(
-            model_name='passwordresetrequest',
-            name='dni_last4_provided',
-            field=models.CharField(blank=True, default='', max_length=4),
+            model_name="passwordresetrequest",
+            name="dni_last4_provided",
+            field=models.CharField(blank=True, default="", max_length=4),
         ),
         migrations.AddField(
-            model_name='passwordresetrequest',
-            name='email_input',
-            field=models.EmailField(blank=True, default='', max_length=254),
+            model_name="passwordresetrequest",
+            name="email_input",
+            field=models.EmailField(blank=True, default="", max_length=254),
         ),
         migrations.AddField(
-            model_name='passwordresetrequest',
-            name='expires_at',
+            model_name="passwordresetrequest",
+            name="expires_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='passwordresetrequest',
-            name='provided_phone',
-            field=models.CharField(blank=True, default='', max_length=32),
+            model_name="passwordresetrequest",
+            name="provided_phone",
+            field=models.CharField(blank=True, default="", max_length=32),
         ),
         migrations.AddField(
-            model_name='passwordresetrequest',
-            name='short_code',
-            field=models.CharField(default='', editable=False, max_length=16, unique=True),
+            model_name="passwordresetrequest",
+            name="short_code",
+            field=models.CharField(
+                default="", editable=False, max_length=16, unique=True
+            ),
         ),
         migrations.AddField(
-            model_name='passwordresetrequest',
-            name='temp_password_hash',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="passwordresetrequest",
+            name="temp_password_hash",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
         migrations.AddField(
-            model_name='passwordresetrequest',
-            name='username_input',
-            field=models.CharField(blank=True, default='', max_length=150),
+            model_name="passwordresetrequest",
+            name="username_input",
+            field=models.CharField(blank=True, default="", max_length=150),
         ),
         migrations.AlterField(
-            model_name='passwordresetrequest',
-            name='processed_at',
-            field=models.DateTimeField(blank=True, help_text='Cuando se generó la temporal', null=True),
+            model_name="passwordresetrequest",
+            name="processed_at",
+            field=models.DateTimeField(
+                blank=True, help_text="Cuando se generó la temporal", null=True
+            ),
         ),
         migrations.AlterField(
-            model_name='passwordresetrequest',
-            name='status',
-            field=models.CharField(choices=[('pending', 'Pending'), ('under_review', 'Under review'), ('ready_to_deliver', 'Ready'), ('resolved', 'Resolved'), ('expired', 'Expired'), ('rejected', 'Rejected')], default='pending', max_length=20),
+            model_name="passwordresetrequest",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("pending", "Pending"),
+                    ("under_review", "Under review"),
+                    ("ready_to_deliver", "Ready"),
+                    ("resolved", "Resolved"),
+                    ("expired", "Expired"),
+                    ("rejected", "Rejected"),
+                ],
+                default="pending",
+                max_length=20,
+            ),
         ),
     ]
