@@ -5,8 +5,10 @@ import pytest
 from django.urls import reverse
 from django.test import Client
 
+# Allow DB access to both 'default' and 'negocio_db' for these tests
+pytestmark = pytest.mark.django_db(databases=["default", "negocio_db"], transaction=True)
 
-@pytest.mark.django_db(transaction=True)
+
 def test_get_preview_renders_sections(client: Client):
     proveedor_id = 123
     nombre_archivo = "archivo.xlsx"
@@ -59,7 +61,6 @@ def test_get_preview_renders_sections(client: Client):
     assert "cargar" in html
 
 
-@pytest.mark.django_db(transaction=True)
 def test_post_creates_and_generates(client: Client):
     proveedor_id = 456
     nombre_archivo = "listado.xlsx"
