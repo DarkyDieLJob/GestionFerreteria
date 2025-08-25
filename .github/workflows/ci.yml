@@ -101,6 +101,7 @@ jobs:
         working-directory: src
         env:
           DJANGO_SETTINGS_MODULE: core_config.test_settings
+          USE_MIGRATIONS: "1"
         run: |
           python - <<'PY'
           import os, django
@@ -115,6 +116,14 @@ jobs:
           ]:
               print(f"has {t}?", t in tables)
           PY
+
+      - name: Show migrations for domain apps
+        working-directory: src
+        env:
+          DJANGO_SETTINGS_MODULE: core_config.test_settings
+          USE_MIGRATIONS: "1"
+        run: |
+          python manage.py showmigrations articulos precios importaciones --list
 
       - name: Run tests
         working-directory: src
