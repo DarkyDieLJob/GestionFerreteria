@@ -81,7 +81,11 @@ jobs:
         run: |
           python --version
           pip --version
-          python -c "import pprint, django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','core_config.test_settings'); django.setup(); from django.conf import settings; pprint.pprint({'BASE_DIR': str(settings.BASE_DIR), 'DATABASES': settings.DATABASES})"
+          python -c "import pprint, django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','core_config.test_settings'); django.setup(); from django.conf import settings; pprint.pprint({'BASE_DIR': str(settings.BASE_DIR), 'DATABASES': settings.DATABASES, 'USE_MIGRATIONS_ENV': os.getenv('USE_MIGRATIONS'), 'MIGRATION_MODULES': getattr(settings, 'MIGRATION_MODULES', None), 'INSTALLED_APPS': settings.INSTALLED_APPS})"
+          echo '--- List migrations on disk (articulos, precios, importaciones) ---'
+          ls -la articulos/migrations || true
+          ls -la precios/migrations || true
+          ls -la importaciones/migrations || true
 
       - name: Reset test DB file
         working-directory: src
