@@ -12,7 +12,6 @@ from django.urls import path
 from articulos.adapters.views import (
     BuscarArticuloView,
     mapear_articulo,  # vista de función para el mapeo
-    editar_articulo_proveedor,  # vista de función para editar AP
 )
 
 # Namespace de la app para usar con reverse('articulos:...')
@@ -31,5 +30,4 @@ urlpatterns = [
     # renderizar errores en GET/POST. La URL permanece igual; solo cambia la
     # lógica interna de validación en la vista.
     path("mapear/<int:pendiente_id>/", mapear_articulo, name="mapear_articulo"),
-    path("editar-ap/<int:ap_id>/", editar_articulo_proveedor, name="editar_articulo_proveedor"),
 ]

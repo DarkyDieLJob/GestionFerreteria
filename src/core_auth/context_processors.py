@@ -1,3 +1,4 @@
+from django.db.models import Q
 from .adapters.models import PasswordResetRequest
 
 
@@ -11,9 +12,9 @@ def staff_reset_requests_badge(request):
     count = 0
     try:
         if request.user.is_authenticated and request.user.is_staff:
-            qs = PasswordResetRequest.objects.filter(
-                status__in=["pending", "under_review", "ready_to_deliver"]
-            )
+            qs = PasswordResetRequest.objects.filter(status__in=[
+                'pending', 'under_review', 'ready_to_deliver'
+            ])
             count = qs.count()
     except Exception:
         count = 0

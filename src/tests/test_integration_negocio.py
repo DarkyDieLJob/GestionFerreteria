@@ -4,21 +4,17 @@ from django.utils import timezone
 from proveedores.adapters.models import Proveedor
 from precios.adapters.models import Descuento, PrecioDeLista
 from articulos.adapters.models import Articulo, ArticuloProveedor, ArticuloSinRevisar
-import pytest
-
-# Obsoleto tras refactor; se reescribirá con escenarios canónicos
-pytestmark = pytest.mark.skip(reason="Obsoleto tras refactor; será reescrito")
 
 
 class NegocioIntegrationTest(TestCase):
-    databases = {"default"}
+    databases = {"default", "negocio_db"}
 
     def test_flujo_completo_precios_descuentos_articulos_proveedores(self):
         # 1) Proveedor
         prov = Proveedor.objects.create(nombre="Proveedor INT", abreviatura="pi")
         self.assertEqual(prov.abreviatura, "PI")
-        # Con el router unificado, todo usa 'default'
-        self.assertEqual(prov._state.db, "default")
+        # Debe residir en negocio_db por el router
+        self.assertEqual(prov._state.db, "negocio_db")
 
         # 2) Descuento temporal general activo (10%)
         d = Descuento.objects.create(
@@ -29,7 +25,7 @@ class NegocioIntegrationTest(TestCase):
             hasta=timezone.now() + timezone.timedelta(days=1),
         )
         self.assertTrue(d.is_active())
-        self.assertEqual(d._state.db, "default")
+        self.assertEqual(d._state.db, "negocio_db")
 
         # 3) Precio de lista con IVA y bulto
         pl = PrecioDeLista.objects.create(
@@ -42,7 +38,7 @@ class NegocioIntegrationTest(TestCase):
             stock=100,
         )
         self.assertEqual(pl.codigo, "5/")  # normalización de código
-        self.assertEqual(pl._state.db, "default")
+        self.assertEqual(pl._state.db, "negocio_db")
 
         # 4) Artículo y relación ArticuloProveedor
         art = Articulo.objects.create(codigo_barras="INT-ART-001")
@@ -174,15 +170,23 @@ class NegocioIntegrationTest(TestCase):
         pl = PrecioDeLista.objects.create(codigo="0051/", descripcion="LP1", precio=80, proveedor=prov, iva=0.21, bulto=3)
         art = Articulo.objects.create(codigo_barras="P1-001")
         ArticuloProveedor.objects.create(articulo=art, proveedor=prov, precio_de_lista=pl, codigo_proveedor="0051/", precio=80, stock=9, dividir=False, descuento=d)
-        with self.assertNumQueries(8, using="default"):
+        with self.assertNumQueries(7, using="negocio_db"):
             art.generar_precios(cantidad=1, pago_efectivo=False)
 
     def test_performance_generar_precios_articulo_sin_revisar(self):
         prov = Proveedor.objects.create(nombre="Prov ASR P", abreviatura="pp")
         # Asegurar que exista el descuento por defecto
         Descuento.objects.get_or_create(tipo="Sin Descuento", defaults={"temporal": False, "general": 0.0})
+        from django.db import connections
+        conn = connections["negocio_db"]
+        try:
+            tables = conn.introspection.table_names()
+        except Exception:
+            tables = []
+        if "auth_user" not in tables:
+            self.skipTest("Omitido: auth_user no existe en negocio_db; FK cross-db no soportado en este backend.")
         asr = ArticuloSinRevisar.objects.create(proveedor=prov, codigo_proveedor="0061/", descripcion_proveedor="X", nombre="ASR-P", precio=60, stock=1, descripcion="d")
-        with self.assertNumQueries(2, using="default"):
+        with self.assertNumQueries(4, using="negocio_db"):
             asr.generar_precios(cantidad=1, pago_efectivo=False)
 
     def test_articulo_sin_revisar_end_to_end(self):
@@ -192,6 +196,15 @@ class NegocioIntegrationTest(TestCase):
             "temporal": False,
             "general": 0.0,
         })
+        # Si la tabla auth_user no existe en negocio_db (p.ej. SQLite multi-db), saltar este caso.
+        from django.db import connections
+        conn = connections["negocio_db"]
+        try:
+            tables = conn.introspection.table_names()
+        except Exception:
+            tables = []
+        if "auth_user" not in tables:
+            self.skipTest("Omitido: auth_user no existe en negocio_db; FK cross-db no soportado en este backend.")
         asr = ArticuloSinRevisar.objects.create(
             proveedor=prov,
             codigo_proveedor="0009/",

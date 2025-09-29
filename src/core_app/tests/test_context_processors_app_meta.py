@@ -39,9 +39,7 @@ def test_app_meta_reads_version_from_changelog_v_prefix(tmp_path, settings):
     src_dir.mkdir()
     settings.BASE_DIR = str(src_dir)
 
-    _write_changelog(
-        str(repo_root),
-        """\
+    _write_changelog(str(repo_root), """\
 # Changelog
 
 ## v1.2.3 - 2025-08-10
@@ -49,8 +47,7 @@ def test_app_meta_reads_version_from_changelog_v_prefix(tmp_path, settings):
 
 ## v1.2.2 - 2025-08-01
 - Older
-""",
-    )
+""")
 
     ctx = app_meta(make_request())
     assert ctx["app_name"] == "Mi App Test"
@@ -65,9 +62,7 @@ def test_app_meta_reads_version_with_brackets_header(tmp_path, settings):
     src_dir.mkdir()
     settings.BASE_DIR = str(src_dir)
 
-    _write_changelog(
-        str(repo_root),
-        """\
+    _write_changelog(str(repo_root), """\
 # Changelog
 
 ## [2.0.0] - 2025-08-10
@@ -75,8 +70,7 @@ def test_app_meta_reads_version_with_brackets_header(tmp_path, settings):
 
 ## [1.9.9] - 2025-08-01
 - Older
-""",
-    )
+""")
 
     ctx = app_meta(make_request())
     assert ctx["app_name"] == "Mi App Test"

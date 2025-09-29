@@ -1,13 +1,10 @@
 {% extends 'base.html' %}
 
-{# Vista de previsualización multi-hoja con formset por hoja #}
+{# Template de vista previa de importación.
+   Hereda de base.html y define el bloque de contenido. #}
 
 {% block content %}
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    {# Marcadores explícitos para facilitar validación en tests #}
-    {% if hojas %}
-      <!-- Hoja: {{ hojas|first }} -->
-    {% endif %}
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-semibold text-gray-900 flex items-center">
@@ -15,283 +12,51 @@
           Vista previa de importación
         </h1>
         <p class="mt-2 text-sm text-gray-600">
-          Archivo <span class="font-medium">{{ nombre_archivo }}</span> — Proveedor: <span class="font-medium">{{ proveedor.nombre }}</span>
+          Mostrando las primeras 20 filas del archivo <span class="font-medium">{{ nombre_archivo }}</span> del proveedor #{{ proveedor_id }}.
         </p>
       </div>
       <div class="flex items-center space-x-3">
-        <a href="{% url 'importaciones:landing' %}"
+        <a href="{% url 'proveedores:proveedor_list' %}"
            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
           Cancelar
+        </a>
+        <a href="{% url 'importaciones:importacion_create' proveedor_id %}"
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          <i class="fas fa-check mr-2"></i>
+          Confirmar y procesar
         </a>
       </div>
     </div>
 
-    {% if instructivos and instructivos|length %}
-      <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded p-4 mb-6">
-        <div class="font-semibold mb-2">Instructivo(s)</div>
-        <ul class="list-disc list-inside text-sm space-y-1">
-          {% for ins in instructivos %}
-            <li>{{ ins|linebreaksbr }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-
-    <form method="post" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-      {% csrf_token %}
-      {{ formset.management_form }}
-
-      {# Asegura que el texto "Hoja: <nombre>" esté presente explícitamente para validaciones de tests #}
-      <div class="sr-only">
-        {% for h in hojas %}
-          <span>Hoja: {{ h }}</span>
-        {% endfor %}
-      </div>
-
-      <div class="mb-4">
-        <p class="text-sm text-gray-600">Selecciona qué hojas cargar, ajusta mapeos y la fila inicial (0 para considerar todo el archivo). Puedes elegir una configuración existente o crear una nueva para reutilizarla en el futuro.</p>
-      </div>
-
-      {% if warning %}
-        <div class="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded p-3">
-          {{ warning }}
-        </div>
-      {% endif %}
-
-      <div class="space-y-8">
-        {% for form in formset.forms %}
-          <div class="border rounded-md p-4 js-sheet-block" data-hoja="{{ form.hoja.value }}">
-            {# Hoja (hidden) #}
-            {{ form.hoja }}
-
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-gray-900">Hoja: <span class="text-indigo-700">{{ form.initial.hoja }}</span></h2>
-              <label class="inline-flex items-center">
-                {{ form.cargar }}
-                <span class="ml-2 text-sm text-gray-700">Cargar esta hoja</span>
-              </label>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Fila inicial</label>
-                <div class="mt-1">{{ form.start_row }}</div>
-              </div>
-              <div class="md:col-span-3">
-                <label class="block text-sm font-medium text-gray-700">Configuración</label>
-                <div class="mt-1">{{ form.config_choice }}</div>
-                <p class="mt-1 text-xs text-gray-500">Elige una existente o selecciona "Nueva configuración" para definir los mapeos a continuación.</p>
-              </div>
-            </div>
-
-            <div class="mt-4 js-new-config" data-new-config="true">
-              <h3 class="text-sm font-semibold text-gray-800">Nueva configuración (o editar existente)</h3>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Nombre</label>
-                  <div class="mt-1">{{ form.nombre_config }}</div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Columna Código</label>
-                  <div class="mt-1">{{ form.col_codigo }}</div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Columna Descripción</label>
-                  <div class="mt-1">{{ form.col_descripcion }}</div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Columna Precio</label>
-                  <div class="mt-1">{{ form.col_precio }}</div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Columna Cantidad</label>
-                  <div class="mt-1">{{ form.col_cant }}</div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Columna IVA</label>
-                  <div class="mt-1">{{ form.col_iva }}</div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Columna Código de Barras</label>
-                  <div class="mt-1">{{ form.col_cod_barras }}</div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Columna Marca</label>
-                  <div class="mt-1">{{ form.col_marca }}</div>
-                </div>
-                <div class="md:col-span-3">
-                  <label class="block text-sm font-medium text-gray-700">Instructivo</label>
-                  <div class="mt-1">{{ form.instructivo }}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-6">
-              <h3 class="text-sm font-semibold text-gray-800 mb-2">Vista previa (primeras 20 filas)</h3>
-              {% with hoja=form.initial.hoja %}
-                {% for key, prev in previews.items %}
-                  {% if key == hoja %}
-                    <div class="overflow-x-auto">
-                      <table class="table-auto w-full border-collapse text-sm">
-                        <thead>
-                          <tr>
-                            {% for col in prev.column_letters %}
-                              <th class="border px-2 py-1 bg-gray-50 text-left">{{ col }}</th>
-                            {% endfor %}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for fila in prev.filas %}
-                            <tr class="hover:bg-gray-50">
-                              {% for val in fila %}
-                                <td class="border px-2 py-1">{{ val }}</td>
-                              {% endfor %}
-                            </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
-                      <p class="mt-2 text-xs text-gray-500">Total filas en hoja: {{ prev.total_filas }}</p>
-                    </div>
-                  {% endif %}
-                {% empty %}
-                  <p class="text-xs text-gray-500">No hay datos para mostrar.</p>
-                {% endfor %}
-              {% endwith %}
-            </div>
-
-            {% if form.errors %}
-              <div class="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">
-                {{ form.errors }}
-              </div>
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
-
-      <div class="mt-6 flex justify-end">
-        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-          Generar CSVs y confirmar
-        </button>
-      </div>
-    </form>
-
-    <div class="mt-8">
-      <h2 class="text-lg font-semibold text-gray-900 mb-3">Hojas detectadas</h2>
-      <div class="bg-white shadow rounded">
-        <div class="px-4 py-4 text-sm text-gray-700">
-          {{ hojas|join:', ' }}
-        </div>
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IVA</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bulto</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for fila in filas %}
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.codigo }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.descripcion }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.precio }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.iva|default:"0.21" }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fila.cant|default:"1" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="px-6 py-4 text-sm text-gray-500">No hay datos para mostrar.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
-  <script>
-    (function() {
-      let apiBase;
-      let apiEnabled;
-      {% if proveedor and proveedor.id %}
-      apiBase = "{% url 'importaciones:config_detail' proveedor_id=proveedor.id %}";
-      apiEnabled = true;
-      {% else %}
-      apiBase = "";
-      apiEnabled = false;
-      {% endif %}
-      const apiUrl = function(id) { return apiEnabled ? (apiBase + "?id=" + encodeURIComponent(id)) : ""; };
-
-      function findField(container, suffix) {
-        return container.querySelector(`[name$="-${suffix}"]`);
-      }
-
-      function clearFields(container) {
-        const fields = ['nombre_config','col_codigo','col_descripcion','col_precio','col_cant','col_iva','col_cod_barras','col_marca','instructivo'];
-        fields.forEach(f => {
-          const el = findField(container, f);
-          if (el) el.value = '';
-        });
-      }
-
-      function fillFields(container, data) {
-        const mapping = {
-          nombre_config: 'nombre_config',
-          col_codigo: 'col_codigo',
-          col_descripcion: 'col_descripcion',
-          col_precio: 'col_precio',
-          col_cant: 'col_cant',
-          col_iva: 'col_iva',
-          col_cod_barras: 'col_cod_barras',
-          col_marca: 'col_marca',
-          instructivo: 'instructivo',
-        };
-        Object.keys(mapping).forEach(key => {
-          const el = findField(container, mapping[key]);
-          if (el) el.value = (data[key] ?? '');
-        });
-      }
-
-      function setNewConfigVisibility(container, show) {
-        const section = container.querySelector('.js-new-config');
-        if (!section) return;
-        section.style.display = show ? '' : '';
-        // Nota: mantenemos visible para permitir editar incluso configs existentes
-      }
-
-      function focusSheetFromHash() {
-        const hash = window.location.hash || '';
-        const m = hash.match(/#hoja=([^&]+)/);
-        if (!m) return;
-        const hoja = decodeURIComponent(m[1]);
-        const block = document.querySelector(`.js-sheet-block[data-hoja="${CSS.escape(hoja)}"]`);
-        if (block) {
-          block.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          block.classList.add('ring-2', 'ring-indigo-500');
-          setTimeout(() => block.classList.remove('ring-2', 'ring-indigo-500'), 1500);
-          // marcar "Cargar esta hoja" si existe el checkbox
-          const cargar = block.querySelector('input[type="checkbox"][name$="-cargar"]');
-          if (cargar) cargar.checked = true;
-        }
-      }
-
-      function attachHandlers() {
-        if (!apiEnabled) return;
-        document.querySelectorAll('.js-sheet-block').forEach(block => {
-          const select = block.querySelector('select[name$="-config_choice"]');
-          if (!select) return;
-          const onChange = () => {
-            const val = select.value;
-            if (!val || val === '__new__') {
-              clearFields(block);
-              setNewConfigVisibility(block, true);
-              return;
-            }
-            fetch(apiUrl(val))
-              .then(resp => {
-                if (!resp.ok) throw new Error('No se pudo obtener la configuración');
-                return resp.json();
-              })
-              .then(data => {
-                fillFields(block, data);
-                setNewConfigVisibility(block, true);
-              })
-              .catch(err => {
-                console.error(err);
-              });
-          };
-          select.addEventListener('change', onChange);
-          // disparo inicial por si viene preseleccionado
-          onChange();
-        });
-      }
-
-      function init() {
-        attachHandlers();
-        focusSheetFromHash();
-        window.addEventListener('hashchange', focusSheetFromHash);
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-      } else {
-        init();
-      }
-    })();
-  </script>
 {% endblock content %}

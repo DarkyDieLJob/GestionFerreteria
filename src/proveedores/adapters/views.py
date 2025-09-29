@@ -2,7 +2,7 @@
 """
 Vistas (adaptadores) para la app proveedores.
 
-Estas vistas usan la base de datos por defecto para
+Estas vistas usan la base de datos 'negocio_db' explícitamente para
 consultas y escrituras, respetando la arquitectura hexagonal del proyecto:
 la lógica de negocio debería vivir en domain/, y los adaptadores (como
 estas vistas) coordinan entradas/salidas con Django.
@@ -18,7 +18,7 @@ from proveedores.adapters.forms import ProveedorForm
 
 
 class ProveedorListView(ListView):
-    """Listado de proveedores usando la BD por defecto.
+    """Listado de proveedores usando la BD 'negocio_db'.
 
     - Template: proveedores/proveedor_list.html
     - Contexto: "proveedores" (queryset), y "q" (término de búsqueda)
@@ -30,7 +30,7 @@ class ProveedorListView(ListView):
     context_object_name = "proveedores"
 
     def get_queryset(self):
-        qs = Proveedor.objects.all()
+        qs = Proveedor.objects.using("negocio_db").all()
         q = self.request.GET.get("q", "").strip()
         if q:
             qs = qs.filter(Q(nombre__icontains=q) | Q(abreviatura__icontains=q))
@@ -45,7 +45,7 @@ class ProveedorListView(ListView):
 
 
 class ProveedorCreateView(CreateView):
-    """Creación de proveedor en la BD por defecto."""
+    """Creación de proveedor en la BD 'negocio_db'."""
 
     model = Proveedor
     template_name = "proveedores/proveedor_form.html"
@@ -54,16 +54,16 @@ class ProveedorCreateView(CreateView):
     success_url = reverse_lazy("proveedores:proveedor_list")
 
     def form_valid(self, form):
-        # Guardar en la base por defecto
+        # Guardar explícitamente en la base 'negocio_db'
         self.object = form.save(commit=False)
-        self.object.save()
+        self.object.save(using="negocio_db")
         # Si hubiera M2M en el futuro, requeriría un guardado adicional sobre la BD por defecto;
         # aquí no hay M2M en los campos del formulario, por lo que no se invoca save_m2m.
         return redirect(self.get_success_url())
 
 
 class ProveedorUpdateView(UpdateView):
-    """Edición de proveedor usando y guardando en la BD por defecto."""
+    """Edición de proveedor usando y guardando en 'negocio_db'."""
 
     model = Proveedor
     template_name = "proveedores/proveedor_form.html"
@@ -72,29 +72,29 @@ class ProveedorUpdateView(UpdateView):
     success_url = reverse_lazy("proveedores:proveedor_list")
 
     def get_queryset(self):
-        # Consultar objetos desde la BD por defecto
-        return Proveedor.objects.all()
+        # Consultar objetos desde 'negocio_db'
+        return Proveedor.objects.using("negocio_db").all()
 
     def form_valid(self, form):
-        # Guardar cambios en la BD por defecto
+        # Guardar cambios explícitamente en 'negocio_db'
         self.object = form.save(commit=False)
-        self.object.save()
+        self.object.save(using="negocio_db")
         return redirect(self.get_success_url())
 
 
 class ProveedorDeleteView(DeleteView):
-    """Eliminación de proveedor usando la BD por defecto."""
+    """Eliminación de proveedor usando 'negocio_db'."""
 
     model = Proveedor
     template_name = "proveedores/proveedor_confirm_delete.html"
     success_url = reverse_lazy("proveedores:proveedor_list")
 
     def get_queryset(self):
-        # Consultar objetos desde la BD por defecto
-        return Proveedor.objects.all()
+        # Consultar objetos desde 'negocio_db'
+        return Proveedor.objects.using("negocio_db").all()
 
     def delete(self, request, *args, **kwargs):
-        # Eliminar en la BD por defecto
+        # Eliminar explícitamente en 'negocio_db'
         self.object = self.get_object()
-        self.object.delete()
+        self.object.delete(using="negocio_db")
         return redirect(self.get_success_url())

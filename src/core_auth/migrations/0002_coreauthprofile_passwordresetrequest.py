@@ -8,104 +8,34 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("core_auth", "0001_initial"),
+        ('core_auth', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name="CoreAuthProfile",
+            name='CoreAuthProfile',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("must_change_password", models.BooleanField(default=False)),
-                ("updated_at", models.DateTimeField(auto_now=True)),
-                (
-                    "user",
-                    models.OneToOneField(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="core_profile",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('must_change_password', models.BooleanField(default=False)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='core_profile', to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
-            name="PasswordResetRequest",
+            name='PasswordResetRequest',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                (
-                    "identifier_submitted",
-                    models.CharField(
-                        help_text="Username o email ingresado por el solicitante",
-                        max_length=255,
-                    ),
-                ),
-                (
-                    "status",
-                    models.CharField(
-                        choices=[
-                            ("pending", "Pending"),
-                            ("approved", "Approved"),
-                            ("processed", "Processed"),
-                            ("rejected", "Rejected"),
-                        ],
-                        default="pending",
-                        max_length=20,
-                    ),
-                ),
-                ("notes", models.TextField(blank=True, default="")),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("created_ip", models.GenericIPAddressField(blank=True, null=True)),
-                (
-                    "user_agent",
-                    models.CharField(blank=True, default="", max_length=512),
-                ),
-                ("processed_at", models.DateTimeField(blank=True, null=True)),
-                (
-                    "temp_password_preview",
-                    models.CharField(
-                        blank=True,
-                        default="",
-                        help_text="Se guarda sólo para mostrar al staff en pantalla (opcional).",
-                        max_length=64,
-                    ),
-                ),
-                (
-                    "processed_by",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="processed_reset_requests",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                (
-                    "user",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="password_reset_requests",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('identifier_submitted', models.CharField(help_text='Username o email ingresado por el solicitante', max_length=255)),
+                ('status', models.CharField(choices=[('pending', 'Pending'), ('approved', 'Approved'), ('processed', 'Processed'), ('rejected', 'Rejected')], default='pending', max_length=20)),
+                ('notes', models.TextField(blank=True, default='')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_ip', models.GenericIPAddressField(blank=True, null=True)),
+                ('user_agent', models.CharField(blank=True, default='', max_length=512)),
+                ('processed_at', models.DateTimeField(blank=True, null=True)),
+                ('temp_password_preview', models.CharField(blank=True, default='', help_text='Se guarda sólo para mostrar al staff en pantalla (opcional).', max_length=64)),
+                ('processed_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='processed_reset_requests', to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='password_reset_requests', to=settings.AUTH_USER_MODEL)),
             ],
         ),
     ]

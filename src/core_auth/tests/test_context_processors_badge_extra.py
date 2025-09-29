@@ -24,7 +24,6 @@ class _DummyModel:
 def test_staff_reset_requests_badge_handles_exceptions(monkeypatch):
     # Monkeypatch del modelo para provocar excepción en el queryset
     import core_auth.context_processors as m
-
     monkeypatch.setattr(m, "PasswordResetRequest", _DummyModel)
 
     User = get_user_model()

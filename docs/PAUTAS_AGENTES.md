@@ -66,17 +66,6 @@ Guía breve y accionable para que un agente trabaje de forma segura y reproducib
   - `.coveragerc` omite plantillas/scaffolding y archivos no testeables.
 - Si se crea una nueva app a partir del template, moverla fuera de `templates/` antes de agregar código y tests.
 
-### 4.2 Checklist de objetivos de pruebas (obligatorio)
-
-- Para cada módulo con funcionalidades relevantes (ej. Importaciones), crear archivos Markdown de objetivos dentro del directorio de tests del módulo, con listas de verificación en formato checkbox y un “por qué”/contexto por cada ítem para evitar ambigüedades.
-- En Importaciones se estandariza así:
-  - `src/importaciones/tests/TEST_OBJETIVOS_UNIT.md`: objetivos de pruebas unitarias (caso de uso y lógica de dominio, sin Django/IO).
-  - `src/importaciones/tests/TEST_OBJETIVOS_INTEGRACION.md`: objetivos de integración (vistas/adaptadores/repositorios/servicios, con Django Test Client y mocks de borde).
-- Reglas del checklist:
-  - Cada punto debe estar en formato `- [ ]` y contener una breve justificación (“Por qué: …”).
-  - El checklist se mantiene vivo: tras cada informe/revisión se actualiza para reflejar nuevas brechas o objetivos cumplidos.
-  - No incluir elementos fuera del alcance de cobertura definido (p. ej., `templates/` o scaffolding bajo `templates/app_templates/`).
-
 ## 5) Convenciones de código (resumen)
 
 - Arquitectura hexagonal: preferir lógica en `domain/use_cases.py`, vistas/adaptadores en `adapters/`
