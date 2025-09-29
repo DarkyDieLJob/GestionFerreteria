@@ -60,7 +60,7 @@
                             {{ app_name }} <span class="text-sm text-gray-500">v{{ app_version }}</span>
                         </a>
                     </div>
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8 min-w-0 flex-1 overflow-x-auto whitespace-nowrap pr-2">
                         <a href="{% url 'home' %}" class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Inicio
                         </a>
@@ -79,9 +79,14 @@
                             <i class="fas fa-file-import mr-1"></i>
                             Importaciones
                         </a>
+                        <!-- Link a Precios -->
+                        <a href="{% url 'precios:descuento_list' %}" class="text-gray-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium">
+                            <i class="fas fa-tags mr-1"></i>
+                            Precios
+                        </a>
                     </div>
                 </div>
-                <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                <div class="hidden sm:ml-6 sm:flex sm:items-center flex-shrink-0">
                     {% if user.is_authenticated %}
                         {% if user.is_staff %}
                             <div class="flex items-center space-x-2 mr-4">
@@ -147,6 +152,12 @@
                 <a href="{% url 'importaciones:landing' %}" class="text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent">
                     <span class="inline-flex items-center">
                         <i class="fas fa-file-import mr-2"></i>Importaciones
+                    </span>
+                </a>
+                <!-- Link móvil a Precios -->
+                <a href="{% url 'precios:descuento_list' %}" class="text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent">
+                    <span class="inline-flex items-center">
+                        <i class="fas fa-tags mr-2"></i>Precios
                     </span>
                 </a>
                 {% if user.is_authenticated %}

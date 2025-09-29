@@ -210,3 +210,9 @@ src/staticfiles/*
 frontend/*
 src/data/*
 static/*
+
+# Django migrations: keep them versioned. Only ignore caches inside
+src/**/migrations/__pycache__/
+
+# Media uploads (should not be versioned)
+src/media/

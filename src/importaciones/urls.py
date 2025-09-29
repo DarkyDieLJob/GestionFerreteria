@@ -4,6 +4,8 @@ from importaciones.adapters.views import (
     ImportacionCreateView,
     ImportacionPreviewView,
     ImportacionesLandingView,
+    ConfigImportacionDetailView,
+    ArchivoPendienteDeleteView,
 )
 
 # Namespace para esta app, útil para usar reverse('importaciones:...')
@@ -16,19 +18,29 @@ urlpatterns = [
         ImportacionesLandingView.as_view(),
         name="landing",
     ),
-    # Subir un archivo Excel para un proveedor específico.
-    # Uso en reverse: reverse('importaciones:importacion_create', kwargs={'proveedor_id': 123})
+    # Vista de previsualización del Excel subido (elige hojas/configs)
     path(
-        "crear/<int:proveedor_id>/",
+        "preview/<int:proveedor_id>/<str:nombre_archivo>/",
+        ImportacionPreviewView.as_view(),
+        name="importacion_preview",
+    ),
+    # API: Detalle de configuración por proveedor (JSON)
+    path(
+        "api/configuracion/<int:proveedor_id>/",
+        ConfigImportacionDetailView.as_view(),
+        name="config_detail",
+    ),
+    # Vista de confirmación (muestra pendientes encolados para el proveedor)
+    path(
+        "confirmar/<int:proveedor_id>/",
         ImportacionCreateView.as_view(),
         name="importacion_create",
     ),
-    # Mostrar la vista previa del Excel subido para un proveedor y un nombre de archivo dados.
-    # Uso en reverse: reverse('importaciones:importacion_preview', kwargs={'proveedor_id': 123, 'nombre_archivo': 'archivo.xlsx'})
+    # Eliminar pendiente
     path(
-        "vista-previa/<int:proveedor_id>/<str:nombre_archivo>/",
-        ImportacionPreviewView.as_view(),
-        name="importacion_preview",
+        "pendiente/<int:proveedor_id>/<int:pendiente_id>/eliminar/",
+        ArchivoPendienteDeleteView.as_view(),
+        name="pendiente_delete",
     ),
 ]
 

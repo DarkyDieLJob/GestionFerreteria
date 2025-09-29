@@ -10,7 +10,10 @@ def coverage(request):
     coverage_available mirrors the logic used by the view: enabled when DEBUG is True
     or when COVERAGE_VIEW_ENABLED setting is truthy.
     """
-    enabled = bool(getattr(settings, "DEBUG", False) or getattr(settings, "COVERAGE_VIEW_ENABLED", False))
+    enabled = bool(
+        getattr(settings, "DEBUG", False)
+        or getattr(settings, "COVERAGE_VIEW_ENABLED", False)
+    )
     context = {
         "coverage_available": enabled,
         "coverage_url": None,
@@ -57,7 +60,9 @@ def app_meta(request):
             #   ## 1.2.0
             #   ## [1.2.0]
             #   ### [1.2.1] (YYYY-MM-DD)  <- standard-version
-            m = re.search(r"^#{2,3}\s*(?:\[)?v?(\d+\.\d+\.\d+)(?:\])?\b", content, re.MULTILINE)
+            m = re.search(
+                r"^#{2,3}\s*(?:\[)?v?(\d+\.\d+\.\d+)(?:\])?\b", content, re.MULTILINE
+            )
             if m:
                 version = m.group(1)
         except Exception:

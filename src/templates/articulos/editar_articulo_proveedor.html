@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div class="bg-white shadow rounded-lg p-6">
+      <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-gray-900">Editar Artículo del Proveedor</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ ap.get_codigo_completo }} - {{ ap.descripcion_proveedor }}</p>
+      </div>
+
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Cantidad por bulto</label>
+          {{ form.bulto }}
+          {% if form.bulto.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.bulto.errors|striptags }}</p>
+          {% endif %}
+        </div>
+
+        <div class="flex items-center gap-3">
+          {{ form.dividir }}
+          <label for="id_dividir" class="text-sm text-gray-700">Dividir por bulto para presupuestos</label>
+        </div>
+        {% if form.dividir.errors %}
+          <p class="mt-1 text-sm text-red-600">{{ form.dividir.errors|striptags }}</p>
+        {% endif %}
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Descuento</label>
+          {{ form.descuento }}
+          {% if form.descuento.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.descuento.errors|striptags }}</p>
+          {% endif %}
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <a href="{% url 'articulos:buscar_articulos' %}" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">Cancelar</a>
+          <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

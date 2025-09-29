@@ -5,8 +5,7 @@ from proveedores.adapters.models import Proveedor
 
 
 @pytest.fixture
-@pytest.mark.django_db(databases=["negocio_db"])
-def proveedor_factory():
+def proveedor_factory(db):
     def _make(**kwargs):
         defaults = {
             "nombre": "Proveedor Demo",
@@ -18,7 +17,7 @@ def proveedor_factory():
         }
         defaults.update(kwargs)
         obj = Proveedor(**defaults)
-        obj.save(using="negocio_db")
+        obj.save()
         return obj
 
     return _make
@@ -27,7 +26,7 @@ def proveedor_factory():
 # -------------------------------
 # ProveedorListView
 # -------------------------------
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_proveedor_list_view_get(client, proveedor_factory):
     p1 = proveedor_factory(nombre="Acme S.A.", abreviatura="ACM")
     p2 = proveedor_factory(nombre="Beta Corp", abreviatura="BTC")
@@ -41,7 +40,7 @@ def test_proveedor_list_view_get(client, proveedor_factory):
     assert {"Acme S.A.", "Beta Corp"}.issubset(nombres)
 
 
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_proveedor_list_view_search_by_name(client, proveedor_factory):
     proveedor_factory(nombre="FerreMax", abreviatura="FMX")
     proveedor_factory(nombre="Tornillos SRL", abreviatura="TRN")
@@ -54,7 +53,7 @@ def test_proveedor_list_view_search_by_name(client, proveedor_factory):
     assert resultados[0].nombre == "FerreMax"
 
 
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_proveedor_list_view_search_by_abreviatura(client, proveedor_factory):
     proveedor_factory(nombre="Proveedor Uno", abreviatura="UNO")
     proveedor_factory(nombre="Proveedor Dos", abreviatura="DOS")
@@ -70,7 +69,7 @@ def test_proveedor_list_view_search_by_abreviatura(client, proveedor_factory):
 # -------------------------------
 # ProveedorCreateView
 # -------------------------------
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_proveedor_create_view_get(client):
     url = reverse("proveedores:proveedor_create")
     resp = client.get(url)
@@ -78,7 +77,7 @@ def test_proveedor_create_view_get(client):
     assert b"Guardar" in resp.content
 
 
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_proveedor_create_view_post(client):
     url = reverse("proveedores:proveedor_create")
     data = {
@@ -93,14 +92,14 @@ def test_proveedor_create_view_post(client):
     assert resp.status_code == 302
     assert resp.headers.get("Location").endswith(reverse("proveedores:proveedor_list"))
 
-    # Verificar creación en negocio_db
-    assert Proveedor.objects.using("negocio_db").filter(nombre="Nuevo Prov").exists()
+    # Verificar creación en default
+    assert Proveedor.objects.filter(nombre="Nuevo Prov").exists()
 
 
 # -------------------------------
 # ProveedorUpdateView
 # -------------------------------
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_proveedor_update_view_get_and_post(client, proveedor_factory):
     prov = proveedor_factory(nombre="Cambio SA", abreviatura="CAM")
 
@@ -122,7 +121,7 @@ def test_proveedor_update_view_get_and_post(client, proveedor_factory):
     assert resp.status_code == 302
     assert resp.headers.get("Location").endswith(reverse("proveedores:proveedor_list"))
 
-    refreshed = Proveedor.objects.using("negocio_db").get(pk=prov.pk)
+    refreshed = Proveedor.objects.get(pk=prov.pk)
     assert refreshed.nombre == "Cambio SA Updated"
     assert str(refreshed.margen_ganancia) in {"18", "18.00"}
 
@@ -130,7 +129,7 @@ def test_proveedor_update_view_get_and_post(client, proveedor_factory):
 # -------------------------------
 # ProveedorDeleteView
 # -------------------------------
-@pytest.mark.django_db(databases=["negocio_db"])
+@pytest.mark.django_db
 def test_proveedor_delete_view_get_and_post(client, proveedor_factory):
     prov = proveedor_factory(nombre="DeleteMe", abreviatura="DEL")
     url = reverse("proveedores:proveedor_delete", args=[prov.pk])
@@ -145,4 +144,4 @@ def test_proveedor_delete_view_get_and_post(client, proveedor_factory):
     assert resp.status_code == 302
     assert resp.headers.get("Location").endswith(reverse("proveedores:proveedor_list"))
 
-    assert not Proveedor.objects.using("negocio_db").filter(pk=prov.pk).exists()
+    assert not Proveedor.objects.filter(pk=prov.pk).exists()

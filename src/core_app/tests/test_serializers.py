@@ -9,9 +9,17 @@ def patch_serializer_model_manager(monkeypatch):
     manager = MagicMock()
     manager.create = MagicMock()
     # Patch objects manager used by the model referenced in the serializer module
-    monkeypatch.setattr(serializers_mod.Core_app, "objects", MagicMock(using=MagicMock(return_value=manager)))
+    monkeypatch.setattr(
+        serializers_mod.Core_app,
+        "objects",
+        MagicMock(using=MagicMock(return_value=manager)),
+    )
     # Patch create on the existing _default_manager used by DRF when calling create()
-    monkeypatch.setattr(serializers_mod.Core_app._default_manager, "create", MagicMock(return_value=MagicMock()))
+    monkeypatch.setattr(
+        serializers_mod.Core_app._default_manager,
+        "create",
+        MagicMock(return_value=MagicMock()),
+    )
     return manager
 
 

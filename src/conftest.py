@@ -4,75 +4,117 @@ import pytest
 from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory
+from importlib import import_module
+
+# Ensure our local pytest plugin is loaded
+pytest_plugins = ["pytest_cov_apps"]
+
+# ---------------------------------------------------------------------------
+# Dynamic coverage selection based on INSTALLED_APPS
+# ---------------------------------------------------------------------------
+
+def pytest_load_initial_conftests(parser, args):
+    """
+    Before pytest parses CLI args, dynamically add --cov targets for first-party
+    Django apps listed in INSTALLED_APPS. This ensures the HTML coverage report
+    reflects the apps actually installed in this project without hardcoding in
+    pytest.ini.
+
+    Behavior:
+    - If the user already passed any --cov flag, do nothing (respect manual choice).
+    - Otherwise, import Django settings and collect app labels whose import
+      modules live under the project src/ directory (first-party heuristic).
+    - Append --cov=<app> for each collected app to args.
+
+    You can override behavior via env var COV_APPS_MODE:
+      - 'installed' (default): include first-party INSTALLED_APPS under src/
+      - 'core': only include core_app and core_auth
+      - 'all': include all INSTALLED_APPS that resolve to local modules under src/
+               (same as 'installed' here; kept for future differentiation)
+    """
+    # Respect explicit user choice if any --cov is present
+    if any(str(a).startswith("--cov") for a in args):
+        return
+
+    # Ensure settings are available
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core_config.test_settings")
+    try:
+        import django
+        django.setup()
+    except Exception:
+        # If setup fails, skip dynamic injection to avoid breaking pytest
+        return
+
+    from django.conf import settings as dj_settings
+
+    mode = os.environ.get("COV_APPS_MODE", "installed").lower()
+
+    # Project base dirs
+    repo_root = Path(__file__).resolve().parent.parent  # points to repo/src
+    src_dir = repo_root  # manage.py lives in src/
+
+    def is_first_party(module_name: str) -> bool:
+        try:
+            mod = import_module(module_name)
+            path = Path(getattr(mod, "__file__", "")).resolve()
+        except Exception:
+            return False
+        # Consider first-party if module file lives under our src directory
+        try:
+            path.relative_to(src_dir)
+            return True
+        except Exception:
+            return False
+
+    apps = []
+    if mode == "core":
+        candidates = ["core_app", "core_auth"]
+    else:
+        candidates = list(dj_settings.INSTALLED_APPS)
+
+    for app in candidates:
+        # Normalize dotted app config like 'app.apps.Config' -> 'app'
+        app_root = app.split(".apps.")[0]
+        # Skip Django/third-party that are not under src
+        if is_first_party(app_root):
+            apps.append(app_root)
+
+    # De-duplicate and keep stable order
+    seen = set()
+    cov_targets = [a for a in apps if not (a in seen or seen.add(a))]
+
+    # Append --cov for each local app
+    for app in cov_targets:
+        args.append(f"--cov={app}")
 
 # Add src directory to PYTHONPATH
 root_dir = Path(__file__).parent.absolute()
 sys.path.insert(0, str(root_dir))
 
-# Set default Django settings module
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core_config.settings")
-
-# Pytest configuration
-def pytest_configure():
-    from django.conf import settings, settings as django_settings
-    from django.core.exceptions import ImproperlyConfigured
-    
-    try:
-        # Check if Django is already configured
-        settings.configured
-    except (RuntimeError, ImproperlyConfigured):
-        # Minimum test configuration
-        settings.configure(
-            DATABASES={
-                'default': {
-                    'ENGINE': 'django.db.backends.sqlite3',
-                    'NAME': ':memory:',
-                }
-            },
-            INSTALLED_APPS=[
-                'django.contrib.admin',
-                'django.contrib.auth',
-                'django.contrib.contenttypes',
-                'django.contrib.sessions',
-                'django.contrib.messages',
-                'django.contrib.staticfiles',
-                'core_auth',
-                'core_app',
-            ],
-            SECRET_KEY='test-secret-key',
-            MIDDLEWARE=[
-                'django.middleware.security.SecurityMiddleware',
-                'django.contrib.sessions.middleware.SessionMiddleware',
-                'django.middleware.common.CommonMiddleware',
-                'django.middleware.csrf.CsrfViewMiddleware',
-                'django.contrib.auth.middleware.AuthenticationMiddleware',
-                'django.contrib.messages.middleware.MessageMiddleware',
-                'django.middleware.clickjacking.XFrameOptionsMiddleware',
-            ],
-            TEMPLATES=[
-                {
-                    'BACKEND': 'django.template.backends.django.DjangoTemplates',
-                    'DIRS': [],
-                    'APP_DIRS': True,
-                    'OPTIONS': {
-                        'context_processors': [
-                            'django.template.context_processors.debug',
-                            'django.template.context_processors.request',
-                            'django.contrib.auth.context_processors.auth',
-                            'django.contrib.messages.context_processors.messages',
-                        ],
-                    },
-                },
-            ],
-            ROOT_URLCONF='core_config.urls',
-            LOGIN_REDIRECT_URL='dashboard',  # Ensure login redirects to dashboard
-        )
-        
-        # Initialize Django
-        import django
-        django.setup()
+# Set default Django settings module for tests
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core_config.test_settings")
 
 # Fixtures
+@pytest.fixture(scope="session", autouse=True)
+def _apply_migrations_for_tests(django_db_setup, django_db_blocker):
+    """Ensure DB tables exist even when migrations are disabled.
+
+    In CI we disable migrations to avoid relying on migration files. This fixture
+    forces Django to create tables using migrate --run-syncdb before any test runs.
+    """
+    from django.core.management import call_command
+    from django.conf import settings as dj_settings
+    aliases = ["default", "negocio_db", "articles_db", "cart_db"]
+    with django_db_blocker.unblock():
+        for alias in aliases:
+            if alias in dj_settings.DATABASES:
+                call_command(
+                    "migrate",
+                    database=alias,
+                    run_syncdb=True,
+                    interactive=False,
+                    verbosity=0,
+                )
 @pytest.fixture
 def user():
     """Create a test user."""
@@ -96,13 +138,7 @@ def admin_user():
     )
 
 @pytest.fixture
-def client():
-    """Create a test client."""
-    from django.test import Client
-    return Client()
-
-@pytest.fixture
-def auth_client(client, user):
+def auth_client(client, db, user):
     """Create an authenticated test client."""
     client.force_login(user)
     return client

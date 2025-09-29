@@ -6,7 +6,7 @@ from importaciones.adapters.models import ConfigImportacion
 
 
 class ImportacionesSmokeTest(TestCase):
-    databases = {'default', 'negocio_db'}
+    databases = {'default'}
 
     def setUp(self):
         self.prov = Proveedor.objects.create(nombre="Proveedor I2", abreviatura="pi2")

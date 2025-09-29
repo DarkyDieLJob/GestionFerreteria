@@ -35,14 +35,47 @@
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{{ resultado.proveedor }}</span>
                   </div>
                   <p class="mt-1 text-sm text-gray-600">{{ resultado.descripcion }}</p>
-                  <p class="mt-1 text-sm text-gray-900">${{ resultado.precio }}</p>
+                  {# No mostrar precio base ni bulto crudo #}
+                  {% if resultado.precios %}
+                    <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-700">
+                      <div>Final: ${{ resultado.precios.final }}</div>
+                      <div>Efectivo: ${{ resultado.precios.final_efectivo }}</div>
+                      <div>Final Bulto: ${{ resultado.precios.final_bulto }}</div>
+                      <div>Bulto Efectivo: ${{ resultado.precios.final_bulto_efectivo }}</div>
+                      <div class="col-span-2 text-gray-500">
+                        Cantidad por bulto del artículo: {{ resultado.precios.debug_bulto_articulo }}
+                      </div>
+                      <div class="col-span-2 text-gray-500">
+                        Umbral de descuento por bulto (política): {{ resultado.precios.debug_cantidad_bulto_politica }}
+                      </div>
+                      <div class="col-span-2 text-gray-500">
+                        Descuento: {{ resultado.precios.descuento_tipo }}
+                      </div>
+                      <div class="col-span-2 text-gray-400 mt-1">
+                        <!-- Debug info -->
+                        <div>DBG desc.bulto: {{ resultado.precios.debug_descuento_bulto }}</div>
+                        <div>DBG bulto artículo: {{ resultado.precios.debug_bulto_articulo }}</div>
+                        <div>DBG min_qty: {{ resultado.precios.debug_min_qty }}</div>
+                        <div>DBG applied_qty: {{ resultado.precios.debug_applied_qty }}</div>
+                        <div>DBG aplica descuento bulto: {{ resultado.precios.debug_aplica_descuento_bulto }}</div>
+                        <div>DBG factor desc. bulto: {{ resultado.precios.debug_factor_descuento_bulto }}</div>
+                      </div>
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="ml-4">
-                  {# Mostrar enlace para mapear solo si es un ArticuloSinRevisar. #}
-                  {% if resultado.tipo == 'articulo_sin_revisar' or resultado.tipo == 'sin_revisar' %}
-                    <a href="{% url 'articulos:mapear_articulo' resultado.id %}"
+                  {# Mostrar Mapear si es ArticuloProveedor sin Articulo asociado #}
+                  {% if resultado.tipo == 'articulo_proveedor' and resultado.puede_mapear and resultado.pendiente_id %}
+                    <a href="{% url 'articulos:mapear_articulo' resultado.pendiente_id %}"
                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">
                       <i class="fas fa-link mr-2"></i>Mapear
+                    </a>
+                  {% endif %}
+                  {# Botón Editar para ArticuloProveedor #}
+                  {% if resultado.tipo == 'articulo_proveedor' %}
+                    <a href="{% url 'articulos:editar_articulo_proveedor' resultado.id %}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ml-2">
+                      <i class="fas fa-edit mr-2"></i>Editar
                     </a>
                   {% endif %}
                 </div>

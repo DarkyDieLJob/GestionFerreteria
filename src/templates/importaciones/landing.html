@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-6">
       <h1 class="text-2xl font-semibold text-gray-900 flex items-center">
         <i class="fas fa-file-import mr-3 text-indigo-600"></i>
         Importaciones
       </h1>
       <p class="mt-2 text-sm text-gray-600">
-        Selecciona un proveedor para iniciar la importación de un archivo.
+        Selecciona un proveedor y sube un archivo Excel para iniciar el flujo multi-hoja. También puedes ver los archivos pendientes de procesamiento.
       </p>
     </div>
 
-    <div class="bg-white shadow rounded-lg p-6">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
       {% if error %}
         <div class="mb-4 rounded-md p-4 bg-red-50 text-red-700">
           <div class="flex">
@@ -26,16 +26,21 @@
         </div>
       {% endif %}
 
-      <form method="post" class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+      <form method="post" enctype="multipart/form-data" class="grid grid-cols-1 gap-6 sm:grid-cols-4">
         {% csrf_token %}
         <div class="sm:col-span-2">
           <label for="proveedor_id" class="block text-sm font-medium text-gray-700">Proveedor</label>
-          <select id="proveedor_id" name="proveedor_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+          <select id="proveedor_id" name="proveedor_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" required>
             <option value="">-- Selecciona un proveedor --</option>
             {% for p in proveedores %}
               <option value="{{ p.id }}">{{ p.nombre }}</option>
             {% endfor %}
           </select>
+        </div>
+        <div class="sm:col-span-1">
+          <label class="block text-sm font-medium text-gray-700">Archivo Excel</label>
+          <div class="mt-1">{{ form.archivo }}</div>
+          <p class="mt-1 text-xs text-gray-500">Extensiones permitidas: .xls, .xlsx</p>
         </div>
         <div class="sm:col-span-1 flex items-end">
           <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -45,10 +50,46 @@
       </form>
     </div>
 
-    <div class="mt-6 text-sm text-gray-500">
-      <p>
-        ¿No encuentras el proveedor? Ve a <a href="{% url 'proveedores:proveedor_list' %}" class="text-indigo-600 hover:text-indigo-700">Proveedores</a> para gestionarlos.
-      </p>
+    <div class="mt-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3">Archivos pendientes</h2>
+      <div class="bg-white shadow-md rounded overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archivo CSV</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hoja</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Configuración</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha subida</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for pend in pendientes %}
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.proveedor.nombre }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-700">{{ pend.ruta_csv }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.hoja_origen }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.config_usada.nombre_config|default:'-' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ pend.fecha_subida|date:"Y-m-d H:i" }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-xs">
+                    {% if pend.procesado %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded text-green-800 bg-green-100">Procesado</span>
+                    {% else %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded text-yellow-800 bg-yellow-100">Pendiente</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="6" class="px-6 py-4 text-sm text-gray-500">No hay archivos pendientes.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 {% endblock content %}
