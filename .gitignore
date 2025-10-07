@@ -202,11 +202,13 @@ cython_debug/
 .cursorindexingignore
 
 # Marimo
-marimo/_static/
+marimo/_static/*
+
+# Django migrations (handled per-deployment)
+src/**/migrations/
 marimo/_lsp/
 __marimo__/
 
 src/staticfiles/*
 frontend/*
-src/data/*
 static/*
