@@ -5,7 +5,7 @@ from precios.adapters.models import PrecioDeLista
 
 
 class PrecioDeListaEdgeCasesTest(TestCase):
-    databases = {'default'}
+    databases = {'default', 'negocio_db'}
 
     def setUp(self):
         self.prov = Proveedor.objects.create(nombre="Proveedor P", abreviatura="pp")

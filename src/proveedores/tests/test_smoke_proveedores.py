@@ -4,7 +4,7 @@ from proveedores.adapters.models import Proveedor, Contacto, ContactoProveedor
 
 
 class ProveedoresSmokeTest(TestCase):
-    databases = {'default'}
+    databases = {'default', 'negocio_db'}
 
     def test_abreviatura_guardada_en_mayusculas(self):
         p = Proveedor.objects.create(nombre="Proveedor Z", abreviatura="zz")

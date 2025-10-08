@@ -5,10 +5,6 @@ from django.db import connections
 from proveedores.adapters.models import Proveedor
 from precios.adapters.models import Descuento, PrecioDeLista
 from articulos.adapters.models import Articulo, ArticuloProveedor
-import pytest
-
-# Obsoleto tras refactor de lógica de precios/adapters; será reescrito con escenarios canónicos
-pytestmark = pytest.mark.skip(reason="Obsoleto tras refactor; será reescrito")
 
 
 class ArticulosModelsTest(TestCase):

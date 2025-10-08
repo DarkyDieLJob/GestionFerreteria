@@ -36,27 +36,12 @@ class CalcularPrecioUseCase:
         """
         Delegar el cálculo de precios al repositorio/puerto.
         """
-        # Validaciones mínimas y ramas alternativas
-        if articulo_id in (None, ""):
-            raise ValueError("articulo_id es obligatorio")
-        tipo_norm = (tipo or "").strip()
-        if not tipo_norm:
-            raise ValueError("tipo es obligatorio")
-        # Normalizar cantidad: evitar no-positivos
-        try:
-            cantidad_int = int(cantidad)
-        except (TypeError, ValueError):
-            cantidad_int = 1
-        if cantidad_int <= 0:
-            cantidad_int = 1
-        resultado = self._precio_repo.calcular_precios(
+        return self._precio_repo.calcular_precios(
             articulo_id=articulo_id,
-            tipo=tipo_norm,
-            cantidad=cantidad_int,
+            tipo=tipo,
+            cantidad=cantidad,
             pago_efectivo=pago_efectivo,
         )
-        # Si el repositorio no devuelve datos, retornar estructura vacía
-        return resultado or {}
 
 
 class BuscarArticuloUseCase:
@@ -73,13 +58,7 @@ class BuscarArticuloUseCase:
         """
         Delegar la búsqueda al repositorio/puerto.
         """
-        q = (query or "").strip()
-        # Rama de retorno cuando no hay datos de entrada
-        if not q and not abreviatura:
-            return []
-        resultado = self._busqueda_repo.buscar_articulos(query=q, abreviatura=abreviatura)
-        # Rama alternativa si el repositorio devuelve vacío
-        return resultado or []
+        return self._busqueda_repo.buscar_articulos(query=query, abreviatura=abreviatura)
 
 
 class MapearArticuloUseCase:
@@ -96,16 +75,8 @@ class MapearArticuloUseCase:
         """
         Delegar el mapeo al repositorio/puerto.
         """
-        # Validaciones mínimas
-        if articulo_s_revisar_id in (None, ""):
-            raise ValueError("articulo_s_revisar_id es obligatorio")
-        if articulo_id in (None, ""):
-            raise ValueError("articulo_id es obligatorio")
-        if usuario_id in (None, ""):
-            raise ValueError("usuario_id es obligatorio")
-        resultado = self._mapeo_repo.mapear_articulo(
+        return self._mapeo_repo.mapear_articulo(
             articulo_s_revisar_id=articulo_s_revisar_id,
             articulo_id=articulo_id,
             usuario_id=usuario_id,
         )
-        return resultado or {}

@@ -26,7 +26,3 @@ urllib3==2.5.0
 python-decouple
 commitizen>=3.24.0
 pandas
-Pillow
-openpyxl
-xlrd
-odfpy

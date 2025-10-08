@@ -7,26 +7,19 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = []
+    dependencies = [
+    ]
 
     operations = [
         migrations.CreateModel(
-            name="Core_auth",
+            name='Core_auth',
             fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("name", models.CharField(max_length=100)),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                "db_table": "core_auth_items",
+                'db_table': 'core_auth_items',
             },
         ),
     ]

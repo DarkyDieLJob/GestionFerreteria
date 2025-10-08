@@ -1,29 +1,45 @@
 [run]
+source = 
+    core_auth
+    core_app
 branch = True
-source =
-    src/core_auth
-    src/core_app
-
-[report]
-omit =
+omit = 
     */tests/*
     */migrations/*
+    */__pycache__/*
     */__init__.py
+    */templates/*
+    */admin.py
+    */apps.py
+    */urls.py
     */settings.py
-    */wsgi.py
     */asgi.py
-    manage.py
-    templates/*
-    templates/app_templates/*
+    */wsgi.py
+    */manage.py
+
+[report]
+# Regexes for lines to exclude from consideration
 exclude_lines =
+    # Have to re-enable the standard pragma
     pragma: no cover
-    if __name__ == .__main__.
+    
+    # Don't complain about missing debug-only code:
     def __repr__
-    def __str__
-    def __unicode__
-    @abstractmethod
-    @overload
-    pass
+    if self\.debug
+    
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+    
+    # Don't complain if non-runnable code isn't run:
+    if 0:
+    if __name__ == .__main__.:
+    
+    # Don't complain about abstract methods
+    @(abc\.)?abstractmethod
+    
+    # Ignore test files themselves
+    def test_
 
 [html]
 directory = htmlcov

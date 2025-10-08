@@ -1,94 +1,50 @@
 from django.db import models
 from django.apps import apps
-from django.conf import settings
-from decimal import Decimal
-from articulos.domain.pricing import calculate_prices
 
 
 class ArticuloBase(models.Model):
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True)
-    # Relación correcta: un Descuento puede asociarse a muchos ArticuloBase (uno a muchos)
-    descuento = models.ForeignKey('precios.Descuento', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         abstract = True
 
-    def generar_precios(self, precio_de_lista, cantidad=1, pago_efectivo=False, dividir=False, bulto=1, iva=0, descuento_override=None, proveedor_override=None):
-        """Genera precios dinámicos delegando en el calculador de dominio.
-        Nota: el umbral/cantidad_bulto no participa del cálculo actual; el bulto del artículo sí.
-        """
-        config = descuento_override if descuento_override is not None else self.get_descuento()
-        proveedor = proveedor_override if proveedor_override is not None else self.get_proveedor()
+    def generar_precios(self, precio_de_lista, cantidad=1, pago_efectivo=False, dividir=False, bulto=1, iva=0):
+        """Genera precios dinámicos."""
+        config = self.get_descuento()
+        proveedor = self.get_proveedor()
 
-        result = calculate_prices(
-            precio_de_lista=precio_de_lista,
-            iva=iva,
-            proveedor_desc_com=getattr(proveedor, 'descuento_comercial', 0),
-            proveedor_margen=getattr(proveedor, 'margen_ganancia', 1),
-            proveedor_margen_ef=getattr(proveedor, 'margen_ganancia_efectivo', 1),
-            descuento_general=getattr(config, 'general', 0),
-            descuento_activo=getattr(config, 'is_active', lambda: True)(),
-            descuento_bulto=getattr(config, 'bulto', 0),
-            descuento_cantidad_bulto=getattr(config, 'cantidad_bulto', 1),
-            bulto_articulo=bulto or 1,
-            cantidad=cantidad,
-            dividir=dividir,
-            debug=getattr(settings, 'DEBUG_INFO', False),
-        )
+        # Precio base para presupuestos
+        if dividir and bulto > 0:
+            base = precio_de_lista / bulto * (1 + iva) * (1 - proveedor.descuento_comercial)
+        else:
+            base = precio_de_lista * (1 + iva) * (1 - proveedor.descuento_comercial)
 
-        # Mantener compatibilidad: incluir campos debug adicionales si DEBUG_INFO
-        if getattr(settings, 'DEBUG_INFO', False):
-            result.setdefault('debug_bulto_articulo', int(bulto or 1))
-            result.setdefault('debug_cantidad', float(cantidad))
-        return result
+        # Precios calculados
+        precio_final = base * proveedor.margen_ganancia
+        precio_final_efectivo = precio_final * proveedor.margen_ganancia_efectivo
+        precio_bulto = precio_final * bulto
+        precio_final_bulto = precio_bulto * config.bulto if cantidad >= config.cantidad_bulto else precio_bulto
+        precio_final_bulto_efectivo = precio_final_bulto * proveedor.margen_ganancia_efectivo
+
+        # Aplicar descuento general si es temporal y activo
+        if config.is_active() and config.general > 0:
+            precio_final *= (1 - config.general)
+            precio_final_efectivo *= (1 - config.general)
+            precio_final_bulto *= (1 - config.general)
+            precio_final_bulto_efectivo *= (1 - config.general)
+
+        return {
+            'base': round(base, 2),
+            'final': round(precio_final, 2),
+            'final_efectivo': round(precio_final_efectivo, 2),
+            'bulto': round(precio_bulto, 2),
+            'final_bulto': round(precio_final_bulto, 2),
+            'final_bulto_efectivo': round(precio_final_bulto_efectivo, 2)
+        }
 
     def get_descuento(self):
-        """Devuelve el Descuento activo asociado al ArticuloBase.
-        Prioriza el FK en la propia instancia. Si no hay, intenta compatibilidad
-        con FKs históricas (p.ej., en ASR o en AP) y por último usa 'Sin Descuento'.
-        """
-        Descuento = apps.get_model('precios', 'Descuento')
-        # 1) FK en ArticuloBase (nuevo modelo de datos)
-        if getattr(self, 'descuento_id', None):
-            try:
-                obj = Descuento.objects.using('default').get(pk=self.descuento_id)
-                if getattr(obj, 'is_active', lambda: True)():
-                    return obj
-            except Descuento.DoesNotExist:
-                pass
-        # 2) Compatibilidad: si el modelo concreto tenía FK propia 'descuento'
-        try:
-            own_fk = super().descuento  # may not exist; defensive
-        except Exception:
-            own_fk = None
-        if own_fk:
-            try:
-                if self.descuento and self.descuento.is_active():
-                    return self.descuento
-            except Exception:
-                pass
-        # 3) Compatibilidad: tomar del primer ArticuloProveedor relacionado si está activo
-        try:
-            ap = getattr(self, 'articuloproveedor_set', None)
-            if ap is not None and ap.exists():
-                ap0 = ap.first()
-                if getattr(ap0, 'descuento', None) and ap0.descuento and ap0.descuento.is_active():
-                    return ap0.descuento
-        except Exception:
-            pass
-        # 4) Default: 'Sin Descuento' (no crear aquí para evitar locks en tests)
-        try:
-            return Descuento.objects.using('default').get(tipo="Sin Descuento")
-        except Descuento.DoesNotExist:
-            # Devolver instancia no persistida como configuración por defecto
-            return Descuento(
-                tipo="Sin Descuento",
-                temporal=False,
-                general=0.0,
-                bulto=0.0,
-                cantidad_bulto=5,
-            )
+        raise NotImplementedError
 
     def get_proveedor(self):
         raise NotImplementedError
@@ -105,8 +61,9 @@ class Articulo(ArticuloBase):
         ]
 
     def get_descuento(self):
-        # Delegar en la implementación unificada del base
-        return super().get_descuento()
+        ap = self.articuloproveedor_set.first()
+        Descuento = apps.get_model('precios', 'Descuento')
+        return ap.descuento if ap and ap.descuento and ap.descuento.is_active() else Descuento.objects.get(tipo="Sin Descuento")
 
     def get_proveedor(self):
         return self.articuloproveedor_set.first().proveedor if self.articuloproveedor_set.exists() else None
@@ -135,6 +92,7 @@ class ArticuloSinRevisar(ArticuloBase):
     fecha_mapeo = models.DateTimeField(null=True, blank=True)
     # Campo 'usuario' eliminado: no es necesario para la importación ni el mapeo y
     # simplifica la relación, evitando dependencia con auth_user en la base 'default'.
+    descuento = models.ForeignKey('precios.Descuento', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         indexes = [
@@ -150,46 +108,26 @@ class ArticuloSinRevisar(ArticuloBase):
         except ValueError:
             pass
         self.codigo_proveedor = f"{codigo_base}/"
-        # Asignar descuento por defecto si no se proporcionó, sin crear en DB
-        if not getattr(self, 'descuento', None):
+        if not self.descuento:
             Descuento = apps.get_model('precios', 'Descuento')
-            try:
-                self.descuento = Descuento.objects.using('default').get(tipo="Sin Descuento")
-            except Descuento.DoesNotExist:
-                # No asignar si no existe; ArticuloBase.get_descuento manejará valor por defecto
-                pass
+            self.descuento = Descuento.objects.get(tipo="Sin Descuento")
         super().save(*args, **kwargs)
 
     def get_descuento(self):
-        # Delegar en la implementación unificada del base
-        return super().get_descuento()
+        Descuento = apps.get_model('precios', 'Descuento')
+        return self.descuento if self.descuento and self.descuento.is_active() else Descuento.objects.get(tipo="Sin Descuento")
 
     def get_proveedor(self):
-        # Forzar lectura desde DB para coherencia de pruebas de performance
-        from proveedores.adapters.models import Proveedor
-        try:
-            return Proveedor.objects.using('default').get(pk=self.proveedor_id)
-        except Proveedor.DoesNotExist:
-            return None
+        return self.proveedor
 
-    def generar_precios(self, cantidad=1, pago_efectivo=False, **kwargs):
-        # Permitir overrides desde ArticuloProveedor
-        precio_de_lista = kwargs.pop('precio_de_lista', self.precio)
-        dividir = kwargs.pop('dividir', False)  # ArticuloSinRevisar no usa dividir por defecto
-        bulto = kwargs.pop('bulto', 1)
-        iva = kwargs.pop('iva', 0)
-        descuento_override = kwargs.pop('descuento_override', None)
-        proveedor_override = kwargs.pop('proveedor_override', None)
-        # Cualquier otro kwarg se ignora para mantener compatibilidad
+    def generar_precios(self, cantidad=1, pago_efectivo=False):
         return super().generar_precios(
-            precio_de_lista=precio_de_lista,
+            precio_de_lista=self.precio,
             cantidad=cantidad,
             pago_efectivo=pago_efectivo,
-            dividir=dividir,
-            bulto=bulto,
-            iva=iva,
-            descuento_override=descuento_override,
-            proveedor_override=proveedor_override,
+            dividir=False,  # ArticuloSinRevisar no usa dividir
+            bulto=1,
+            iva=0
         )
 
 class ArticuloProveedor(models.Model):
@@ -216,8 +154,7 @@ class ArticuloProveedor(models.Model):
                     (models.Q(articulo__isnull=False) & models.Q(articulo_s_revisar__isnull=True)) |
                     (models.Q(articulo__isnull=True) & models.Q(articulo_s_revisar__isnull=False))
                 )
-            ),
-            models.UniqueConstraint(fields=['precio_de_lista'], name='unique_ap_per_precio_de_lista')
+            )
         ]
 
     def save(self, *args, **kwargs):
@@ -227,26 +164,28 @@ class ArticuloProveedor(models.Model):
         except ValueError:
             pass
         self.codigo_proveedor = f"{codigo_base}/"
+        if not self.descuento:
+            Descuento = apps.get_model('precios', 'Descuento')
+            self.descuento = Descuento.objects.get(tipo="Sin Descuento")
         super().save(*args, **kwargs)
 
     def get_codigo_completo(self):
         return f"{self.codigo_proveedor.rstrip('/')}/{self.proveedor.abreviatura}"
 
     def generar_precios(self, cantidad=1, pago_efectivo=False):
-        # Usar el descuento y proveedor del propio AP, independientemente del Articulo vinculado
-        target = self.articulo if self.articulo else self.articulo_s_revisar
-        if not target:
-            return {'error': 'No hay artículo asociado'}
-        # Priorizar descuento propio del AP; si no, usar el del target
-        config_desc = self.descuento if getattr(self, 'descuento', None) else target.get_descuento()
-        return target.generar_precios(
+        return super(Articulo, self.articulo).generar_precios(
             precio_de_lista=self.precio,
             cantidad=cantidad,
             pago_efectivo=pago_efectivo,
             dividir=self.dividir,
             bulto=self.precio_de_lista.bulto,
-            iva=self.precio_de_lista.iva,
-            descuento_override=config_desc,
-            proveedor_override=self.proveedor,
+            iva=self.precio_de_lista.iva
+        ) if self.articulo else super(ArticuloSinRevisar, self.articulo_s_revisar).generar_precios(
+            precio_de_lista=self.precio,
+            cantidad=cantidad,
+            pago_efectivo=pago_efectivo,
+            dividir=False,
+            bulto=1,
+            iva=0
         )
 # Archivo de modelos del adaptador
