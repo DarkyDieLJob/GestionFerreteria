@@ -220,3 +220,28 @@ WHATSAPP_CONTACT = config('WHATSAPP_CONTACT', default='+00 000 000 000')
 # Parámetros del flujo de recuperación sin email
 PASSWORD_RESET_TICKET_TTL_HOURS = int(config('PASSWORD_RESET_TICKET_TTL_HOURS', default=48))
 TEMP_PASSWORD_LENGTH = int(config('TEMP_PASSWORD_LENGTH', default=16))
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "class": "logging.FileHandler",
+            "level": "INFO",
+            "filename": LOG_DIR / "app.log",
+            "formatter": "verbose",
+        },
+    },
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "loggers": {
+        "django": {"handlers": ["file"], "level": "INFO"},
+    },
+}
