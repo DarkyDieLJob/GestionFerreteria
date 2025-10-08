@@ -46,7 +46,7 @@ class ProveedorCreateView(CreateView):
     success_url = reverse_lazy("proveedores:proveedor_list")
 
     def form_valid(self, form):
-        proveedor = form.save()
+        self.object = form.save()
         return redirect(self.get_success_url())
 
 class ProveedorUpdateView(UpdateView):
@@ -62,7 +62,7 @@ class ProveedorUpdateView(UpdateView):
         return Proveedor.objects.all()
 
     def form_valid(self, form):
-        proveedor = form.save()
+        self.object = form.save()
         return redirect(self.get_success_url())
 
 class ProveedorDeleteView(DeleteView):

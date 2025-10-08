@@ -204,8 +204,9 @@ cython_debug/
 # Marimo
 marimo/_static/*
 
-# Django migrations (handled per-deployment)
-src/**/migrations/
+# Django migrations (ignore migration .py files, keep package init)
+src/**/migrations/*.py
+!src/**/migrations/__init__.py
 marimo/_lsp/
 __marimo__/
 

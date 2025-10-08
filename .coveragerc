@@ -16,6 +16,8 @@ omit =
     */asgi.py
     */wsgi.py
     */manage.py
+    core_app/config.py
+    core_auth/config.py
 
 [report]
 # Regexes for lines to exclude from consideration
