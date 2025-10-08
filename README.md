@@ -1,16 +1,21 @@
-# Nombre del Proyecto
+# Gestión Ferretería
 
-Breve descripción del proyecto. Este repositorio se generó a partir de la plantilla DjangoProyects.
+> **TODO**: agregar resumen del dominio y los objetivos del proyecto.
 
-## Documentación de la plantilla
+## Documentación
 
-- Guía completa de DjangoProyects: ver [docs/DJANGOPROYECTS.md](docs/DJANGOPROYECTS.md).
-- Instalación y comandos rápidos: ver [docs/INSTALACION.md](docs/INSTALACION.md).
+- **TODO**: listar los documentos clave (guías operativas, ADR, etc.).
 
 ## Primeros pasos
 
-1. Copia `src/.env.example` a `src/.env` y ajusta las variables.
-2. Crea y activa un entorno virtual, instala dependencias y migra la base de datos.
-3. Ejecuta el servidor de desarrollo con `python ./src/manage.py runserver`.
+1. **TODO**: detallar requisitos previos.
+2. **TODO**: indicar pasos para configurar `src/.env` y dependencias.
+3. **TODO**: explicar cómo iniciar el servidor (`manage.py` vive en `src/`).
 
-Para lineamientos de trabajo y git flow, consulta [docs/PAUTAS_AGENTES.md](docs/PAUTAS_AGENTES.md) y [docs/GIT_AGENTES.md](docs/GIT_AGENTES.md).
+## Estado operativo
+
+- **TODO**: describir ambientes, pipelines y responsables.
+
+---
+
+> Este archivo se generó como esqueleto. Completar cada sección con información específica del proyecto.

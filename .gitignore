@@ -204,11 +204,13 @@ cython_debug/
 # Marimo
 marimo/_static/*
 
-# Django migrations (handled per-deployment)
-src/**/migrations/
+# Django migrations (tracked)
 marimo/_lsp/
 __marimo__/
 
 src/staticfiles/*
 frontend/*
 static/*
+src/static/
+src/data/**/*.sqlite3
+src/data/**/*.db

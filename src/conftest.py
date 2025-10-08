@@ -9,67 +9,15 @@ from django.test import RequestFactory
 root_dir = Path(__file__).parent.absolute()
 sys.path.insert(0, str(root_dir))
 
-# Set default Django settings module
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core_config.settings")
+# Set default Django settings module for pytest runs
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core_config.test_settings")
 
 # Pytest configuration
 def pytest_configure():
-    from django.conf import settings, settings as django_settings
-    from django.core.exceptions import ImproperlyConfigured
-    
-    try:
-        # Check if Django is already configured
-        settings.configured
-    except (RuntimeError, ImproperlyConfigured):
-        # Minimum test configuration
-        settings.configure(
-            DATABASES={
-                'default': {
-                    'ENGINE': 'django.db.backends.sqlite3',
-                    'NAME': ':memory:',
-                }
-            },
-            INSTALLED_APPS=[
-                'django.contrib.admin',
-                'django.contrib.auth',
-                'django.contrib.contenttypes',
-                'django.contrib.sessions',
-                'django.contrib.messages',
-                'django.contrib.staticfiles',
-                'core_auth',
-                'core_app',
-            ],
-            SECRET_KEY='test-secret-key',
-            MIDDLEWARE=[
-                'django.middleware.security.SecurityMiddleware',
-                'django.contrib.sessions.middleware.SessionMiddleware',
-                'django.middleware.common.CommonMiddleware',
-                'django.middleware.csrf.CsrfViewMiddleware',
-                'django.contrib.auth.middleware.AuthenticationMiddleware',
-                'django.contrib.messages.middleware.MessageMiddleware',
-                'django.middleware.clickjacking.XFrameOptionsMiddleware',
-            ],
-            TEMPLATES=[
-                {
-                    'BACKEND': 'django.template.backends.django.DjangoTemplates',
-                    'DIRS': [],
-                    'APP_DIRS': True,
-                    'OPTIONS': {
-                        'context_processors': [
-                            'django.template.context_processors.debug',
-                            'django.template.context_processors.request',
-                            'django.contrib.auth.context_processors.auth',
-                            'django.contrib.messages.context_processors.messages',
-                        ],
-                    },
-                },
-            ],
-            ROOT_URLCONF='core_config.urls',
-            LOGIN_REDIRECT_URL='dashboard',  # Ensure login redirects to dashboard
-        )
-        
-        # Initialize Django
-        import django
+    from django.conf import settings
+    import django
+
+    if not settings.configured:
         django.setup()
 
 # Fixtures
