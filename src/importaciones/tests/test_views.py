@@ -12,10 +12,10 @@ pytest.importorskip("pandas", reason="Se requieren dependencias de importaciones
 
 
 @pytest.fixture
-@pytest.mark.django_db(databases=["negocio_db"])  # usamos la base de negocio
+@pytest.mark.django_db
 def proveedor_config():
-    """Crea un Proveedor y su ConfigImportacion en la base negocio_db."""
-    proveedor = Proveedor.objects.using("negocio_db").create(
+    """Crea un Proveedor y su ConfigImportacion en la base por defecto."""
+    proveedor = Proveedor.objects.create(
         nombre="Proveedor Test",
         abreviatura="PT",
         descuento_comercial=0.0,
@@ -23,7 +23,7 @@ def proveedor_config():
         margen_ganancia_efectivo=0.90,
         margen_ganancia_bulto=0.95,
     )
-    ConfigImportacion.objects.using("negocio_db").create(
+    ConfigImportacion.objects.create(
         proveedor=proveedor,
         col_codigo="A",
         col_descripcion="B",
@@ -34,7 +34,7 @@ def proveedor_config():
     return proveedor
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # limitamos a negocio_db
+@pytest.mark.django_db
 def test_importacion_create_get(client, proveedor_config):
     url = reverse("importaciones:importacion_create", kwargs={"proveedor_id": proveedor_config.id})
     resp = client.get(url)
@@ -43,7 +43,7 @@ def test_importacion_create_get(client, proveedor_config):
     assert b"type=\"file\"" in resp.content or b"Archivo Excel" in resp.content
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # usamos la base de negocio
+@pytest.mark.django_db
 def test_importacion_create_post(client, monkeypatch, tmp_path, settings, proveedor_config):
     # Redirigirá al listado de proveedores tras procesar
     called = {"args": None}
@@ -83,7 +83,7 @@ def test_importacion_create_post(client, monkeypatch, tmp_path, settings, provee
     assert isinstance(called["args"][1], str) and called["args"][1]
 
 
-@pytest.mark.django_db(databases=["negocio_db"])  # usamos la base de negocio
+@pytest.mark.django_db
 def test_importacion_preview_get(client, monkeypatch, proveedor_config):
     # Parchear vista_previa_excel para devolver filas controladas
     preview_rows = [

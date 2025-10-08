@@ -26,9 +26,8 @@ class ImportacionCreateView(FormView):
       procesamiento al ExcelRepository.
     - Finalmente redirige al listado de proveedores.
 
-    Nota: Las consultas a Proveedor/ConfigImportacion deben realizarse sobre la
-    base de datos 'negocio_db'. Esa política es respetada dentro del repositorio
-    (o en los modelos si se realizan consultas directas mediante .using('negocio_db')).
+    Nota: Las consultas a Proveedor/ConfigImportacion se realizan sobre la
+    base de datos por defecto a través del repositorio.
     """
 
     template_name = "importaciones/importacion_form.html"
@@ -94,17 +93,13 @@ class ImportacionesLandingView(View):
     template_name = "importaciones/landing.html"
 
     def get(self, request, *args, **kwargs):
-        proveedores = (
-            Proveedor.objects.using("negocio_db").all().order_by("nombre")
-        )
+        proveedores = Proveedor.objects.all().order_by("nombre")
         return render(request, self.template_name, {"proveedores": proveedores})
 
     def post(self, request, *args, **kwargs):
         proveedor_id = request.POST.get("proveedor_id")
         if not proveedor_id:
-            proveedores = (
-                Proveedor.objects.using("negocio_db").all().order_by("nombre")
-            )
+            proveedores = Proveedor.objects.all().order_by("nombre")
             return render(
                 request,
                 self.template_name,

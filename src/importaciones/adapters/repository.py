@@ -5,8 +5,7 @@ Repositorio del adaptador para el caso de uso de importación de Excel.
 Implementa el puerto `ImportarExcelPort` del dominio de importaciones
 usando Django ORM, pandas y almacenamiento de archivos del sistema.
 
-Todas las lecturas/escrituras de base de datos se realizan contra
-la base de datos "negocio_db".
+Todas las lecturas/escrituras se realizan contra la base de datos por defecto.
 """
 
 from typing import Any, Dict, List
@@ -58,7 +57,7 @@ class ExcelRepository(ImportarExcelPort):
         Procesa el Excel y crea/actualiza registros en `PrecioDeLista` y
         `ArticuloSinRevisar` usando `bulk_create` con `batch_size=1000`.
 
-        Se ejecuta bajo una transacción atómica sobre `negocio_db` y elimina
+        Se ejecuta bajo una transacción atómica y elimina
         el archivo al finalizar el procesamiento exitosamente.
         """
         Proveedor, ConfigImportacion, PrecioDeLista, ArticuloSinRevisar, Descuento = self._load_models()
@@ -66,12 +65,10 @@ class ExcelRepository(ImportarExcelPort):
         file_path = self.storage.path(nombre_archivo)
         df = pd.read_excel(file_path)
 
-        # Obtener proveedor y configuración de importación en negocio_db
-        proveedor = Proveedor.objects.using("negocio_db").get(pk=proveedor_id)
+        # Obtener proveedor y configuración de importación
+        proveedor = Proveedor.objects.get(pk=proveedor_id)
         # La configuración puede definir mapeos de columnas, separadores, etc.
-        config = (
-            ConfigImportacion.objects.using("negocio_db").filter(proveedor=proveedor).first()
-        )
+        config = ConfigImportacion.objects.filter(proveedor=proveedor).first()
 
         # Determinar nombres de columnas relevantes con fallback por defecto
         col_codigo = getattr(config, "columna_codigo", None) or "codigo"
@@ -94,7 +91,7 @@ class ExcelRepository(ImportarExcelPort):
         crear_precios: List[Any] = []
         crear_asr: List[Any] = []
 
-        with transaction.atomic(using="negocio_db"):
+        with transaction.atomic():
             # Construcción de objetos a crear en lote
             for row in df_work.itertuples(index=False):
                 codigo = str(getattr(row, "codigo") or "").strip()
@@ -129,13 +126,9 @@ class ExcelRepository(ImportarExcelPort):
             # Inserciones masivas
             # Si existen constraints de unicidad, `ignore_conflicts=True` evita errores por duplicados.
             if crear_precios:
-                PrecioDeLista.objects.using("negocio_db").bulk_create(
-                    crear_precios, batch_size=1000, ignore_conflicts=True
-                )
+                PrecioDeLista.objects.bulk_create(crear_precios, batch_size=1000, ignore_conflicts=True)
             if crear_asr:
-                ArticuloSinRevisar.objects.using("negocio_db").bulk_create(
-                    crear_asr, batch_size=1000, ignore_conflicts=True
-                )
+                ArticuloSinRevisar.objects.bulk_create(crear_asr, batch_size=1000, ignore_conflicts=True)
 
         # Eliminar archivo una vez procesado con éxito
         try:

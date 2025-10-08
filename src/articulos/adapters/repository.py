@@ -2,9 +2,7 @@
 """
 Implementaciones de repositorios (adaptadores) para la arquitectura hexagonal
 del contexto "articulos". Estas clases implementan los puertos definidos en
-src/articulos/domain/interfaces.py utilizando Django ORM.
-
-Todas las consultas se realizan contra la base de datos "negocio_db".
+src/articulos/domain/interfaces.py utilizando la base de datos por defecto.
 """
 
 from typing import Any, Dict, List, Optional
@@ -66,17 +64,11 @@ class PrecioRepository(CalcularPrecioPort):
     def calcular_precios(self, articulo_id: Any, tipo: str, cantidad: int, pago_efectivo: bool) -> Dict[str, Any]:
         if tipo == "articulo":
             ArticuloProveedor = apps.get_model("articulos", "ArticuloProveedor")
-            ap = (
-                ArticuloProveedor.objects.using("negocio_db").select_related("proveedor", "precio_de_lista").get(
-                    pk=articulo_id
-                )
-            )
+            ap = ArticuloProveedor.objects.select_related("proveedor", "precio_de_lista").get(pk=articulo_id)
             return ap.generar_precios(cantidad=cantidad, pago_efectivo=pago_efectivo)
         if tipo == "sin_revisar":
             ArticuloSinRevisar = apps.get_model("articulos", "ArticuloSinRevisar")
-            asr = ArticuloSinRevisar.objects.using("negocio_db").select_related("proveedor", "descuento").get(
-                pk=articulo_id
-            )
+            asr = ArticuloSinRevisar.objects.select_related("proveedor", "descuento").get(pk=articulo_id)
             return asr.generar_precios(cantidad=cantidad, pago_efectivo=pago_efectivo)
         raise ValueError("tipo inválido: use 'articulo' o 'sin_revisar'")
 
@@ -85,8 +77,8 @@ class BusquedaRepository(BuscarArticuloPort):
     """
     Implementación del puerto `BuscarArticuloPort` usando Django ORM.
 
-    Busca en PrecioDeLista, ArticuloSinRevisar y ArticuloProveedor
-    contra la base de datos "negocio_db".
+    Busca en PrecioDeLista, ArticuloSinRevisar y ArticuloProveedor usando la base
+    de datos por defecto.
     """
 
     def buscar_articulos(self, query: str, abreviatura: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -101,7 +93,7 @@ class BusquedaRepository(BuscarArticuloPort):
         results: List[Dict[str, Any]] = []
 
         # PrecioDeLista: match exacto del código normalizado y opcionalmente abreviatura por proveedor
-        qs_pl: QuerySet = PrecioDeLista.objects.using("negocio_db").select_related("proveedor").filter(codigo=code)
+        qs_pl: QuerySet = PrecioDeLista.objects.select_related("proveedor").filter(codigo=code)
         if abbr:
             qs_pl = qs_pl.filter(proveedor__abreviatura__iexact=abbr)
         for pl in qs_pl[:50]:
@@ -118,7 +110,7 @@ class BusquedaRepository(BuscarArticuloPort):
 
         # ArticuloProveedor: buscar por codigo_proveedor y abreviatura
         base_no_slash = code.rstrip("/")
-        qs_ap: QuerySet = ArticuloProveedor.objects.using("negocio_db").select_related(
+        qs_ap: QuerySet = ArticuloProveedor.objects.select_related(
             "proveedor", "precio_de_lista", "articulo"
         )
         qs_ap = qs_ap.filter(codigo_proveedor=base_no_slash)
@@ -138,7 +130,7 @@ class BusquedaRepository(BuscarArticuloPort):
             )
 
         # ArticuloSinRevisar: buscar por codigo_proveedor y abreviatura
-        qs_asr: QuerySet = ArticuloSinRevisar.objects.using("negocio_db").select_related("proveedor")
+        qs_asr: QuerySet = ArticuloSinRevisar.objects.select_related("proveedor")
         qs_asr = qs_asr.filter(codigo_proveedor=base_no_slash)
         if abbr:
             qs_asr = qs_asr.filter(proveedor__abreviatura__iexact=abbr)
@@ -169,15 +161,11 @@ class MapeoRepository(MapearArticuloPort):
         Articulo = apps.get_model("articulos", "Articulo")
         ArticuloProveedor = apps.get_model("articulos", "ArticuloProveedor")
 
-        asr = (
-            ArticuloSinRevisar.objects.using("negocio_db").select_related("proveedor", "descuento").get(
-                pk=articulo_s_revisar_id
-            )
-        )
-        art = Articulo.objects.using("negocio_db").get(pk=articulo_id)
+        asr = ArticuloSinRevisar.objects.select_related("proveedor", "descuento").get(pk=articulo_s_revisar_id)
+        art = Articulo.objects.get(pk=articulo_id)
 
         # Actualizar todas las relaciones de proveedor que apunten al ASR
-        ArticuloProveedor.objects.using("negocio_db").filter(articulo_s_revisar=asr).update(
+        ArticuloProveedor.objects.filter(articulo_s_revisar=asr).update(
             articulo=art, articulo_s_revisar=None
         )
 
@@ -185,7 +173,7 @@ class MapeoRepository(MapearArticuloPort):
         # para la importación/mapeo y evita dependencias con auth_user en la base 'default').
         asr.estado = "mapeado"
         asr.fecha_mapeo = timezone.now()
-        asr.save(using="negocio_db")
+        asr.save()
 
         return {
             "status": "ok",

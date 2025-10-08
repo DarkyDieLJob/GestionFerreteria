@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
-import importlib
 import os
 from decouple import AutoConfig, Csv
 
@@ -149,17 +148,7 @@ DATABASES = {
     }
 }
 
-# Importar configuraciones de bases de datos de aplicaciones
-for app in INSTALLED_APPS:
-    app_name = app.split(".")[0]
-    if app_name.startswith('core_') or app_name in {'cart', 'proveedores', 'articulos', 'precios', 'importaciones'}:
-        try:
-            module = importlib.import_module(f'{app_name}.config')
-            DATABASES.update(getattr(module, 'DATABASE', {}))
-        except (ImportError, AttributeError):
-            pass  # La aplicación no define una base de datos propia
-
-DATABASE_ROUTERS = ['core_config.database_routers.DynamicDatabaseRouter']
+DATABASE_ROUTERS = []
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
@@ -231,3 +220,28 @@ WHATSAPP_CONTACT = config('WHATSAPP_CONTACT', default='+00 000 000 000')
 # Parámetros del flujo de recuperación sin email
 PASSWORD_RESET_TICKET_TTL_HOURS = int(config('PASSWORD_RESET_TICKET_TTL_HOURS', default=48))
 TEMP_PASSWORD_LENGTH = int(config('TEMP_PASSWORD_LENGTH', default=16))
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "class": "logging.FileHandler",
+            "level": "INFO",
+            "filename": LOG_DIR / "app.log",
+            "formatter": "verbose",
+        },
+    },
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "loggers": {
+        "django": {"handlers": ["file"], "level": "INFO"},
+    },
+}

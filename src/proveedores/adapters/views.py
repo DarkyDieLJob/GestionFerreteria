@@ -2,10 +2,10 @@
 """
 Vistas (adaptadores) para la app proveedores.
 
-Estas vistas usan la base de datos 'negocio_db' explícitamente para
-consultas y escrituras, respetando la arquitectura hexagonal del proyecto:
-la lógica de negocio debería vivir en domain/, y los adaptadores (como
-estas vistas) coordinan entradas/salidas con Django.
+Estas vistas actúan como adaptadores en la arquitectura hexagonal del
+proyecto: coordinan la interacción con Django mientras la lógica de negocio
+permanece en `domain/`. Todas las operaciones usan la base de datos por
+defecto.
 """
 
 from django.db.models import Q
@@ -18,11 +18,11 @@ from proveedores.adapters.forms import ProveedorForm
 
 
 class ProveedorListView(ListView):
-    """Listado de proveedores usando la BD 'negocio_db'.
+    """Listado de proveedores utilizando la base de datos por defecto.
 
-    - Template: proveedores/proveedor_list.html
-    - Contexto: "proveedores" (queryset), y "q" (término de búsqueda)
-    - Búsqueda opcional por 'nombre' o 'abreviatura' con parámetro GET 'q'
+    - Template: `proveedores/proveedor_list.html`
+    - Contexto: "proveedores" (queryset) y "q" (término de búsqueda)
+    - Búsqueda opcional por nombre o abreviatura mediante parámetro GET `q`
     """
 
     model = Proveedor
@@ -30,22 +30,14 @@ class ProveedorListView(ListView):
     context_object_name = "proveedores"
 
     def get_queryset(self):
-        qs = Proveedor.objects.using("negocio_db").all()
+        qs = Proveedor.objects.all()
         q = self.request.GET.get("q", "").strip()
         if q:
             qs = qs.filter(Q(nombre__icontains=q) | Q(abreviatura__icontains=q))
         return qs
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["q"] = self.request.GET.get("q", "").strip()
-        # Alias para plantillas que esperan 'query'
-        context["query"] = context["q"]
-        return context
-
-
 class ProveedorCreateView(CreateView):
-    """Creación de proveedor en la BD 'negocio_db'."""
+    """Creación de proveedor."""
 
     model = Proveedor
     template_name = "proveedores/proveedor_form.html"
@@ -54,47 +46,36 @@ class ProveedorCreateView(CreateView):
     success_url = reverse_lazy("proveedores:proveedor_list")
 
     def form_valid(self, form):
-        # Guardar explícitamente en la base 'negocio_db'
-        self.object = form.save(commit=False)
-        self.object.save(using="negocio_db")
-        # Si hubiera M2M en el futuro, requeriría un guardado adicional sobre la BD por defecto;
-        # aquí no hay M2M en los campos del formulario, por lo que no se invoca save_m2m.
+        self.object = form.save()
         return redirect(self.get_success_url())
 
-
 class ProveedorUpdateView(UpdateView):
-    """Edición de proveedor usando y guardando en 'negocio_db'."""
+    """Edición de proveedor."""
 
     model = Proveedor
     template_name = "proveedores/proveedor_form.html"
-    # Integración con formularios: usar ProveedorForm para centralizar validaciones
+    # Integración con formularios: usar ProvealForm para centralizar validaciones
     form_class = ProveedorForm
     success_url = reverse_lazy("proveedores:proveedor_list")
 
     def get_queryset(self):
-        # Consultar objetos desde 'negocio_db'
-        return Proveedor.objects.using("negocio_db").all()
+        return Proveedor.objects.all()
 
     def form_valid(self, form):
-        # Guardar cambios explícitamente en 'negocio_db'
-        self.object = form.save(commit=False)
-        self.object.save(using="negocio_db")
+        self.object = form.save()
         return redirect(self.get_success_url())
 
-
 class ProveedorDeleteView(DeleteView):
-    """Eliminación de proveedor usando 'negocio_db'."""
+    """Eliminación de proveedor."""
 
     model = Proveedor
     template_name = "proveedores/proveedor_confirm_delete.html"
     success_url = reverse_lazy("proveedores:proveedor_list")
 
     def get_queryset(self):
-        # Consultar objetos desde 'negocio_db'
-        return Proveedor.objects.using("negocio_db").all()
+        return Proveedor.objects.all()
 
     def delete(self, request, *args, **kwargs):
-        # Eliminar explícitamente en 'negocio_db'
-        self.object = self.get_object()
-        self.object.delete(using="negocio_db")
-        return redirect(self.get_success_url())
+        proveedor = self.get_object()
+        proveedor.delete()
+        return redirect(self.success_url)
