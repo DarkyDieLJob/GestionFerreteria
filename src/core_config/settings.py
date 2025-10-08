@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
-import importlib
 import os
 from decouple import AutoConfig, Csv
 
@@ -149,17 +148,7 @@ DATABASES = {
     }
 }
 
-# Importar configuraciones de bases de datos de aplicaciones
-for app in INSTALLED_APPS:
-    app_name = app.split(".")[0]
-    if app_name.startswith('core_') or app_name in {'cart', 'proveedores', 'articulos', 'precios', 'importaciones'}:
-        try:
-            module = importlib.import_module(f'{app_name}.config')
-            DATABASES.update(getattr(module, 'DATABASE', {}))
-        except (ImportError, AttributeError):
-            pass  # La aplicación no define una base de datos propia
-
-DATABASE_ROUTERS = ['core_config.database_routers.DynamicDatabaseRouter']
+DATABASE_ROUTERS = []
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
