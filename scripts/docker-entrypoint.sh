@@ -96,15 +96,19 @@ EOF
   (cd "${FRONTEND_DIR}" && npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify)
 fi
 
-# 3) Migraciones
+# 3) Generar migraciones
+log "Generando migraciones"
+python src/manage.py makemigrations --noinput
+
+# 4) Migraciones
 log "Aplicando migraciones"
 python src/manage.py migrate --noinput
 
-# 4) (Opcional) collectstatic
+# 5) (Opcional) collectstatic
 if [[ "${ENABLE_COLLECTSTATIC:-false}" == "true" ]]; then
   log "Recolectando estáticos"
   python src/manage.py collectstatic --noinput || echo "collectstatic falló/omitido"
 fi
 
-# 5) Ejecutar comando
+# 6) Ejecutar comando
 exec "$@"
