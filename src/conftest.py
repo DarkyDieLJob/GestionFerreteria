@@ -21,6 +21,33 @@ def pytest_configure():
         django.setup()
 
 # Fixtures
+@pytest.fixture(scope="session", autouse=True)
+def log_database_state(pytestconfig, django_db_setup, django_db_blocker):
+    """Log database configuration and available tables for diagnostics."""
+    from django.conf import settings
+    from django.db import connections
+
+    header = "[DB-DEBUG]"
+    print(f"\n{header} Django settings module: {os.getenv('DJANGO_SETTINGS_MODULE')}")
+    db_summary = {alias: {"ENGINE": cfg.get("ENGINE"), "NAME": cfg.get("NAME")}
+                  for alias, cfg in settings.DATABASES.items()}
+    print(f"{header} settings.DATABASES summary: {db_summary}")
+
+    with django_db_blocker.unblock():
+        for alias in connections:
+            conn = connections[alias]
+            vendor = conn.vendor
+            name = conn.settings_dict.get("NAME")
+            print(f"{header} Inspecting alias='{alias}' vendor='{vendor}' name='{name}'")
+            try:
+                tables = conn.introspection.table_names()
+            except Exception as exc:  # pragma: no cover - diagnostic path
+                print(f"{header} ERROR alias='{alias}' introspection failed: {exc!r}")
+            else:
+                sample = tables[:10]
+                extra = len(tables) - len(sample)
+                print(f"{header} alias='{alias}' tables={sample}{' ...' if extra > 0 else ''} (total={len(tables)})")
+
 @pytest.fixture
 def user():
     """Create a test user."""
