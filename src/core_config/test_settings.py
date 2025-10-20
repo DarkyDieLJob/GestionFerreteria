@@ -9,11 +9,9 @@ DATABASES['default'] = {
     'ENGINE': 'django.db.backends.sqlite3',
     'NAME': ':memory:',
 }
-# Ensure negocio_db exists for business apps tested with pytest
-DATABASES.setdefault('negocio_db', {
-    'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': ':memory:',
-})
+# Ensure negocio_db mirrors default so migrations seeding default tables apply
+DATABASES['negocio_db'] = DATABASES['default'].copy()
+DATABASES['negocio_db']['TEST'] = {'MIRROR': 'default'}
 
 # Speed up password hashing for tests
 PASSWORD_HASHERS = [
