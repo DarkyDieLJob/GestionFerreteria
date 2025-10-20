@@ -1,6 +1,5 @@
 from django.test import TestCase
 from django.db import IntegrityError
-from django.db import connections
 
 from proveedores.adapters.models import Proveedor
 from precios.adapters.models import Descuento, PrecioDeLista
@@ -8,8 +7,6 @@ from articulos.adapters.models import Articulo, ArticuloProveedor
 
 
 class ArticulosModelsTest(TestCase):
-    databases = {'default', 'negocio_db'}
-
     def setUp(self):
         self.prov = Proveedor.objects.create(nombre="Proveedor A", abreviatura="pa")
         # Asegurar descuento base existente

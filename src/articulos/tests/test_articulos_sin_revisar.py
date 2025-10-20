@@ -7,8 +7,6 @@ from articulos.adapters.models import ArticuloSinRevisar
 
 
 class ArticulosSinRevisarTest(TestCase):
-    databases = {'default', 'negocio_db'}
-
     def setUp(self):
         self.prov = Proveedor.objects.create(nombre="Proveedor SR", abreviatura="sr")
         # Asegurar descuento base existente

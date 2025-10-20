@@ -2,16 +2,13 @@
 
 from .settings import *
 
-# Use in-memory databases for tests; preserve negocio_db alias from base settings
-# Start from base settings.DATABASES so routers keep working
-DATABASES = DATABASES.copy()
-DATABASES['default'] = {
-    'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': ':memory:',
+# Use in-memory database for tests
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
 }
-# Ensure negocio_db mirrors default so migrations seeding default tables apply
-DATABASES['negocio_db'] = DATABASES['default'].copy()
-DATABASES['negocio_db']['TEST'] = {'MIRROR': 'default'}
 
 # Speed up password hashing for tests
 PASSWORD_HASHERS = [
