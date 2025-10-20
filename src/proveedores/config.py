@@ -1,6 +1,6 @@
-from pathlib import Path
-
 # Configuración de la base de datos específica de la app
+from pathlib import Path
+'''
 BASE_DIR = Path(__file__).resolve().parents[1]
 DATABASE = {
     'negocio_db': {
@@ -8,4 +8,4 @@ DATABASE = {
         'NAME': str(BASE_DIR / 'data' / 'negocio.sqlite3'),
     }
 }
-# Configuración de la base de datos específica de la app
+'''
