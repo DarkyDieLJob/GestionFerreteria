@@ -22,7 +22,24 @@ def pytest_configure():
 
 # Fixtures
 @pytest.fixture(scope="session", autouse=True)
-def log_database_state(pytestconfig, django_db_setup, django_db_blocker):
+def apply_migrations(django_db_setup, django_db_blocker):
+    """Ensure all migrations run before tests with explicit logging."""
+    from django.core.management import call_command
+
+    header = "[DB-DEBUG]"
+    print(f"\n{header} Running 'python manage.py migrate --noinput' before tests")
+    with django_db_blocker.unblock():
+        try:
+            call_command("migrate", interactive=False, run_syncdb=True, verbosity=1)
+        except Exception as exc:  # pragma: no cover - diagnostic path
+            print(f"{header} ERROR during migrate: {exc!r}")
+            raise
+        else:
+            print(f"{header} Migrations completed successfully")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def log_database_state(apply_migrations, django_db_setup, django_db_blocker):
     """Log database configuration and available tables for diagnostics."""
     from django.conf import settings
     from django.db import connections
