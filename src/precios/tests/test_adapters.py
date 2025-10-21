@@ -6,8 +6,6 @@ from precios.adapters.models import Descuento, PrecioDeLista
 
 
 class PreciosModelsTest(TestCase):
-    databases = {'default', 'negocio_db'}
-
     def setUp(self):
         self.prov = Proveedor.objects.create(nombre="Proveedor P", abreviatura="pp")
 

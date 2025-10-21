@@ -6,8 +6,6 @@ from importaciones.adapters.models import ConfigImportacion
 
 
 class ImportacionesModelsTest(TestCase):
-    databases = {'default', 'negocio_db'}
-
     def setUp(self):
         self.prov = Proveedor.objects.create(nombre="Proveedor I", abreviatura="pi")
 

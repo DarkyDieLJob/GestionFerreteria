@@ -204,9 +204,6 @@ cython_debug/
 # Marimo
 marimo/_static/*
 
-# Django migrations: version only package markers
-src/**/migrations/*
-!src/**/migrations/__init__.py
 marimo/_lsp/
 __marimo__/
 

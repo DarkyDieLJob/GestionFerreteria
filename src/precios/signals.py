@@ -29,7 +29,7 @@ def create_default_descuento(sender, **kwargs):
 
     Descuento = apps.get_model("precios", "Descuento")
     # Crear o recuperar el descuento por defecto con valores predefinidos
-    Descuento.objects.using("negocio_db").get_or_create(
+    Descuento.objects.get_or_create(
         tipo="Sin Descuento",
         defaults={
             "efectivo": Decimal("0.10"),

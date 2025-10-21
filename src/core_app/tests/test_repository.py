@@ -20,16 +20,13 @@ class DummyConn:
 
 
 def setup_repo_mocks(monkeypatch):
-    # Patch connections used inside the repository module
-    monkeypatch.setattr(repo_mod, "connections", {"core_app_db": DummyConn()})
-    # Patch model manager .objects.using(...) to return a mock manager
     manager = MagicMock()
     manager.create = MagicMock()
     manager.all = MagicMock(return_value=[
         Core_app(name="n1"),
         Core_app(name="n2"),
     ])
-    monkeypatch.setattr(Core_app, "objects", MagicMock(using=MagicMock(return_value=manager)))
+    monkeypatch.setattr(Core_app, "objects", manager)
     return manager
 
 

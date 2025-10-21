@@ -21,6 +21,76 @@ def pytest_configure():
         django.setup()
 
 # Fixtures
+@pytest.fixture(scope="session", autouse=True)
+def apply_migrations(django_db_setup, django_db_blocker):
+    """Generate missing migrations and ensure they run before tests."""
+    from django.conf import settings
+    from django.core.management import call_command
+    from importlib import import_module
+    from pathlib import Path
+
+    header = "[DB-DEBUG]"
+    apps_requiring_migrations = [
+        "core_app",
+        "core_auth",
+        "proveedores",
+        "articulos",
+        "precios",
+        "importaciones",
+    ]
+
+    with django_db_blocker.unblock():
+        for app_label in apps_requiring_migrations:
+            try:
+                module = import_module(f"{app_label}.migrations")
+                migrations_path = Path(module.__file__).resolve().parent
+            except ModuleNotFoundError:
+                app_config = import_module(app_label)
+                migrations_path = Path(app_config.__file__).resolve().parent / "migrations"
+
+            existing = list(migrations_path.glob("[!_]*.py")) if migrations_path.exists() else []
+            if not existing:
+                print(f"{header} Generating migrations for '{app_label}'")
+                migrations_path.mkdir(parents=True, exist_ok=True)
+                call_command("makemigrations", app_label, interactive=False, verbosity=1)
+
+        print(f"\n{header} Running 'python manage.py migrate --noinput' before tests")
+        try:
+            call_command("migrate", interactive=False, run_syncdb=True, verbosity=1)
+        except Exception as exc:  # pragma: no cover - diagnostic path
+            print(f"{header} ERROR during migrate: {exc!r}")
+            raise
+        else:
+            print(f"{header} Migrations completed successfully")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def log_database_state(apply_migrations, django_db_setup, django_db_blocker):
+    """Log database configuration and available tables for diagnostics."""
+    from django.conf import settings
+    from django.db import connections
+
+    header = "[DB-DEBUG]"
+    print(f"\n{header} Django settings module: {os.getenv('DJANGO_SETTINGS_MODULE')}")
+    db_summary = {alias: {"ENGINE": cfg.get("ENGINE"), "NAME": cfg.get("NAME")}
+                  for alias, cfg in settings.DATABASES.items()}
+    print(f"{header} settings.DATABASES summary: {db_summary}")
+
+    with django_db_blocker.unblock():
+        for alias in connections:
+            conn = connections[alias]
+            vendor = conn.vendor
+            name = conn.settings_dict.get("NAME")
+            print(f"{header} Inspecting alias='{alias}' vendor='{vendor}' name='{name}'")
+            try:
+                tables = conn.introspection.table_names()
+            except Exception as exc:  # pragma: no cover - diagnostic path
+                print(f"{header} ERROR alias='{alias}' introspection failed: {exc!r}")
+            else:
+                sample = tables[:10]
+                extra = len(tables) - len(sample)
+                print(f"{header} alias='{alias}' tables={sample}{' ...' if extra > 0 else ''} (total={len(tables)})")
+
 @pytest.fixture
 def user():
     """Create a test user."""
