@@ -211,7 +211,9 @@ frontend/*
 src/data/*
 static/*
 
-# Django migrations: keep them versioned. Only ignore caches inside
+# Django migrations (solo mantener __init__.py)
+src/**/migrations/*.py
+!src/**/migrations/__init__.py
 src/**/migrations/__pycache__/
 
 # Media uploads (should not be versioned)
