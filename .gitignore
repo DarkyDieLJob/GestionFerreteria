@@ -217,3 +217,7 @@ static/*
 src/static/
 src/data/**/*.sqlite3
 src/data/**/*.db
+
+# Django migration files (mantener __init__.py)
+src/**/migrations/*.py
+!src/**/migrations/__init__.py
