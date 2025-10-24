@@ -49,8 +49,8 @@ COPY scripts/docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Exponer puerto por defecto de Django
-EXPOSE 8000
+EXPOSE 8001
 
 # Comando por defecto: servidor de desarrollo (puedes sobreescribir con CMD en docker run)
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["python", "src/manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "src/manage.py", "runserver", "0.0.0.0:8001"]
