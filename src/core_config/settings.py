@@ -37,7 +37,7 @@ DEBUG = config('DEBUG', cast=bool, default=True)
 DEBUG_INFO = config('DEBUG_INFO', cast=bool, default=False)
 
 # Lista separada por comas: 127.0.0.1,localhost,mi-dominio.com
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='127.0.0.1,localhost')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='127.0.0.1,localhost,raspberrypi.tail1ca260.ts.net')
 
 
 # Application definition
