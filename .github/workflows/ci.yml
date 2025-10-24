@@ -48,7 +48,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -q
+          pytest -q -s
 
       - name: Upload coverage HTML
         if: always()

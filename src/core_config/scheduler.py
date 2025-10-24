@@ -47,7 +47,7 @@ def run_procesar_excel() -> None:
     imports_dir = Path(settings.BASE_DIR) / "data" / "imports"
     imports_dir.mkdir(parents=True, exist_ok=True)
 
-    for prov in Proveedor.objects.using("negocio_db").all():
+    for prov in Proveedor.objects.all():
         file_name = f"excel_{prov.id}.xlsx"
         file_path = imports_dir / file_name
         if file_path.exists():
