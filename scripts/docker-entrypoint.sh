@@ -97,6 +97,8 @@ EOF
 fi
 
 # 3) Migraciones
+log "Generando migraciones"
+python src/manage.py makemigrations
 log "Aplicando migraciones"
 python src/manage.py migrate --noinput
 
