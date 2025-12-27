@@ -34,11 +34,11 @@ def test_abreviatura_max_length():
     assert any("máximo 3" in str(e).lower() for e in form.errors["abreviatura"])  # 3 caracteres
 
 
-def test_abreviatura_only_letters_and_normalized():
-    # Con números debe fallar
-    form_bad = make_form(abreviatura="a1")
-    assert not form_bad.is_valid()
-    assert any("solo" in str(e).lower() for e in form_bad.errors["abreviatura"])  # solo letras
+def test_abreviatura_alphanumeric_and_normalized():
+    # Con letras y números debe ser válido y normalizar a mayúsculas
+    form_ok_num = make_form(abreviatura="a1")
+    assert form_ok_num.is_valid()
+    assert form_ok_num.cleaned_data["abreviatura"] == "A1"
 
     # Con minúsculas válidas debe normalizar a mayúsculas y pasar
     form_ok = make_form(abreviatura="ab")
