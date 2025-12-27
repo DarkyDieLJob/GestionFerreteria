@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.1](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.0...v2.0.1) (2025-12-27)
+
+
+### Bug Fixes
+
+* **proveedores:** permitir abreviaturas alfanuméricas (A-Z, 0-9) y normalizar a mayúsculas ([7e54e55](https://github.com/DarkyDieLJob/GestionFerreteria/commit/7e54e5597d73b7fc0d0136b76a1fb349c4544a24))
+
 ## 2.0.0 (2025-10-24)
 
 
