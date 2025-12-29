@@ -64,6 +64,7 @@
                         <a href="{% url 'home' %}" class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Inicio
                         </a>
+                        {% if user.is_authenticated %}
                         <!-- Link a Artículos (búsqueda) -->
                         <a href="{% url 'articulos:buscar_articulos' %}" class="text-gray-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium">
                             <i class="fas fa-boxes-stacked mr-1"></i>
@@ -84,6 +85,7 @@
                             <i class="fas fa-tags mr-1"></i>
                             Precios
                         </a>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="hidden sm:ml-6 sm:flex sm:items-center flex-shrink-0">
@@ -136,6 +138,7 @@
                 <a href="{% url 'home' %}" class="bg-indigo-50 border-indigo-500 text-indigo-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">
                     Inicio
                 </a>
+                {% if user.is_authenticated %}
                 <!-- Link móvil a Artículos (búsqueda) -->
                 <a href="{% url 'articulos:buscar_articulos' %}" class="text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent">
                     <span class="inline-flex items-center">
@@ -160,6 +163,7 @@
                         <i class="fas fa-tags mr-2"></i>Precios
                     </span>
                 </a>
+                {% endif %}
                 {% if user.is_authenticated %}
                     {% if user.is_staff %}
                         {% if coverage_available and coverage_url %}
