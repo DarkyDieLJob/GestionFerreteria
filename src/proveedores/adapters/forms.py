@@ -73,6 +73,6 @@ class ProveedorForm(forms.ModelForm):
             raise ValidationError("La abreviatura es obligatoria.")
         if len(value) > 3:
             raise ValidationError("La abreviatura debe tener como máximo 3 caracteres.")
-        if not value.isalpha():
-            raise ValidationError("La abreviatura solo puede contener letras (A-Z).")
+        if not value.isalnum():
+            raise ValidationError("La abreviatura solo puede contener letras y números (A-Z, 0-9).")
         return value

@@ -6,8 +6,6 @@ from proveedores.adapters.models import Proveedor, Contacto, ContactoProveedor
 
 
 class ProveedoresModelsTest(TestCase):
-    databases = {'default', 'negocio_db'}
-
     def test_proveedor_save_uppercases_abreviatura(self):
         p = Proveedor.objects.create(nombre="Proveedor X", abreviatura="px")
         self.assertEqual(p.abreviatura, "PX")

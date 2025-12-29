@@ -57,8 +57,6 @@ def _write_layout3_dataframe(pd, path, engine):
 
 
 class ConversionRealFilesTest(TestCase):
-    databases = {'default', 'negocio_db'}
-
     def setUp(self):
         self.prov = Proveedor.objects.create(nombre="ProvConv", abreviatura="pc")
         Descuento.objects.get_or_create(tipo="Sin Descuento")

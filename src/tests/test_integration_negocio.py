@@ -7,8 +7,6 @@ from articulos.adapters.models import Articulo, ArticuloProveedor, ArticuloSinRe
 
 
 class NegocioIntegrationTest(TestCase):
-    databases = {"default"}
-
     def test_flujo_completo_precios_descuentos_articulos_proveedores(self):
         # 1) Proveedor
         prov = Proveedor.objects.create(nombre="Proveedor INT", abreviatura="pi")
@@ -186,7 +184,6 @@ class NegocioIntegrationTest(TestCase):
             "temporal": False,
             "general": 0.0,
         })
-        # Si la tabla auth_user no existe en negocio_db (p.ej. SQLite multi-db), saltar este caso.
         asr = ArticuloSinRevisar.objects.create(
             proveedor=prov,
             codigo_proveedor="0009/",
