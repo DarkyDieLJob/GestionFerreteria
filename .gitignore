@@ -168,10 +168,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Node / npm
-node_modules/
-package-lock.json
-
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
@@ -206,18 +202,23 @@ package-lock.json
 .cursorindexingignore
 
 # Marimo
-marimo/_static/*
-
+marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+node_modules/
+package-lock.json
+npm-debug.log*
+
 src/staticfiles/*
 frontend/*
+src/data/*
 static/*
-src/static/
-src/data/**/*.sqlite3
-src/data/**/*.db
 
-# Django migration files (mantener __init__.py)
+# Django migrations (solo mantener __init__.py)
 src/**/migrations/*.py
 !src/**/migrations/__init__.py
+src/**/migrations/__pycache__/
+
+# Media uploads (should not be versioned)
+src/media/

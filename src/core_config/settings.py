@@ -33,7 +33,7 @@ SECRET_KEY = config('SECRET_KEY', default='changeme_insecure_secret_key')
 DEBUG = config('DEBUG', cast=bool, default=True)
 
 # Lista separada por comas: 127.0.0.1,localhost,mi-dominio.com
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='127.0.0.1,localhost')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='127.0.0.1,localhost,raspberrypi.tail1ca260.ts.net')
 
 
 # Application definition
