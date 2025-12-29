@@ -222,3 +222,7 @@ src/**/migrations/__pycache__/
 
 # Media uploads (should not be versioned)
 src/media/
+# Spreadsheet and data files (do not version)
+*.csv
+*.xls
+*.xlsx
