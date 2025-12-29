@@ -2,11 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-### [1.0.3](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v1.0.2...v1.0.3) (2025-10-21)
+### [2.0.1](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.0...v2.0.1) (2025-12-27)
 
-### [1.0.2](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v1.0.1...v1.0.2) (2025-10-09)
 
-### 1.0.1 (2025-10-08)
+### Bug Fixes
+
+* **proveedores:** permitir abreviaturas alfanuméricas (A-Z, 0-9) y normalizar a mayúsculas ([7e54e55](https://github.com/DarkyDieLJob/GestionFerreteria/commit/7e54e5597d73b7fc0d0136b76a1fb349c4544a24))
+
+## 2.0.0 (2025-10-24)
 
 
 ### Features
@@ -41,7 +44,6 @@ All notable changes to this project will be documented in this file. See [standa
 * **precios:** señal post_migrate para crear Descuento por defecto en negocio_db ([71773a1](https://github.com/DarkyDieLJob/GestionFerreteria/commit/71773a1582a0d2b02776ae6e96c2659e63f874f9))
 * **proveedores:** CRUD vistas, urls, templates y tests; estilos UI y navbar; shim de modelos para compatibilidad ([3352879](https://github.com/DarkyDieLJob/GestionFerreteria/commit/3352879b3823aa8ebe3b602854900204cfd16e37))
 * scaffold basic apps for ferreteria with models and model tests ([fee48f4](https://github.com/DarkyDieLJob/GestionFerreteria/commit/fee48f4228604cff0929895a79e918e378e63b00))
-* unify database configuration ([e6ac7e8](https://github.com/DarkyDieLJob/GestionFerreteria/commit/e6ac7e866850c79b4eaa717a3a37d0f82144a394))
 * update preview template for per-sheet forms and tables with Tailwind ([ab1b57c](https://github.com/DarkyDieLJob/GestionFerreteria/commit/ab1b57c23bbd025785703560ee0109b2a09997fe))
 
 

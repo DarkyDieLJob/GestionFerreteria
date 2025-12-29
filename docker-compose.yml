@@ -1,22 +1,20 @@
 version: "3.9"
 services:
   app:
+    build: .
     image: django-proyects:raspbian
     container_name: django-proyects
     restart: always
-    build:
-      context: .
-      target: runtime
-      args:
-        REPO_URL: "https://github.com/DarkyDieLJob/GestionFerreteria.git"
-        REPO_BRANCH: "main"
-    environment:
-      - ENABLE_COLLECTSTATIC=false
-      - NO_FRONTEND=false
     ports:
       - "8001:8001"
+    environment:
+      # Estáticos: habilitar si quieres recopilar estáticos en runtime
+      - ENABLE_COLLECTSTATIC=false
+      # Desactiva frontend si no quieres construir Tailwind (por defecto se construye)
+      - NO_FRONTEND=false
     volumes:
-      - ./volumenes/django-proyects/logs:/app/logs
-      - ./volumenes/django-proyects/data:/app/src/data
-      - ./volumenes/django-proyects/static:/app/static
+      - ./src/data:/app/src/data
+      - ./src/static:/app/static
+      - ./logs:/app/logs
+      - ./src/media:/app/src/media
     command: ["python", "src/manage.py", "runserver", "0.0.0.0:8001"]
