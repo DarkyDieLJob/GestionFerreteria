@@ -184,17 +184,47 @@ class ExcelRepository(ImportarExcelPort):
         proveedor = Proveedor.objects.get(pk=proveedor_id)
 
         file_path = self.storage.path(nombre_archivo)
-        # Validar existencia de hojas
+        # Validar existencia de hojas (tolerando mayúsculas/minúsculas y espacios)
         try:
-            xls = pd.ExcelFile(file_path)
-            disponibles = set(xls.sheet_names)
+            _, ext = os.path.splitext(nombre_archivo.lower())
+            engine = None
+            if ext == ".xlsx":
+                engine = "openpyxl"
+            elif ext == ".xls":
+                engine = "xlrd"
+            elif ext == ".ods":
+                engine = "odf"
+
+            xls = pd.ExcelFile(file_path, engine=engine)
+            disponibles_lista = list(xls.sheet_names)
         except Exception as exc:
             raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc
 
-        requeridas = set(selecciones.keys())
-        faltantes = requeridas - disponibles
+        # Normalizador básico: recorta y compara case-insensitive
+        def _norm(s: str) -> str:
+            try:
+                return (s or "").strip().casefold()
+            except Exception:
+                return str(s).strip().lower()
+
+        disponibles_norm = {_norm(n): n for n in disponibles_lista}
+
+        # Mapear hojas requeridas (posibles variantes de mayúsculas/espacios) a nombres reales del archivo
+        requeridas_input = list(selecciones.keys())
+        faltantes: List[str] = []
+        hoja_real_por_norm: Dict[str, str] = {}
+        for hoja_req in requeridas_input:
+            clave = _norm(hoja_req)
+            real = disponibles_norm.get(clave)
+            if real is None:
+                faltantes.append(hoja_req)
+            else:
+                hoja_real_por_norm[hoja_req] = real
+
         if faltantes:
-            raise ValueError(f"Hojas inexistentes en el archivo: {sorted(faltantes)}")
+            raise ValueError(
+                f"Hojas inexistentes en el archivo: {sorted(faltantes)}. Disponibles: {disponibles_lista}"
+            )
 
         # Validar configuraciones
         sheet_list: List[str] = []
@@ -207,8 +237,9 @@ class ExcelRepository(ImportarExcelPort):
             if not config:
                 raise ValueError(f"ConfigImportacion {cfg_id} no pertenece al proveedor o no existe")
             sr = int(cfg.get("start_row", 0))
-            sheet_list.append(hoja)
-            start_rows[hoja] = sr
+            hoja_real = hoja_real_por_norm.get(hoja, hoja)
+            sheet_list.append(hoja_real)
+            start_rows[hoja_real] = sr
 
         # Generar CSVs con el servicio de conversión
         output_dir = os.path.dirname(file_path)
