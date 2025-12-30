@@ -11,6 +11,7 @@ Nota: asegúrate de importar este módulo en el AppConfig de la app
 from decimal import Decimal
 
 from django.apps import apps
+from django.db import connections
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 
@@ -33,6 +34,16 @@ def create_default_descuento(sender, **kwargs):
     db_alias = kwargs.get("using") or "default"
 
     Descuento = apps.get_model("precios", "Descuento")
+
+    # Si la tabla aún no existe en este alias (p.ej. CI con app sin migraciones), salir sin error
+    try:
+        existing_tables = set(connections[db_alias].introspection.table_names())
+        if Descuento._meta.db_table not in existing_tables:
+            return
+    except Exception:
+        # Si no se puede inspeccionar, hacer un fail-safe y no ejecutar
+        return
+
     # Crear o recuperar el descuento por defecto con valores predefinidos en la BD correspondiente
     Descuento.objects.using(db_alias).get_or_create(
         tipo="Sin Descuento",
