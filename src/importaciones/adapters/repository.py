@@ -65,20 +65,41 @@ class ExcelRepository(ImportarExcelPort):
                 engine = "xlrd"
             elif ext == ".ods":
                 engine = "odf"
-            # Excel / ODS: seleccionar hoja si se solicita
-            if sheet_name is not None:
-                df = pd.read_excel(file_path, sheet_name=sheet_name, engine=engine)
-                hoja = sheet_name
-            else:
-                df = pd.read_excel(file_path, engine=engine)
-                hoja = getattr(getattr(df, "name", None), "name", None) or None
+            # Excel / ODS: seleccionar hoja si se solicita (con fallback si .xls es en realidad .xlsx)
+            try:
+                if sheet_name is not None:
+                    df = pd.read_excel(file_path, sheet_name=sheet_name, engine=engine)
+                    hoja = sheet_name
+                else:
+                    df = pd.read_excel(file_path, engine=engine)
+                    hoja = getattr(getattr(df, "name", None), "name", None) or None
+            except Exception as exc:
+                # Fallback: algunos archivos con extensión .xls son realmente .xlsx
+                if ext == ".xls":
+                    try:
+                        if sheet_name is not None:
+                            df = pd.read_excel(file_path, sheet_name=sheet_name, engine="openpyxl")
+                            hoja = sheet_name
+                        else:
+                            df = pd.read_excel(file_path, engine="openpyxl")
+                            hoja = getattr(getattr(df, "name", None), "name", None) or None
+                    except Exception:
+                        raise
+                else:
+                    raise
 
-        preview_rows: List[Dict[str, Any]] = df.head(20).fillna("").to_dict(orient="records")
+        # Construir preview con índice visible (#) para facilitar elección de fila inicial
+        df_preview = df.head(20).fillna("")
+        try:
+            df_preview.insert(0, "#", range(1, len(df_preview) + 1))
+        except Exception:
+            pass
+        preview_rows: List[Dict[str, Any]] = df_preview.to_dict(orient="records")
         return {
             "proveedor_id": proveedor_id,
             "archivo": nombre_archivo,
             "sheet_name": hoja,
-            "columnas": list(df.columns),
+            "columnas": list(df_preview.columns),
             "filas": preview_rows,
             "total_filas": int(len(df)),
         }
@@ -97,7 +118,14 @@ class ExcelRepository(ImportarExcelPort):
         try:
             xls = pd.ExcelFile(file_path, engine=engine)
         except Exception as exc:
-            raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc
+            # Fallback para .xls que en realidad son .xlsx
+            if ext == ".xls":
+                try:
+                    xls = pd.ExcelFile(file_path, engine="openpyxl")
+                except Exception as exc2:
+                    raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc2
+            else:
+                raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc
         return list(xls.sheet_names)
 
     def get_configs_for_proveedor(self, proveedor_id: Any) -> List[Dict[str, Any]]:
@@ -198,7 +226,15 @@ class ExcelRepository(ImportarExcelPort):
             xls = pd.ExcelFile(file_path, engine=engine)
             disponibles_lista = list(xls.sheet_names)
         except Exception as exc:
-            raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc
+            # Fallback para .xls que en realidad son .xlsx
+            if ext == ".xls":
+                try:
+                    xls = pd.ExcelFile(file_path, engine="openpyxl")
+                    disponibles_lista = list(xls.sheet_names)
+                except Exception as exc2:
+                    raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc2
+            else:
+                raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc
 
         # Normalizador básico: recorta y compara case-insensitive
         def _norm(s: str) -> str:
@@ -260,14 +296,22 @@ class ExcelRepository(ImportarExcelPort):
             for hoja, cfg in selecciones.items():
                 cfg_id = int(cfg["config_id"])  # validado arriba
                 config = ConfigImportacion.objects.get(pk=cfg_id)
+                # Usar el nombre real de la hoja para mapear al CSV generado
+                hoja_real = hoja_real_por_norm.get(hoja, hoja)
+                csv_path = hoja_a_csv.get(hoja_real)
+                if not csv_path:
+                    # Fallback defensivo: si no se encuentra, intentar por nombre original
+                    csv_path = hoja_a_csv.get(hoja)
+                if not csv_path:
+                    raise KeyError(f"No se pudo resolver ruta CSV para hoja '{hoja}' (resuelta='{hoja_real}'). Disponibles: {list(hoja_a_csv.keys())}")
                 ap = ArchivoPendiente.objects.create(
                     proveedor=proveedor,
-                    ruta_csv=hoja_a_csv[hoja],
-                    hoja_origen=hoja,
+                    ruta_csv=csv_path,
+                    hoja_origen=hoja_real,
                     nombre_archivo_origen=nombre_archivo,
                     config_usada=config,
                 )
-                creados.append((hoja, hoja_a_csv[hoja]))
+                creados.append((hoja_real, csv_path))
 
         # Borrar el archivo original (Excel/ODS) una vez generados los CSVs y creados los pendientes.
         # No borrar si el archivo ya era un .csv
