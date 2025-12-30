@@ -27,9 +27,14 @@ def create_default_descuento(sender, **kwargs):
     if not sender or getattr(sender, "name", None) != "precios":
         return
 
+    # Usar el alias de base de datos provisto por la señal post_migrate.
+    # Esto evita errores en CI/entornos donde solo existe 'default' y
+    # aún no hay alias 'negocio_db' migrado.
+    db_alias = kwargs.get("using") or "default"
+
     Descuento = apps.get_model("precios", "Descuento")
-    # Crear o recuperar el descuento por defecto con valores predefinidos
-    Descuento.objects.using("negocio_db").get_or_create(
+    # Crear o recuperar el descuento por defecto con valores predefinidos en la BD correspondiente
+    Descuento.objects.using(db_alias).get_or_create(
         tipo="Sin Descuento",
         defaults={
             "efectivo": Decimal("0.10"),
