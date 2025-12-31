@@ -88,18 +88,64 @@ class ExcelRepository(ImportarExcelPort):
                 else:
                     raise
 
-        # Construir preview con índice visible (#) para facilitar elección de fila inicial
+        # Construir preview con índice visible (#) sin desplazar las columnas reales.
+        # Las columnas se muestran como letras excel en minúscula: a, b, c, ...
+        def _letters(n: int) -> List[str]:
+            res: List[str] = []
+            for i in range(n):
+                s = ""
+                x = i
+                while True:
+                    s = chr(ord('a') + (x % 26)) + s
+                    x = x // 26 - 1
+                    if x < 0:
+                        break
+                res.append(s)
+            return res
+
         df_preview = df.head(20).fillna("")
-        try:
-            df_preview.insert(0, "#", range(1, len(df_preview) + 1))
-        except Exception:
-            pass
-        preview_rows: List[Dict[str, Any]] = df_preview.to_dict(orient="records")
+        cols = _letters(df_preview.shape[1])
+
+        def _is_header_like(r) -> bool:
+            """Detecta filas de datos que son en realidad una repetición de encabezados (a,b,c,...)."""
+            try:
+                total = len(cols)
+                # Coincidencias exactas (case-insensitive, trim) en las primeras columnas
+                matches = 0
+                for j in range(total):
+                    val = str(r.iloc[j]).strip().lower()
+                    if val == cols[j]:
+                        matches += 1
+                    elif val == "":
+                        # permitir celdas vacías al final
+                        continue
+                    else:
+                        # si aparece un valor no-vacío distinto, no es encabezado
+                        return False
+                # Consideramos encabezado si al menos 2-3 primeras columnas coinciden
+                return matches >= min(3, total)
+            except Exception:
+                return False
+
+        # Construimos filas como dict ordenado: primero '#', luego columnas por letras
+        preview_rows: List[Dict[str, Any]] = []
+        for idx, (_, row) in enumerate(df_preview.iterrows(), start=0):
+            if _is_header_like(row):
+                # Omitir filas que dupliquen encabezados para evitar doble header visual
+                continue
+            item: Dict[str, Any] = {"#": idx}
+            for j, label in enumerate(cols):
+                try:
+                    item[label] = row.iloc[j]
+                except Exception:
+                    item[label] = ""
+            preview_rows.append(item)
+
         return {
             "proveedor_id": proveedor_id,
             "archivo": nombre_archivo,
             "sheet_name": hoja,
-            "columnas": list(df_preview.columns),
+            "columnas": ["#"] + cols,
             "filas": preview_rows,
             "total_filas": int(len(df)),
         }
@@ -272,6 +318,7 @@ class ExcelRepository(ImportarExcelPort):
             config = ConfigImportacion.objects.filter(pk=cfg_id, proveedor=proveedor).first()
             if not config:
                 raise ValueError(f"ConfigImportacion {cfg_id} no pertenece al proveedor o no existe")
+            # La UI ahora muestra '#' iniciando en 0; usamos el valor tal cual (base-0)
             sr = int(cfg.get("start_row", 0))
             hoja_real = hoja_real_por_norm.get(hoja, hoja)
             sheet_list.append(hoja_real)
