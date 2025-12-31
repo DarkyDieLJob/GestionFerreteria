@@ -1,6 +1,9 @@
 import os
 import tempfile
+import logging
 from typing import Optional, Union, List, Dict, Tuple
+
+logger = logging.getLogger("importaciones.conversion")
 
 
 def _get_pandas():
@@ -51,12 +54,29 @@ def convertir_a_csv(
 
     # Resolver nombres de hojas y DataFrames a procesar
     try:
+        logger.debug("[conversion] Abriendo archivo: path=%s ext=%s engine=%s", input_path, ext, engine)
         xls = pd.ExcelFile(input_path, engine=engine)
     except Exception as exc:
-        raise RuntimeError(
-            f"No se pudo abrir el archivo {input_path} con engine='{engine}'. "
-            "Verifique que las dependencias estén instaladas (openpyxl para xlsx, xlrd para xls, odfpy para ods)."
-        ) from exc
+        # Fallback: algunos .xls realmente son .xlsx; reintentar con openpyxl
+        if ext == ".xls":
+            try:
+                logger.warning(
+                    "[conversion] Falló engine xlrd para .xls; reintentando con openpyxl. path=%s error=%s",
+                    input_path,
+                    exc,
+                )
+                xls = pd.ExcelFile(input_path, engine="openpyxl")
+                engine = "openpyxl"
+            except Exception as exc2:
+                raise RuntimeError(
+                    f"No se pudo abrir el archivo {input_path} con engine='xlrd' ni con fallback 'openpyxl'. "
+                    "Verifique que las dependencias estén instaladas (openpyxl para xlsx, xlrd para xls, odfpy para ods)."
+                ) from exc2
+        else:
+            raise RuntimeError(
+                f"No se pudo abrir el archivo {input_path} con engine='{engine}'. "
+                "Verifique que las dependencias estén instaladas (openpyxl para xlsx, xlrd para xls, odfpy para ods)."
+            ) from exc
 
     requested: List[Union[int, str]]
     if isinstance(sheet_name, list):
