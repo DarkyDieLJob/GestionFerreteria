@@ -10,6 +10,7 @@ la base de datos por defecto ("default").
 """
 
 import os
+import tempfile
 from typing import Any, Dict, List, Tuple, Optional
 
 import pandas as pd
@@ -98,8 +99,32 @@ class ExcelRepository(ImportarExcelPort):
                     last_exc = None
                     break
                 except Exception as exc:
-                    last_exc = exc
-                    continue
+                    # Fallback adicional: si es .xls-like y falla xlrd, intentar convertir a xlsx y leer con openpyxl
+                    if engine == "xlrd":
+                        try:
+                            from xls2xlsx import XLS2XLSX  # type: ignore
+                            fd, tmp_xlsx = tempfile.mkstemp(suffix=".xlsx")
+                            os.close(fd)
+                            XLS2XLSX(file_path).to_xlsx(tmp_xlsx)
+                            if sheet_name is not None:
+                                df = pd.read_excel(tmp_xlsx, sheet_name=sheet_name, engine="openpyxl")
+                                hoja = sheet_name
+                            else:
+                                df = pd.read_excel(tmp_xlsx, engine="openpyxl")
+                                hoja = getattr(getattr(df, "name", None), "name", None) or None
+                            last_exc = None
+                            # limpieza best-effort
+                            try:
+                                os.remove(tmp_xlsx)
+                            except Exception:
+                                pass
+                            break
+                        except Exception:
+                            last_exc = exc
+                            continue
+                    else:
+                        last_exc = exc
+                        continue
             if last_exc is not None:
                 raise last_exc
 
@@ -204,8 +229,26 @@ class ExcelRepository(ImportarExcelPort):
                 xls = pd.ExcelFile(file_path, engine=engine) if engine else pd.ExcelFile(file_path)
                 return list(xls.sheet_names)
             except Exception as exc:
-                last_exc = exc
-                continue
+                # Fallback adicional: si xlrd falla, convertir a xlsx y reintentar con openpyxl
+                if engine == "xlrd":
+                    try:
+                        from xls2xlsx import XLS2XLSX  # type: ignore
+                        fd, tmp_xlsx = tempfile.mkstemp(suffix=".xlsx")
+                        os.close(fd)
+                        XLS2XLSX(file_path).to_xlsx(tmp_xlsx)
+                        xls = pd.ExcelFile(tmp_xlsx, engine="openpyxl")
+                        sheets = list(xls.sheet_names)
+                        try:
+                            os.remove(tmp_xlsx)
+                        except Exception:
+                            pass
+                        return sheets
+                    except Exception:
+                        last_exc = exc
+                        continue
+                else:
+                    last_exc = exc
+                    continue
         raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from last_exc
 
     def get_configs_for_proveedor(self, proveedor_id: Any) -> List[Dict[str, Any]]:
@@ -293,28 +336,68 @@ class ExcelRepository(ImportarExcelPort):
 
         file_path = self.storage.path(nombre_archivo)
         # Validar existencia de hojas (tolerando mayúsculas/minúsculas y espacios)
-        try:
-            _, ext = os.path.splitext(nombre_archivo.lower())
-            engine = None
-            if ext == ".xlsx":
-                engine = "openpyxl"
-            elif ext == ".xls":
-                engine = "xlrd"
-            elif ext == ".ods":
-                engine = "odf"
+        _, ext = os.path.splitext(nombre_archivo.lower())
 
-            xls = pd.ExcelFile(file_path, engine=engine)
-            disponibles_lista = list(xls.sheet_names)
-        except Exception as exc:
-            # Fallback para .xls que en realidad son .xlsx
-            if ext == ".xls":
-                try:
-                    xls = pd.ExcelFile(file_path, engine="openpyxl")
-                    disponibles_lista = list(xls.sheet_names)
-                except Exception as exc2:
-                    raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc2
+        def _sniff_excel_format(path: str) -> Optional[str]:
+            try:
+                with open(path, "rb") as f:
+                    header = f.read(8)
+                if header.startswith(b"PK"):
+                    return "xlsx_like"
+                if header.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"):
+                    return "xls_like"
+            except Exception:
+                pass
+            return None
+
+        sniff = _sniff_excel_format(file_path)
+        candidates: List[Optional[str]] = []
+        if sniff == "xlsx_like":
+            candidates = ["openpyxl", "xlrd", None]
+        elif sniff == "xls_like":
+            candidates = ["xlrd", "openpyxl", None]
+        else:
+            if ext == ".xlsx":
+                candidates = ["openpyxl", "xlrd", None]
+            elif ext == ".xls":
+                candidates = ["xlrd", "openpyxl", None]
+            elif ext == ".ods":
+                candidates = ["odf", None]
             else:
-                raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from exc
+                candidates = [None, "openpyxl", "xlrd"]
+
+        disponibles_lista: List[str] = []
+        last_exc: Optional[Exception] = None
+        for engine in candidates:
+            try:
+                xls = pd.ExcelFile(file_path, engine=engine) if engine else pd.ExcelFile(file_path)
+                disponibles_lista = list(xls.sheet_names)
+                last_exc = None
+                break
+            except Exception as exc:
+                # Fallback adicional: si xlrd falla, convertir a xlsx y reintentar con openpyxl
+                if engine == "xlrd":
+                    try:
+                        from xls2xlsx import XLS2XLSX  # type: ignore
+                        fd, tmp_xlsx = tempfile.mkstemp(suffix=".xlsx")
+                        os.close(fd)
+                        XLS2XLSX(file_path).to_xlsx(tmp_xlsx)
+                        xls = pd.ExcelFile(tmp_xlsx, engine="openpyxl")
+                        disponibles_lista = list(xls.sheet_names)
+                        try:
+                            os.remove(tmp_xlsx)
+                        except Exception:
+                            pass
+                        last_exc = None
+                        break
+                    except Exception:
+                        last_exc = exc
+                        continue
+                else:
+                    last_exc = exc
+                    continue
+        if last_exc is not None:
+            raise RuntimeError(f"No se pudo abrir el archivo {nombre_archivo}") from last_exc
 
         # Normalizador básico: recorta y compara case-insensitive
         def _norm(s: str) -> str:
