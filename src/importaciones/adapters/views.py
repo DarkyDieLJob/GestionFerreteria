@@ -113,7 +113,9 @@ class ImportacionPreviewView(View):
             columnas = prev.get("columnas", [])
             # Generar encabezado visible: '#', luego letras (A, B, C, ...) para las columnas de datos
             col_letters = ["#"]
-            for idx in range(1, len(columnas)):
+            # soportar respuestas que ya incluyen '#' como primera columna o no
+            data_cols = len(columnas) - 1 if columnas and columnas[0] == "#" else len(columnas)
+            for idx in range(1, data_cols + 1):
                 n = idx
                 s = ""
                 while n > 0:
@@ -268,7 +270,8 @@ class ImportacionPreviewView(View):
                 columnas = prev.get("columnas", [])
                 # Generar encabezado visible: '#', luego letras (A, B, C, ...) para las columnas de datos
                 col_letters = ["#"]
-                for idx in range(1, len(columnas)):
+                data_cols = len(columnas) - 1 if columnas and columnas[0] == "#" else len(columnas)
+                for idx in range(1, data_cols + 1):
                     n = idx
                     s = ""
                     while n > 0:
