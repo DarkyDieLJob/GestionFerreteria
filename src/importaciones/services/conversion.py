@@ -52,31 +52,70 @@ def convertir_a_csv(
     else:
         raise ValueError(f"Formato no soportado para conversión: {ext}")
 
-    # Resolver nombres de hojas y DataFrames a procesar
-    try:
-        logger.debug("[conversion] Abriendo archivo: path=%s ext=%s engine=%s", input_path, ext, engine)
-        xls = pd.ExcelFile(input_path, engine=engine)
-    except Exception as exc:
-        # Fallback: algunos .xls realmente son .xlsx; reintentar con openpyxl
-        if ext == ".xls":
-            try:
-                logger.warning(
-                    "[conversion] Falló engine xlrd para .xls; reintentando con openpyxl. path=%s error=%s",
-                    input_path,
-                    exc,
-                )
-                xls = pd.ExcelFile(input_path, engine="openpyxl")
-                engine = "openpyxl"
-            except Exception as exc2:
-                raise RuntimeError(
-                    f"No se pudo abrir el archivo {input_path} con engine='xlrd' ni con fallback 'openpyxl'. "
-                    "Verifique que las dependencias estén instaladas (openpyxl para xlsx, xlrd para xls, odfpy para ods)."
-                ) from exc2
+    # Resolver nombres de hojas y DataFrames a procesar, con sniff y fallbacks
+    def _sniff_excel_format(path: str) -> Optional[str]:
+        try:
+            with open(path, "rb") as f:
+                header = f.read(8)
+            if header.startswith(b"PK"):
+                return "xlsx_like"
+            if header.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"):
+                return "xls_like"
+        except Exception:
+            pass
+        return None
+
+    sniff = _sniff_excel_format(input_path)
+    if sniff == "xlsx_like":
+        candidates = ["openpyxl", "xlrd", None]
+    elif sniff == "xls_like":
+        candidates = ["xlrd", "openpyxl", None]
+    else:
+        if engine:
+            candidates = [engine, None]
         else:
+            candidates = [None, "openpyxl", "xlrd"]
+
+    xls = None
+    last_exc: Optional[Exception] = None
+    for eng in candidates:
+        try:
+            logger.debug("[conversion] Abriendo archivo: path=%s ext=%s engine=%s", input_path, ext, eng)
+            xls = pd.ExcelFile(input_path, engine=eng) if eng else pd.ExcelFile(input_path)
+            engine = eng or engine
+            last_exc = None
+            break
+        except Exception as exc:
+            # Si falla xlrd, intentar conversión a xlsx y reintentar con openpyxl
+            if eng == "xlrd":
+                try:
+                    from xls2xlsx import XLS2XLSX  # type: ignore
+                    fd, tmp_xlsx = tempfile.mkstemp(suffix=".xlsx")
+                    os.close(fd)
+                    XLS2XLSX(input_path).to_xlsx(tmp_xlsx)
+                    xls = pd.ExcelFile(tmp_xlsx, engine="openpyxl")
+                    engine = "openpyxl"
+                    try:
+                        os.remove(tmp_xlsx)
+                    except Exception:
+                        pass
+                    last_exc = None
+                    break
+                except Exception as exc2:
+                    last_exc = exc2
+                    continue
+            else:
+                last_exc = exc
+                continue
+
+    if xls is None:
+        if ext == ".xls":
             raise RuntimeError(
-                f"No se pudo abrir el archivo {input_path} con engine='{engine}'. "
-                "Verifique que las dependencias estén instaladas (openpyxl para xlsx, xlrd para xls, odfpy para ods)."
-            ) from exc
+                f"No se pudo abrir el archivo {input_path} como .xls/.xlsx. Verifique dependencias (xlrd/openpyxl) y formato."
+            ) from last_exc
+        raise RuntimeError(
+            f"No se pudo abrir el archivo {input_path} con engine='{engine}'. Verifique dependencias y formato."
+        ) from last_exc
 
     requested: List[Union[int, str]]
     if isinstance(sheet_name, list):
