@@ -111,10 +111,12 @@ class ImportacionPreviewView(View):
                 # Si falla (p.ej. archivo inexistente en tests), omitimos preview pero mantenemos la hoja
                 continue
             columnas = prev.get("columnas", [])
-            # Generar letras de columna (A, B, C, ...)
-            col_letters = []
-            for idx in range(len(columnas)):
-                n = idx + 1
+            # Generar encabezado visible: '#', luego letras (A, B, C, ...) para las columnas de datos
+            col_letters = ["#"]
+            # soportar respuestas que ya incluyen '#' como primera columna o no
+            data_cols = len(columnas) - 1 if columnas and columnas[0] == "#" else len(columnas)
+            for idx in range(1, data_cols + 1):
+                n = idx
                 s = ""
                 while n > 0:
                     n, r = divmod(n - 1, 26)
@@ -122,10 +124,6 @@ class ImportacionPreviewView(View):
                 col_letters.append(s)
             filas_dicts = prev.get("filas", [])
             filas_vals = [[(fila or {}).get(col) for col in columnas] for fila in filas_dicts]
-            # Asegurar que la primera fila de la hoja (que pandas suele usar como encabezado)
-            # se muestre como la primera fila de datos en el tbody. Para ello, anteponemos
-            # los nombres de columnas como primera fila de datos.
-            filas_vals = [list(columnas)] + filas_vals
             previews[hoja] = {
                 "columnas": columnas,
                 "column_letters": col_letters,
@@ -270,10 +268,11 @@ class ImportacionPreviewView(View):
             for hoja in hojas:
                 prev = use_case.get_preview_for_sheet(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, sheet_name=hoja)
                 columnas = prev.get("columnas", [])
-                # Generar letras de columna (A, B, C, ...)
-                col_letters = []
-                for idx in range(len(columnas)):
-                    n = idx + 1
+                # Generar encabezado visible: '#', luego letras (A, B, C, ...) para las columnas de datos
+                col_letters = ["#"]
+                data_cols = len(columnas) - 1 if columnas and columnas[0] == "#" else len(columnas)
+                for idx in range(1, data_cols + 1):
+                    n = idx
                     s = ""
                     while n > 0:
                         n, r = divmod(n - 1, 26)
@@ -281,8 +280,6 @@ class ImportacionPreviewView(View):
                     col_letters.append(s)
                 filas_dicts = prev.get("filas", [])
                 filas_vals = [[(fila or {}).get(col) for col in columnas] for fila in filas_dicts]
-                # Ver comentario en GET: incluir la fila de cabecera original como primera fila de datos
-                filas_vals = [list(columnas)] + filas_vals
                 previews[hoja] = {
                     "columnas": columnas,
                     "column_letters": col_letters,
