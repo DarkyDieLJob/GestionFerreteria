@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.2](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.1...v2.0.2) (2026-01-03)
+
+
+### Features
+
+* **ui:** ocultar enlaces de navegación (Artículos, Proveedores, Importaciones, Precios) para usuarios no autenticados en desktop y mobile ([d24b685](https://github.com/DarkyDieLJob/GestionFerreteria/commit/d24b685a128170783dfd5891d6b0c0e0056b0db6))
+
+
+### Bug Fixes
+
+* **importaciones:** aplicar sniff + fallback (xls2xlsx) en generar_csvs_por_hoja para POST\n\n- Unificar lógica con preview y listado de hojas\n- Convertir .xls problemáticos a .xlsx cuando xlrd falla ([7bcd6f0](https://github.com/DarkyDieLJob/GestionFerreteria/commit/7bcd6f0d954bbd7447b908ba944c004893974468))
+* **importaciones:** compatibilizar encabezado de preview con tests y UI\n\n- Generar letras A.. en base a cantidad de columnas de datos aunque prev['columnas'] contenga o no '#'\n- Mantener encabezado visible como '# A B C …' sin insertar fila de cabecera en el tbody ([cef8c2d](https://github.com/DarkyDieLJob/GestionFerreteria/commit/cef8c2d218e95b3ebef1d6c170d35df3dd4673ec))
+* **importaciones:** corregir encabezado de preview como '# A B C …' y eliminar fila duplicada tipo encabezado\n\n- Vista: generar column_letters con '#' seguido de letras (A, B, C, ...) y no insertar cabecera como fila de datos\n- Repositorio: filtrar filas tipo encabezado (a,b,c,...) en preview para evitar doble encabezado visual ([e12d837](https://github.com/DarkyDieLJob/GestionFerreteria/commit/e12d83776f7703e43ced3dabd5fb6417806ce2b8))
+* **importaciones:** fallback para .xls como .xlsx y mapeo consistente de nombres de hojas al crear CSVs ([e1a627f](https://github.com/DarkyDieLJob/GestionFerreteria/commit/e1a627fd5d627ba1cdd16ca28f586ecdf52b3ce4))
+* **importaciones:** sniff binario y fallback multi-engine para .xls/.xlsx en preview y listado de hojas\n\n- Detectar formato por cabecera (ZIP vs OLE2)\n- Intentar engines en orden preferente (openpyxl/xlrd/auto)\n- Mismo tratamiento en vista_previa_excel y listar_hojas_excel ([077e151](https://github.com/DarkyDieLJob/GestionFerreteria/commit/077e15120477593e02a8d453636fc7ff4d45756b))
+* **importaciones:** tolerar diferencias de mayúsculas/espacios en nombres de hojas y usar engine según extensión al generar CSVs ([8c5dba9](https://github.com/DarkyDieLJob/GestionFerreteria/commit/8c5dba9a530ac8b8d6cddbe7520236691918affa))
+* **precios:** no ejecutar post_migrate si la tabla no existe (introspection guard) ([ef0b468](https://github.com/DarkyDieLJob/GestionFerreteria/commit/ef0b468d8aa9f743a10bcb4f2d0ec835eee5c343))
+* **precios:** usar alias de BD de post_migrate (kwargs["using"]) en lugar de hardcodear "negocio_db" para evitar error en CI (sqlite: no such table) ([40dd666](https://github.com/DarkyDieLJob/GestionFerreteria/commit/40dd6664b1cafc04085a44583aa2d468149358f6))
+
 ### [2.0.1](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.0...v2.0.1) (2025-12-27)
 
 
