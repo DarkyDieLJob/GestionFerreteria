@@ -152,6 +152,20 @@ DATABASES = {
     }
 }
 
+# Permitir Postgres vía variables de entorno sin romper fallback SQLite
+USE_POSTGRES = config('USE_POSTGRES', cast=bool, default=False)
+POSTGRES_HOST = config('POSTGRES_HOST', default='')
+if USE_POSTGRES or POSTGRES_HOST:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('POSTGRES_DB', default='ferreteria'),
+        'USER': config('POSTGRES_USER', default='usuario'),
+        'PASSWORD': config('POSTGRES_PASSWORD', default='changeme'),
+        'HOST': POSTGRES_HOST or 'db',
+        'PORT': config('POSTGRES_PORT', default='5432'),
+        'CONN_MAX_AGE': 60,
+    }
+
 # Alias de conexiones para compatibilidad: todas apuntan a la misma BD que 'default'
 # Esto permite que using="negocio_db" (u otros) funcione sin mantener múltiples archivos/BDs.
 DATABASES['negocio_db'] = DATABASES['default']
@@ -170,6 +184,12 @@ for app in INSTALLED_APPS:
             pass  # La aplicación no define una base de datos propia
 
 DATABASE_ROUTERS = ['core_config.database_routers.DynamicDatabaseRouter']
+
+# Celery / Redis (broker)
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://redis:6379/0')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='') or None
+CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', cast=bool, default=False)
+CELERY_TIMEZONE = config('CELERY_TIMEZONE', default='UTC')
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

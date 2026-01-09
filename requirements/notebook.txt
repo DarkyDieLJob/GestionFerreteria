@@ -30,3 +30,6 @@ Pillow
 openpyxl
 xlrd
 odfpy
+
+# Necesario para que CI pueda importar core_config.celery durante setup de Django
+celery>=5.3,<6.0
