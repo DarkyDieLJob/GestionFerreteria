@@ -6,6 +6,14 @@ Breve descripción del proyecto. Este repositorio se generó a partir de la plan
 
 - Guía completa de DjangoProyects: ver [docs/DJANGOPROYECTS.md](docs/DJANGOPROYECTS.md).
 - Instalación y comandos rápidos: ver [docs/INSTALACION.md](docs/INSTALACION.md).
+- Índice general de documentación: ver [docs/README.md](docs/README.md).
+- Colas de tareas (Celery + Redis): ver [docs/COLAS_TAREAS.md](docs/COLAS_TAREAS.md).
+
+## Colas de tareas (Celery + Redis)
+
+- Nueva funcionalidad de procesamiento en background documentada en [docs/COLAS_TAREAS.md](docs/COLAS_TAREAS.md).
+- Incluye worker Celery, broker Redis y tarea para procesar pendientes de importaciones.
+- Próximamente: vista visualizadora de tareas (app Django dedicada) para monitoreo de encoladas/activas/finalizadas.
 
 ## Primeros pasos
 
