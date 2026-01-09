@@ -1,10 +1,31 @@
-version: "3.9"
 services:
+  # Base de datos Postgres (persistencia en volumen)
+  db:
+    image: postgres:15-alpine
+    container_name: gestionferreteria-db
+    restart: always
+    environment:
+      - POSTGRES_DB=ferreteria
+      - POSTGRES_USER=usuario
+      - POSTGRES_PASSWORD=changeme
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Broker para Celery
+  redis:
+    image: redis:7-alpine
+    container_name: gestionferreteria-redis
+    restart: always
+
+  # Servicio web Django (mantiene nombre/volúmenes existentes)
   app:
     build: .
     image: django-proyects:raspbian
-    container_name: django-proyects
+    container_name: gestionferreteria-web
     restart: always
+    depends_on:
+      - db
+      - redis
     ports:
       - "8001:8001"
     environment:
@@ -12,9 +33,49 @@ services:
       - ENABLE_COLLECTSTATIC=false
       # Desactiva frontend si no quieres construir Tailwind (por defecto se construye)
       - NO_FRONTEND=false
+      # Base de datos (habilita Postgres en settings)
+      - USE_POSTGRES=true
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=ferreteria
+      - POSTGRES_USER=usuario
+      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_PORT=5432
+      # Celery/Redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      # Asegura que Python encuentre el paquete core_config bajo src/
+      - PYTHONPATH=/app/src
     volumes:
       - ./src/data:/app/src/data
       - ./src/static:/app/static
       - ./logs:/app/logs
       - ./src/media:/app/src/media
-    command: ["python", "src/manage.py", "runserver", "0.0.0.0:8001"]
+    command: ["gunicorn", "core_config.wsgi:application", "--chdir", "src", "--bind", "0.0.0.0:8001", "--workers", "2", "--timeout", "60"]
+
+  # Worker Celery para procesamiento de planillas
+  worker:
+    build: .
+    image: django-proyects:raspbian
+    container_name: gestionferreteria-worker
+    restart: always
+    depends_on:
+      - db
+      - redis
+    environment:
+      - USE_POSTGRES=true
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=ferreteria
+      - POSTGRES_USER=usuario
+      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_PORT=5432
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_TIMEZONE=UTC
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./src/data:/app/src/data
+      - ./src/static:/app/static
+      - ./logs:/app/logs
+      - ./src/media:/app/src/media
+    command: ["celery", "-A", "core_config", "worker", "--loglevel=info", "--concurrency=1"]
+
+volumes:
+  postgres_data:

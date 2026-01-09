@@ -214,6 +214,7 @@ src/staticfiles/*
 frontend/*
 src/data/*
 static/*
+src/static/*
 
 # Django migrations (solo mantener __init__.py)
 src/**/migrations/*.py
