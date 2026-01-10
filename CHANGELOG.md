@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.4](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.3...v2.0.4) (2026-01-10)
+
+
+### Bug Fixes
+
+* **rpi:** add init_rpi.sh to bootstrap env vars and compose on Raspberry Pi (PROJECT_MODE/TABLET_MODE, build+up, migrate, collectstatic) ([6f652cb](https://github.com/DarkyDieLJob/GestionFerreteria/commit/6f652cb68d5a36a008d53932338fb082da40fea9))
+
 ### [2.0.3](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.2...v2.0.3) (2026-01-10)
 
 
