@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.3](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.2...v2.0.3) (2026-01-10)
+
+
+### Features
+
+* **devops:** integrar Celery/Redis, worker y documentación de colas de tareas ([fa553df](https://github.com/DarkyDieLJob/GestionFerreteria/commit/fa553df8ab5f058cb07feb663f000a9dbe96dc1a))
+* **importaciones:** encolar procesamiento de pendientes via Celery con countdown de 10 minutos tras generar CSVs ([9427823](https://github.com/DarkyDieLJob/GestionFerreteria/commit/9427823cf856c796da386786bb996be8c7e28eab))
+* **monitor_tareas:** UI/UX Celery monitor; revocar programadas antes de forzar; icono Font Awesome; cache corto y blacklist local ([816c7c1](https://github.com/DarkyDieLJob/GestionFerreteria/commit/816c7c172e94253d038754d9ac600ddf965f8f73))
+* **monitor:** vista de monitoreo de tareas Celery solo para staff con link en navbar ([546f261](https://github.com/DarkyDieLJob/GestionFerreteria/commit/546f26136f85af375bce859521622c6cc548a4ae))
+* **ui:** modular virtual keyboard for TABLET_MODE with alpha/email/numpad layouts, shift symbols, caret controls, and numeric normalization; load via static files in base.html ([e8f1d08](https://github.com/DarkyDieLJob/GestionFerreteria/commit/e8f1d083864f3c3d5f795c98da753d8ec739fd17))
+
 ### [2.0.2](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.1...v2.0.2) (2026-01-03)
 
 
