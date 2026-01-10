@@ -15,6 +15,7 @@ from importaciones.adapters.repository import ExcelRepository
 from importaciones.adapters.forms import ImportacionForm, PreviewHojaFormSet
 from importaciones.domain.use_cases import ImportarExcelUseCase
 from proveedores.models import Proveedor
+from importaciones.tasks import procesar_pendientes_task
 
 # Nota: ImportacionForm se define en importaciones.adapters.forms y se integra aquí
 # como form_class de ImportacionCreateView.
@@ -301,6 +302,15 @@ class ImportacionPreviewView(View):
         logger.info("[ImportacionPreviewView] generando CSVs selecciones=%s", selecciones)
         use_case = ImportarExcelUseCase(ExcelRepository())
         use_case.generar_csvs_por_hoja(proveedor_id=proveedor_id, nombre_archivo=nombre_archivo, selecciones=selecciones)
+        # Encolar el procesamiento de pendientes para dentro de 10 minutos (ETA en UTC)
+        try:
+            from datetime import datetime, timedelta, timezone as dt_timezone
+            eta_utc = datetime.now(dt_timezone.utc) + timedelta(minutes=10)
+            procesar_pendientes_task.apply_async(eta=eta_utc)
+        except Exception:
+            # No interrumpir el flujo de usuario si hay un problema de broker/worker
+            logger = logging.getLogger(__name__)
+            logger.exception("No se pudo encolar la tarea procesar_pendientes")
 
         # Redirigir a vista de confirmación existente en urls (importacion_create)
         logger.info("[ImportacionPreviewView] redireccionando a importacion_create proveedor_id=%s", proveedor_id)
