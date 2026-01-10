@@ -36,6 +36,8 @@ urlpatterns = [
     path('importaciones/', include(('importaciones.urls', 'importaciones'), namespace='importaciones')),
     # URLs de la app precios (CRUD de descuentos)
     path('precios/', include('precios.urls')),
+    # Monitor de tareas (solo staff)
+    path('tareas/', include(('monitor_tareas.urls', 'monitor_tareas'), namespace='monitor_tareas')),
 ]
 
 

@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'articulos.apps.ArticulosConfig',
     'precios.apps.PreciosConfig',
     'importaciones.apps.ImportacionesConfig',
+    'monitor_tareas.apps.MonitorTareasConfig',
 ]
 
 # Configuración de django-allauth

@@ -42,6 +42,7 @@ services:
       - POSTGRES_PORT=5432
       # Celery/Redis
       - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_TIMEZONE=UTC
       # Asegura que Python encuentre el paquete core_config bajo src/
       - PYTHONPATH=/app/src
     volumes:
