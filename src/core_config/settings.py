@@ -135,6 +135,7 @@ TEMPLATES = [
                 'core_app.context_processors.coverage',
                 'core_auth.context_processors.staff_reset_requests_badge',
                 'core_app.context_processors.app_meta',
+                'core_app.context_processors.modes',
             ],
         },
     },
@@ -267,6 +268,12 @@ WHATSAPP_CONTACT = config('WHATSAPP_CONTACT', default='+00 000 000 000')
 # Parámetros del flujo de recuperación sin email
 PASSWORD_RESET_TICKET_TTL_HOURS = int(config('PASSWORD_RESET_TICKET_TTL_HOURS', default=48))
 TEMP_PASSWORD_LENGTH = int(config('TEMP_PASSWORD_LENGTH', default=16))
+
+# Modo de proyecto y modo tablet
+PROJECT_MODE = config('PROJECT_MODE', default='local').lower()
+if PROJECT_MODE not in {'local', 'cloud'}:
+    PROJECT_MODE = 'local'
+TABLET_MODE = config('TABLET_MODE', cast=bool, default=False)
 
 # Logging: enviar a consola y habilitar DEBUG para importaciones en modo DEBUG
 LOGGING = {

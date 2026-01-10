@@ -45,6 +45,9 @@ services:
       - CELERY_TIMEZONE=UTC
       # Asegura que Python encuentre el paquete core_config bajo src/
       - PYTHONPATH=/app/src
+      # Modo de proyecto y modo tablet (habilita teclado virtual en contenedor)
+      - PROJECT_MODE=cloud
+      - TABLET_MODE=true
     volumes:
       - ./src/data:/app/src/data
       - ./src/static:/app/static
