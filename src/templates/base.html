@@ -97,6 +97,9 @@
                                         <i class="fas fa-chart-area mr-1"></i> Coverage
                                     </a>
                                 {% endif %}
+                                <a href="{% url 'monitor_tareas:list' %}" class="text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-md text-sm font-medium flex items-center" title="Monitor de Tareas">
+                                    <i class="fas fa-tasks mr-1"></i> Tareas
+                                </a>
                                 <a href="{% url 'core_auth:staff_reset_requests' %}" class="text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-md text-sm font-medium flex items-center" title="Pedidos de reseteo de contraseña">
                                     <i class="fas fa-key mr-1"></i> Reseteos
                                     {% if pending_reset_requests_count and pending_reset_requests_count > 0 %}
@@ -171,6 +174,11 @@
                                 <i class="fas fa-chart-area mr-2"></i>Coverage
                             </a>
                         {% endif %}
+                        <a href="{% url 'monitor_tareas:list' %}" class="text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent">
+                            <span class="inline-flex items-center">
+                                <i class="fas fa-tasks mr-2"></i>Tareas
+                            </span>
+                        </a>
                         <a href="{% url 'core_auth:staff_reset_requests' %}" class="text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium border-transparent">
                             <span class="inline-flex items-center">
                                 <i class="fas fa-key mr-2"></i>Reseteos
@@ -248,6 +256,10 @@
         </div>
     </footer>
 
+    {% if TABLET_MODE %}
+        {% include 'partials/virtual_keyboard.html' %}
+    {% endif %}
+
     <!-- Mobile menu toggle script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -273,6 +285,12 @@
     </script>
     
     <!-- Custom JS -->
-    {% block extra_js %}{% endblock %}
+    {% block extra_js %}
+    {% if TABLET_MODE %}
+    <script src="{% static 'core_app/virtual_keyboard/layouts.js' %}"></script>
+    <script src="{% static 'core_app/virtual_keyboard/core.js' %}"></script>
+    <script src="{% static 'core_app/virtual_keyboard/init.js' %}"></script>
+    {% endif %}
+    {% endblock %}
 </body>
 </html>
