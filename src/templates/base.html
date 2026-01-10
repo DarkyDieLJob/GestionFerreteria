@@ -256,6 +256,10 @@
         </div>
     </footer>
 
+    {% if TABLET_MODE %}
+        {% include 'partials/virtual_keyboard.html' %}
+    {% endif %}
+
     <!-- Mobile menu toggle script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -281,6 +285,12 @@
     </script>
     
     <!-- Custom JS -->
-    {% block extra_js %}{% endblock %}
+    {% block extra_js %}
+    {% if TABLET_MODE %}
+    <script src="{% static 'core_app/virtual_keyboard/layouts.js' %}"></script>
+    <script src="{% static 'core_app/virtual_keyboard/core.js' %}"></script>
+    <script src="{% static 'core_app/virtual_keyboard/init.js' %}"></script>
+    {% endif %}
+    {% endblock %}
 </body>
 </html>

@@ -72,3 +72,12 @@ def app_meta(request):
         "app_name": app_name,
         "app_version": version,
     }
+
+
+def modes(request):
+    project_mode = getattr(settings, "PROJECT_MODE", "local")
+    tablet_mode = bool(getattr(settings, "TABLET_MODE", False))
+    return {
+        "PROJECT_MODE": project_mode,
+        "TABLET_MODE": tablet_mode,
+    }
