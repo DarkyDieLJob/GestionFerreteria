@@ -54,6 +54,10 @@ CACHES = {
     }
 }
 
+# Use simple staticfiles storage in tests to avoid Manifest lookup errors on
+# assets that are not part of the repository (e.g., icons/sprite.svg).
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
 # Email backend for tests
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
