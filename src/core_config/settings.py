@@ -233,7 +233,7 @@ STATIC_URL = '/static/'
 
 # Directorios donde Django buscará archivos estáticos adicionales
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR.parent, 'static'),  # Apunta a /DjangoProyects/static/
+    os.path.join(BASE_DIR, 'static'),  # Apunta a /src/static/
 ]
 
 # Directorio donde se recopilarán los archivos estáticos para producción
