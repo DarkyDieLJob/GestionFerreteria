@@ -104,6 +104,7 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -228,15 +229,18 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 # URL base para archivos estáticos
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Directorios donde Django buscará archivos estáticos adicionales
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR.parent, 'static'),  # Apunta a /DjangoProyects/static/
+    os.path.join(BASE_DIR, 'static'),  # Apunta a /src/static/
 ]
 
 # Directorio donde se recopilarán los archivos estáticos para producción
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Se creará en /src/staticfiles/
+
+# Almacenamiento de estáticos optimizado para producción (sirve con WhiteNoise)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (user uploads)
 # URL base y directorio donde se guardarán los archivos subidos

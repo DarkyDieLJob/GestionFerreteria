@@ -33,3 +33,6 @@ odfpy
 
 # Necesario para que CI pueda importar core_config.celery durante setup de Django
 celery>=5.3,<6.0
+
+# Serve static files during tests and local runs that mimic container
+whitenoise>=6.7.0,<7.0
