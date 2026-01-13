@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.5](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.4...v2.0.5) (2026-01-13)
+
+
+### Bug Fixes
+
+* **static:** enable WhiteNoise, correct STATIC_URL and staticfiles storage; add whitenoise to runtime requirements ([71da4c2](https://github.com/DarkyDieLJob/GestionFerreteria/commit/71da4c29b90d8521f3606a21cd4b5acb8948bb18))
+
 ### [2.0.4](https://github.com/DarkyDieLJob/GestionFerreteria/compare/v2.0.3...v2.0.4) (2026-01-10)
 
 
