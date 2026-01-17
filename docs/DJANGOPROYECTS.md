@@ -51,6 +51,20 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
   }
   ```
 
+### Patrón de persistencia centralizada (persist/)
+
+- Todos los datos no versionados (secrets, media, data, logs) se centralizan en una carpeta única por host: `persist/` fuera del repositorio.
+- Bind mounts estándar desde el host al contenedor, parametrizados por `HOST_PERSIST` con default `.` para desarrollo local:
+  - `${HOST_PERSIST:-.}/persist/env/.env` → `/app/src/.env` (solo lectura)
+  - `${HOST_PERSIST:-.}/persist/media` → `/app/src/media`
+  - `${HOST_PERSIST:-.}/persist/data` → `/app/src/data`
+  - `${HOST_PERSIST:-.}/persist/logs` → `/app/logs`
+- Beneficios: resiliencia ante rebuilds/restarts/compose down, backups centralizados, menor drift entre entornos.
+- Tradeoffs: gestionar permisos UID/GID del usuario que ejecuta Docker/runner, .env en RO (640), menor aislamiento que named volumes pero mayor auditabilidad.
+- Notas SELinux/AppArmor (si aplica): puede requerir ajustar contextos o políticas para permitir bind mounts.
+  - SELinux: `chcon -Rt svirt_sandbox_file_t $HOST_PERSIST/persist` o usar `:z`/`:Z` cuando corresponda.
+  - AppArmor: verificar perfiles activos y permitir montajes en la ruta destino.
+
 ### Frontend
 - **Tailwind CSS** para estilos
 - **Estructura típica** (opcional):
