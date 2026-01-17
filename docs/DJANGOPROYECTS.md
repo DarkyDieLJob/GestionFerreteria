@@ -65,6 +65,26 @@ Aplicación básica para la creación de proyectos Django con arquitectura limpi
   - SELinux: `chcon -Rt svirt_sandbox_file_t $HOST_PERSIST/persist` o usar `:z`/`:Z` cuando corresponda.
   - AppArmor: verificar perfiles activos y permitir montajes en la ruta destino.
 
+### Healthchecks y orden de arranque seguro
+
+- db (Postgres): `pg_isready` con `interval`, `timeout`, `retries` y `start_period` configurados para tolerar latencia.
+- redis: `redis-cli ping` como verificación ligera del broker.
+- app: `python src/manage.py check --deploy` como check ligero de Django (no depende de endpoint).
+- worker (si aplica): `python src/manage.py check`.
+
+`depends_on` con `condition: service_healthy` garantiza que `app` y `worker` esperen a `db`/`redis` listos, evitando errores por latencia o dependencias no inicializadas.
+
+### Migraciones controladas (previas al up -d)
+
+Ejecuta migraciones explícitamente antes de levantar servicios para evitar condiciones de carrera y arranques fallidos.
+
+```bash
+docker compose run --rm app python src/manage.py migrate
+docker compose up -d [--profile db] [--profile broker] [--profile worker]
+```
+
+Beneficios: orden determinístico, menos fallos en arranque, y despliegues más estables. Tradeoff: pequeño tiempo extra en el pipeline (aceptable en producción).
+
 ### Frontend
 - **Tailwind CSS** para estilos
 - **Estructura típica** (opcional):
