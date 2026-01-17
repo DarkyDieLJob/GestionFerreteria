@@ -210,3 +210,11 @@ src/staticfiles/*
 frontend/*
 src/data/*
 static/*
+# Persistencia centralizada (evitar commits accidentales si alguien crea la carpeta dentro del repo)
+/persist/
+/persist/**
+
+# Archivos sensibles y artefactos locales
+src/.env
+src/media/
+logs/

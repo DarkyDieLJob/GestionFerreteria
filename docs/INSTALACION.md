@@ -234,6 +234,66 @@ npm install
 npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify
 ```
 
+## Persistencia centralizada (persist/)
+
+Para evitar pérdida de estado en rebuilds/restarts/`docker compose down/up`, centralizamos todo lo no versionado en una carpeta `persist/` por host y la montamos en los contenedores mediante bind mounts.
+
+### Estructura recomendada en el host
+
+```
+$HOST_PERSIST/persist/
+├── env/.env     # 640, solo lectura en el contenedor
+├── media/       # 750
+├── data/        # 750 (DB/broker/etl)
+└── logs/        # 750
+```
+
+### Creación y permisos
+
+```bash
+export HOST_PERSIST=/srv/projects/<proyecto>
+mkdir -p "$HOST_PERSIST"/persist/{env,media,data,logs}
+touch "$HOST_PERSIST"/persist/env/.env
+chown -R $(id -u):$(id -g) "$HOST_PERSIST"/persist
+chmod 640 "$HOST_PERSIST"/persist/env/.env
+chmod 750 "$HOST_PERSIST"/persist/{env,media,data,logs}
+```
+
+Importante: el UID/GID deben corresponder al usuario que ejecuta `docker compose` (o al runner del host) para evitar problemas de permisos en los bind mounts.
+
+### Uso con docker compose
+
+```bash
+# Desarrollo local (por defecto HOST_PERSIST='.')
+docker compose up -d
+
+# Producción (HOST_PERSIST apunta al árbol del host)
+HOST_PERSIST=/srv/projects/<proyecto> docker compose up -d
+
+# Con perfiles opcionales (si existen en tu compose):
+HOST_PERSIST=/srv/projects/<proyecto> docker compose --profile db --profile worker up -d
+```
+
+### Notas SELinux / AppArmor (si aplica)
+
+- SELinux: puede requerir etiquetar la ruta para permitir montajes de Docker:
+  - `sudo chcon -Rt svirt_sandbox_file_t "$HOST_PERSIST"/persist`
+  - o usar sufijos `:z`/`:Z` en el volumen si tu política lo requiere.
+- AppArmor: verifica perfiles activos y permite montajes en la ruta configurada.
+
+### Backups y restauración
+
+- Snapshot completo (tar):
+  ```bash
+  tar --xattrs --acls -czf persist-$(date +%F).tar.gz -C "$HOST_PERSIST" persist
+  ```
+- Rsync incremental:
+  ```bash
+  rsync -aHAX --delete "$HOST_PERSIST"/persist/ backup:/backups/<site>/persist/
+  ```
+- Recomendaciones: cifrar backups si incluyen `env/.env`, definir retención (p.ej., 7 diarios, 4 semanales, 6 mensuales).
+- Restauración: `docker compose down` → restaurar árbol → verificar permisos → `docker compose up -d`.
+
 ## 12) Solución de problemas comunes
 
 - "command not found: python": usa `python3` y `pip3` según tu distro.
