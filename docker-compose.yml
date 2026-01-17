@@ -12,8 +12,9 @@ services:
       - ENABLE_COLLECTSTATIC=false
       # Desactiva frontend si no quieres construir Tailwind (por defecto se construye)
       - NO_FRONTEND=false
-    # Opcional: montar volumen si quieres persistir DB sqlite fuera del contenedor
-    # volumes:
-    #   - ./src/data:/app/src/data
-    #   - ./static:/app/static
+    volumes:
+      - ${HOST_PERSIST:-.}/persist/env/.env:/app/src/.env:ro
+      - ${HOST_PERSIST:-.}/persist/media:/app/src/media
+      - ${HOST_PERSIST:-.}/persist/data:/app/src/data
+      - ${HOST_PERSIST:-.}/persist/logs:/app/logs
     command: ["python", "src/manage.py", "runserver", "0.0.0.0:8000"]
