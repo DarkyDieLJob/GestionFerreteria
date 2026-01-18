@@ -218,3 +218,75 @@ static/*
 src/.env
 src/media/
 logs/
+
+# ==============================
+# Runtime y artefactos generados
+# ==============================
+# Frontend y dependencias
+node_modules/
+frontend/
+
+# Archivos estáticos generados
+static/
+src/static/
+src/staticfiles/
+
+# Datos y media generados en runtime
+src/data/
+src/media/
+logs/
+
+# =========================
+# Persistencia y secretos
+# =========================
+/persist/
+/persist/**
+.env
+.envrc
+src/.env
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# ==============================
+# Caches y cobertura de pruebas
+# ==============================
+__pycache__/
+*.pyc
+.pytest_cache/
+.cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# ==============================
+# Migraciones (plantilla agresiva)
+# ==============================
+# Ignorar migraciones por defecto en la plantilla.
+# Los hijos pueden versionarlas con un override local si lo requieren.
+src/**/migrations/*.py
+!src/**/migrations/__init__.py
+
+# ==============================
+# IDEs y tooling
+# ==============================
+.idea/
+.vscode/
+.ruff_cache/
+.ipynb_checkpoints/
+.mypy_cache/
+.pytype/
+.cursorignore
+.cursorindexingignore
+
+# ==============================
+# Logs y temporales comunes
+# ==============================
+*.log
+*.swp
+*.swo
+*.tmp
+.DS_Store
+Thumbs.db
