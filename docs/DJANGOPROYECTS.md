@@ -286,6 +286,24 @@ python -m pytest -q
 3. **Scaffolding**: `templates/app_templates/` se usa solo como plantilla de referencia. Nunca se ejecutan tests ni se mide cobertura allí. Al crear una nueva app, copiar la estructura a `src/<nueva_app>/` y recién entonces agregar código y tests.
 4. **Frontend**: Los scripts generan `frontend/` y compilan Tailwind a `static/css/tailwind.css`. Incluye el CSS en tus plantillas con `{% static 'css/tailwind.css' %}`.
 
+### Ignorados recomendados y por qué
+
+- **Runtime/artefactos** (frontend/, node_modules/, src/static/, src/staticfiles/, src/media/, logs/): generados en build/ejecución, reproducibles; no deben entrar al historial.
+- **Persistencia y secretos** (/persist/**, src/.env, .env*): la persistencia vive fuera del repo; ignorar secretos evita fugas accidentales.
+- **Caches/cobertura** (__pycache__/, .pytest_cache/, htmlcov/, .coverage*): ruido y tamaño innecesario.
+- **Migraciones (plantilla)**: ignoramos `src/**/migrations/*.py` salvo `__init__.py` para evitar acoplar el template a un estado de DB concreto. Los hijos pueden versionarlas con un override local si lo requieren.
+- **IDEs/tooling** (.idea/, .vscode/, .ruff_cache/, .ipynb_checkpoints/, .mypy_cache/, .pytype/): específicos del entorno del desarrollador.
+
+Overrides en hijos (si necesitan versionar algo ignorado):
+
+```gitignore
+!src/**/migrations/*.py
+# o granular, por app
+!src/app_x/migrations/*.py
+```
+
+Sugerencia: si empleas pre-commit, agrega un hook que alerte sobre intentos de commitear `.env` o `persist/`.
+
 ## Flujo de ramas y commits (resumen)
 
 Sigue `docs/GIT_AGENTES.md`:
