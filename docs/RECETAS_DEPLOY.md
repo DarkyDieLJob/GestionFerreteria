@@ -37,6 +37,58 @@ docker compose up -d [--profile db] [--profile broker] [--profile worker]
 - depends_on con `condition: service_healthy` asegura orden de arranque y tolerancia a latencia.
 - Tradeoff: pequeño tiempo extra (migrate + healthchecks) a cambio de mayor estabilidad.
 
+---
+
+## Recetas de build multi-arch y frontend opcional
+
+### Producción sin frontend (imagen ligera)
+```bash
+# amd64
+docker buildx build --target runtime --platform linux/amd64 -t app:latest .
+
+# ARM
+docker buildx build --target runtime --platform linux/arm64 -t app:arm64 .
+docker buildx build --target runtime --platform linux/arm/v7 -t app:armv7 .
+```
+
+Variables de runtime útiles:
+- `NO_FRONTEND=true` (evita pasos de Tailwind en runtime)
+- `ENABLE_COLLECTSTATIC=true` (opcional, recolecta estáticos al arrancar)
+- `RUN_MAKEMIGRATIONS=false` (si migraciones son 100% externas)
+
+### Staging/producción con frontend (assets precompilados)
+```bash
+docker buildx build --target runtime-frontend --platform linux/amd64 -t app:with-frontend .
+```
+
+Notas:
+- El stage `runtime-frontend` solo copia los artefactos generados (p.ej. `static/css/tailwind.css`).
+- Node/npm NO están presentes en la imagen final.
+
+### (Opcional) buildx bake (ejemplo conceptual)
+```hcl
+# docker-bake.hcl (opcional a futuro)
+group "default" {
+  targets = ["runtime_amd64", "runtime_arm64"]
+}
+
+target "runtime_amd64" {
+  target = "runtime"
+  platforms = ["linux/amd64"]
+  tags = ["app:latest"]
+}
+
+target "runtime_arm64" {
+  target = "runtime"
+  platforms = ["linux/arm64"]
+  tags = ["app:arm64"]
+}
+```
+Uso:
+```bash
+docker buildx bake
+```
+
 ## Rollback simple
 1. `docker compose down`
 2. Restaurar snapshot de `persist/` (ver guía en docs/INSTALACION.md)

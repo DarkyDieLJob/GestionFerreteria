@@ -286,6 +286,42 @@ python -m pytest -q
 3. **Scaffolding**: `templates/app_templates/` se usa solo como plantilla de referencia. Nunca se ejecutan tests ni se mide cobertura allí. Al crear una nueva app, copiar la estructura a `src/<nueva_app>/` y recién entonces agregar código y tests.
 4. **Frontend**: Los scripts generan `frontend/` y compilan Tailwind a `static/css/tailwind.css`. Incluye el CSS en tus plantillas con `{% static 'css/tailwind.css' %}`.
 
+## Perfiles de build y frontend condicional
+
+- **Objetivo**: permitir imágenes de producción ligeras sin Node/npm cuando el frontend no es necesario, y habilitar un target alternativo con assets precompilados cuando sí se requiere.
+
+- **Targets del Dockerfile**:
+  - `runtime`: imagen final sin Node/npm (recomendada para producción sin frontend).
+  - `runtime-frontend`: imagen final que copia los estáticos construidos por un stage Node (sin incluir Node en runtime).
+
+- **Build recomendado (buildx)**:
+  - Sin frontend (amd64):
+    ```bash
+    docker buildx build --target runtime --platform linux/amd64 -t app:latest .
+    ```
+  - Con frontend (amd64):
+    ```bash
+    docker buildx build --target runtime-frontend --platform linux/amd64 -t app:with-frontend .
+    ```
+  - ARM (RPi): arm64
+    ```bash
+    docker buildx build --target runtime --platform linux/arm64 -t app:arm64 .
+    ```
+  - ARM (RPi): armv7
+    ```bash
+    docker buildx build --target runtime --platform linux/arm/v7 -t app:armv7 .
+    ```
+
+- **Flags de runtime (entrypoint)**:
+  - `NO_FRONTEND=true`: desactiva pasos de Node/Tailwind en runtime.
+  - `ENABLE_COLLECTSTATIC=true`: ejecuta `collectstatic` en arranque (opcional).
+  - `RUN_MAKEMIGRATIONS=false`: desactiva `makemigrations` en arranque (por defecto true en la plantilla).
+
+- **Notas**:
+  - Preferir `--target` por sobre `--build-arg ENABLE_FRONTEND=0` para evitar construir stages innecesarios.
+  - El stage `runtime-frontend` copia únicamente los artefactos requeridos (por ejemplo, `static/css/tailwind.css`).
+  - Integración con Compose: activar el perfil `frontend` solo cuando se utilice `runtime-frontend` y/o se necesite servir assets adicionales.
+
 ### Ignorados recomendados y por qué
 
 - **Runtime/artefactos** (frontend/, node_modules/, src/static/, src/staticfiles/, src/media/, logs/): generados en build/ejecución, reproducibles; no deben entrar al historial.
