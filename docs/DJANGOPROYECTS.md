@@ -477,3 +477,70 @@ Al migrar un hijo:
 - Inputs típicos del reusable: `profiles`, `target`, `platforms`, `staging_runner_label`, `prod_runner_matrix`, `migrate_before_up`, `collectstatic`, `smoke_url`, `smoke_timeout`, `smoke_check_command`.
 - Tradeoffs: control manual inicial (gatekeeper) vs. automatización; dependencia de runners activos; sin registry/SSH (builds en destino).
 - Uso en hijos: workflow mínimo que llama al reusable del padre (workflow_call) con sus inputs locales y secrets por entorno.
+
+## Pipeline CI/CD (ejecutable)
+
+- Objetivo: convertir el bosquejo en un workflow reusable operativo (`.github/workflows/reusable-deploy.yml`).
+- Disparador: los hijos lo invocan con `workflow_call` al pushear tags semánticos (`v*`).
+
+- Jobs principales:
+  - **lint_test**: corre en `ubuntu-latest`, sin Docker. Chequeos rápidos para validación universal.
+  - **staging_build_deploy**: corre en `runs-on: <inputs.staging_runner_label>`. Si hay Docker: `buildx` in situ, `migrate` opcional, `compose up -d` con perfiles, smoke (curl o comando custom), rollback `compose down -v` si falla. Timeout global: 30 min.
+  - **gatekeeper_approval**: requiere aprobación manual vía Environment `production` antes de promover.
+  - **prod_deploy**: matrix sobre labels recibidos. Si el runner tiene Docker y no está marcado como no-op: `buildx` in situ + `migrate`/`collectstatic` opcionales + `up -d` + smoke. Si no tiene Docker o está marcado como no-op: salta con éxito. Timeout global: 30 min.
+  - **notify_failure** (opcional): resume fallos sin exponer secretos.
+
+- Inputs del reusable (resumen):
+  - `tag_version` (str, opc): Tag a desplegar (default: ref actual).
+  - `profiles` (str, opc): CSV de perfiles de compose (`db,broker,worker,frontend`).
+  - `target` (str, opc, default `runtime`): Target del Dockerfile (`runtime`, `runtime-frontend`).
+  - `platforms` (str, opc): CSV de plataformas buildx (`linux/amd64,linux/arm64,...`).
+  - `staging_runner_label` (str, req): Label del runner de staging.
+  - `prod_runner_matrix_json` (str JSON, req): Array JSON con labels de runners de producción.
+  - `no_docker_runners` (str, opc): CSV de labels que deben ser no-op explícito en prod.
+  - `migrate_before_up` (bool, default true): Ejecuta migraciones antes de `up`.
+  - `collectstatic` (bool, default false): Ejecuta `collectstatic` antes de `up`.
+  - `smoke_url` (str, default `/`): Path relativo para smoke con `curl`.
+  - `smoke_timeout` (num, default 120): Timeout en segundos para smoke/wait.
+  - `smoke_check_command` (str, opc): Comando alternativo ejecutado con `docker compose run --rm app sh -lc '<cmd>'`.
+
+- Runners (configuración sugerida):
+  - Asignar labels claros: `self-hosted`, `stage`, `docker`, `rpi`, `cloud-docker`, `cloud-nodocker`.
+  - Asegurar Docker/Compose instalados donde corresponda. Donde no haya Docker, el job de prod hará no-op controlado.
+  - Usar Environment `production` con revisores requeridos para la aprobación manual.
+
+- Seguridad y logs:
+  - No imprimir secretos. Evitar `set -x`. Si un comando pudiera mostrar datos sensibles, enmascarar con `::add-mask::` previo.
+  - El workflow no hace `ssh` ni publica a registries: todos los builds son in situ en cada runner.
+
+- Ejemplo de llamada desde un hijo (workflow consumidor):
+
+  ```yaml
+  name: Deploy (child)
+  on:
+    push:
+      tags:
+        - 'v*'
+  jobs:
+    deploy:
+      uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-deploy.yml@main
+      with:
+        tag_version: ${{ github.ref_name }}
+        profiles: 'db,broker,worker'
+        target: 'runtime'
+        platforms: 'linux/amd64,linux/arm64'
+        staging_runner_label: 'self-hosted-stage'
+        prod_runner_matrix_json: '["self-hosted","rpi"]'
+        no_docker_runners: 'rpi'
+        migrate_before_up: true
+        smoke_url: '/'
+        smoke_timeout: 120
+        smoke_check_command: ''
+      secrets: inherit
+  ```
+
+Notas:
+- Los hijos pueden ajustar `profiles` y `target` según su necesidad (p. ej., activar `frontend`).
+- Si una plataforma no está soportada nativamente, usar QEMU vía `platforms` (el reusable lo habilita cuando corresponda).
+- Para staging/producción, preparar `persist/` en el host y `.env` adecuados antes del primer deploy.
+
