@@ -93,3 +93,21 @@ docker buildx bake
 1. `docker compose down`
 2. Restaurar snapshot de `persist/` (ver guía en docs/INSTALACION.md)
 3. `docker compose up -d`
+
+---
+
+## Usando el CLI (atajos)
+
+Ejemplos equivalentes con `project_manage.py`/`Makefile`:
+
+```bash
+# Migraciones controladas
+python project_manage.py migrate
+
+# Levantar servicios con perfiles
+PROFILE=db,broker,worker make up
+
+# Estado y logs
+python project_manage.py status
+FOLLOW=1 SERVICES=app,worker make logs
+```
