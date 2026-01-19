@@ -392,3 +392,36 @@ Extensión en hijos:
 
 Racional:
 - Consistencia entre padre e hijos, menos comandos largos de compose, tolerancia a perfiles opcionales.
+
+## Perfiles de ejecución con docker compose
+
+Perfiles disponibles:
+- base (implícito): solo `app` con SQLite. No requiere `--profile`.
+- db: agrega `db` (Postgres) con volumen persistente `persist/data/postgres`.
+- broker: agrega `redis` con volumen `persist/data/redis` (opcional).
+- worker: agrega `worker` (Celery) que depende de `db` y `redis` cuando están activos.
+- frontend: agrega un servicio ligero para servir estáticos (p. ej., Nginx). Úsalo solo si tu hijo lo necesita.
+
+Cómo activarlos:
+```bash
+# App + DB
+docker compose --profile db up -d
+
+# App + DB + Broker
+docker compose --profile db --profile broker up -d
+
+# App + DB + Broker + Worker (sin frontend)
+docker compose --profile db --profile broker --profile worker up -d
+
+# Con CLI/Makefile
+PROFILE=db,broker,worker make up
+python project_manage.py up --profile db,broker,worker
+```
+
+Beneficios:
+- Padre minimalista por defecto: hijos sin DB/Celery no cargan servicios innecesarios.
+- Control granular por entorno: activa solo lo que necesitas.
+
+Tradeoffs:
+- Debes indicar `--profile` cuando requieras servicios opcionales.
+- Mitigación: usa `PROFILE=... make up` o `project_manage.py up --profile ...`.
