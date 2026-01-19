@@ -1,0 +1,61 @@
+# Reusable deploy workflow (conceptual scaffold)
+# NOTE: This is a conceptual outline only; not an executable YAML yet.
+# Goals (ADR):
+# - Trigger: manual semantic tag (vX.Y.Z)
+# - Sequence: lint/tests -> staging (build in situ + migrate + up + smoke) -> manual approval -> prod matrix
+# - No registry, no SSH; builds happen on each environment's self-hosted runner
+# - Heterogeneous runners: with/without Docker (skip deploy when no Docker)
+# - Children repos call this workflow via workflow_call with minimal inputs
+
+# on:
+#   workflow_call:
+#     inputs:
+#       profiles: {type: string, required: false, description: "CSV: db,broker,worker,frontend"}
+#       target: {type: string, required: false, default: "runtime"}
+#       platforms: {type: string, required: false, description: "CSV: linux/amd64,linux/arm64,linux/arm/v7"}
+#       staging_runner_label: {type: string, required: true}
+#       prod_runner_matrix: {type: string, required: true, description: "CSV of runner labels"}
+#       migrate_before_up: {type: boolean, required: false, default: true}
+#       collectstatic: {type: boolean, required: false, default: false}
+#       smoke_url: {type: string, required: false, default: "/"}
+#       smoke_timeout: {type: number, required: false, default: 120}
+#       smoke_check_command: {type: string, required: false, description: "Optional custom command (e.g. manage.py check)"}
+#     secrets:
+#       any_env_specific_secret: {required: false}
+
+# jobs:
+#   lint_test:
+#     # runs-on: generic or provided label; no Docker required
+#     # steps:
+#     # - checkout
+#     # - setup python
+#     # - install dev requirements
+#     # - run flake8/black --check/pytest --maxfail=1 -q
+#
+#   staging_build_deploy:
+#     # needs: lint_test
+#     # runs-on: inputs.staging_runner_label (self-hosted with Docker)
+#     # steps:
+#     # - checkout @ tag
+#     # - setup buildx + optional QEMU for multi-arch
+#     # - docker buildx build --target inputs.target --platform <from inputs.platforms or host default>
+#     # - if inputs.migrate_before_up: project_manage.py migrate
+#     # - compose up -d with inputs.profiles (or PROFILE=... make up)
+#     # - wait for healthchecks (compose ps), then smoke check (curl $smoke_url or run inputs.smoke_check_command)
+#     # - on failure: compose down (rollback) and fail job
+#
+#   gatekeeper_approval:
+#     # needs: staging_build_deploy
+#     # type: manual approval (environment protection or approval job)
+#
+#   prod_deploy:
+#     # needs: gatekeeper_approval
+#     # strategy.matrix: labels from inputs.prod_runner_matrix
+#     # runs-on: matrix.label
+#     # steps (with Docker): same pattern as staging (buildx + migrate + up + smoke + rollback on fail)
+#     # steps (without Docker): skip deploy; run minimal smoke/lint to mark success (no-op deploy)
+#
+#   notify_failure (optional):
+#     # runs-on: github-hosted
+#     # if: failure() && from staging or prod
+#     # steps: send to webhook/issue using repository secrets (never echo secrets)
