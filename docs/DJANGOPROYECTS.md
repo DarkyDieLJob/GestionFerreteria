@@ -460,3 +460,5 @@ Relación con perfiles de compose:
 Al migrar un hijo:
 - Actualiza el hijo con los cambios del padre en código y en `docs/DJANGOPROYECTS.md`.
 - No sobrescribas el `README.md` del hijo; edítalo manualmente para mantener lo específico y enlaza a `docs/DJANGOPROYECTS.md`.
+
+> Consulta también la guía operativa de adopción para proyectos hijos: [docs/MIGRACION_HIJOS.md](MIGRACION_HIJOS.md)
