@@ -425,3 +425,38 @@ Beneficios:
 Tradeoffs:
 - Debes indicar `--profile` cuando requieras servicios opcionales.
 - Mitigación: usa `PROFILE=... make up` o `project_manage.py up --profile ...`.
+
+## Toggles de configuración (settings modulares)
+
+Los ajustes del proyecto se parametrizan vía `.env` (python-decouple). Principales toggles:
+
+- `USE_POSTGRES` (bool, default False):
+  - False → SQLite por defecto.
+  - True → Configura Postgres con `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`.
+- `CELERY_ENABLED` (bool, default False): habilita configuración de Celery. No requiere que el perfil `worker` esté activo para correr la app.
+- `WHITENOISE_ENABLED` (bool, default `not DEBUG`): sirve estáticos en producción con WhiteNoise.
+- `ALLAUTH_ENABLED` (bool, default True) y `ALLAUTH_PROVIDERS` (CSV: `github,google`): añade proveedores de autenticación social condicionalmente.
+- `ALLOWED_HOSTS` (CSV), `CSRF_TRUSTED_ORIGINS` (CSV): seguridad por entorno.
+- `DEBUG_INFO` (bool, default False): incrementa logging en staging/desarrollo.
+
+Ejemplos:
+```env
+DEBUG=False
+USE_POSTGRES=True
+POSTGRES_HOST=db
+CELERY_ENABLED=True
+ALLAUTH_PROVIDERS=github
+```
+
+Relación con perfiles de compose:
+- Activa sólo los perfiles necesarios en Docker (`db`, `broker`, `worker`). Los toggles no fuerzan servicios; sólo parametrizan la app.
+
+## Estrategia de documentación modular (padre vs hijos)
+
+- README del padre (este repo): breve y genérico; apunta a esta documentación.
+- README de cada hijo: específico y personalizado (nombre, propósito, enlaces, capturas). No se sincroniza desde el padre para evitar ruido en diffs.
+- Esta documentación (`docs/DJANGOPROYECTS.md`) es la fuente de verdad genérica y se actualiza desde el padre.
+
+Al migrar un hijo:
+- Actualiza el hijo con los cambios del padre en código y en `docs/DJANGOPROYECTS.md`.
+- No sobrescribas el `README.md` del hijo; edítalo manualmente para mantener lo específico y enlaza a `docs/DJANGOPROYECTS.md`.

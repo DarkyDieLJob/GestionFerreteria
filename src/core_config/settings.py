@@ -49,11 +49,6 @@ INSTALLED_APPS = [
     'django.contrib.sites',  # Requerido por django-allauth
     'rest_framework',
     'rest_framework.authtoken',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',  # Ejemplo: proveedor Google
-    'allauth.socialaccount.providers.github',  # Ejemplo: proveedor GitHub
     'core_app.apps.Core_appConfig',
     'core_auth.apps.Core_authConfig',
 ]
@@ -61,30 +56,7 @@ INSTALLED_APPS = [
 # Configuración de django-allauth
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
 ]
-
-SITE_ID = 2  # Requerido por django-allauth
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email'
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        },
-        'OAUTH_PKCE_ENABLED': True,
-    },
-    'github': {
-        'APP': {
-            'client_id': config('GITHUB_CLIENT_ID', default=''),
-            'secret': config('GITHUB_SECRET', default=''),
-            'key': '',
-        },
-        'SCOPE': ['user:email'],
-    }
-}
 
 # Configuración de REST Framework
 REST_FRAMEWORK = {
@@ -225,3 +197,110 @@ WHATSAPP_CONTACT = config('WHATSAPP_CONTACT', default='+00 000 000 000')
 # Parámetros del flujo de recuperación sin email
 PASSWORD_RESET_TICKET_TTL_HOURS = int(config('PASSWORD_RESET_TICKET_TTL_HOURS', default=48))
 TEMP_PASSWORD_LENGTH = int(config('TEMP_PASSWORD_LENGTH', default=16))
+
+# =========================
+# Toggles modulares (.env)
+# =========================
+
+# Hosts y seguridad
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', cast=Csv(), default='') or []
+
+# DEBUG_INFO para aumentar logging en staging (no en prod por defecto)
+DEBUG_INFO = config('DEBUG_INFO', cast=bool, default=False)
+if DEBUG_INFO and DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'root': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    }
+
+# WhiteNoise (estáticos en prod)
+WHITENOISE_ENABLED = config('WHITENOISE_ENABLED', cast=bool, default=(not DEBUG))
+if WHITENOISE_ENABLED:
+    if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:
+        MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Base de datos con toggle USE_POSTGRES
+USE_POSTGRES = config('USE_POSTGRES', cast=bool, default=False)
+if USE_POSTGRES:
+    POSTGRES_DB = config('POSTGRES_DB', default='app')
+    POSTGRES_USER = config('POSTGRES_USER', default='app')
+    POSTGRES_PASSWORD = config('POSTGRES_PASSWORD', default='app')
+    POSTGRES_HOST = config('POSTGRES_HOST', default='db')
+    POSTGRES_PORT = config('POSTGRES_PORT', default='5432')
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': POSTGRES_DB,
+        'USER': POSTGRES_USER,
+        'PASSWORD': POSTGRES_PASSWORD,
+        'HOST': POSTGRES_HOST,
+        'PORT': POSTGRES_PORT,
+    }
+
+# Celery (opcional)
+CELERY_ENABLED = config('CELERY_ENABLED', cast=bool, default=False)
+if CELERY_ENABLED:
+    CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://redis:6379/0')
+    CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://redis:6379/1')
+
+# allauth (opcional)
+ALLAUTH_ENABLED = config('ALLAUTH_ENABLED', cast=bool, default=True)
+ALLAUTH_PROVIDERS = set(config('ALLAUTH_PROVIDERS', cast=Csv(), default='github,google')) if ALLAUTH_ENABLED else set()
+
+def _drop_app(app_label: str):
+    try:
+        INSTALLED_APPS.remove(app_label)
+    except ValueError:
+        pass
+
+if ALLAUTH_ENABLED:
+    # Asegurar base de allauth
+    for base_app in ['allauth', 'allauth.account', 'allauth.socialaccount']:
+        if base_app not in INSTALLED_APPS:
+            INSTALLED_APPS.append(base_app)
+    # Agregar solo providers habilitados
+    provider_map = {
+        'github': 'allauth.socialaccount.providers.github',
+        'google': 'allauth.socialaccount.providers.google',
+    }
+    for key, app_path in provider_map.items():
+        if key in ALLAUTH_PROVIDERS and app_path not in INSTALLED_APPS:
+            INSTALLED_APPS.append(app_path)
+    # Backend de autenticación de allauth
+    if 'allauth.account.auth_backends.AuthenticationBackend' not in AUTHENTICATION_BACKENDS:
+        AUTHENTICATION_BACKENDS.append('allauth.account.auth_backends.AuthenticationBackend')
+    SITE_ID = 2
+    SOCIALACCOUNT_PROVIDERS = {
+        'google': {
+            'SCOPE': ['profile', 'email'],
+            'AUTH_PARAMS': {'access_type': 'online'},
+            'OAUTH_PKCE_ENABLED': True,
+        },
+        'github': {
+            'APP': {
+                'client_id': config('GITHUB_CLIENT_ID', default=''),
+                'secret': config('GITHUB_SECRET', default=''),
+                'key': '',
+            },
+            'SCOPE': ['user:email'],
+        }
+    }
+else:
+    # Quitar allauth si se desactiva
+    for app_label in [
+        'allauth.socialaccount.providers.google',
+        'allauth.socialaccount.providers.github',
+        'allauth.socialaccount',
+        'allauth.account',
+        'allauth',
+    ]:
+        _drop_app(app_label)
