@@ -17,11 +17,7 @@ services:
       - ${HOST_PERSIST:-.}/persist/media:/app/src/media
       - ${HOST_PERSIST:-.}/persist/data:/app/src/data
       - ${HOST_PERSIST:-.}/persist/logs:/app/logs
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    # Nota: sin depends_on para no forzar perfiles opcionales (db/broker) en base
     healthcheck:
       test: ["CMD-SHELL", "python src/manage.py check --deploy || exit 1"]
       interval: 10s
@@ -44,7 +40,7 @@ services:
       retries: 10
       start_period: 10s
     volumes:
-      - ${HOST_PERSIST:-.}/persist/data:/var/lib/postgresql/data
+      - ${HOST_PERSIST:-.}/persist/data/postgres:/var/lib/postgresql/data
 
   redis:
     profiles: ["broker"]
@@ -57,4 +53,33 @@ services:
       retries: 10
       start_period: 5s
     volumes:
-      - ${HOST_PERSIST:-.}/persist/data:/data
+      - ${HOST_PERSIST:-.}/persist/data/redis:/data
+
+  worker:
+    profiles: ["worker"]
+    build: .
+    image: django-proyects:worker
+    restart: always
+    environment:
+      - NO_FRONTEND=true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python src/manage.py check || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    command: ["bash", "-lc", "celery -A src.core_config worker -l info"]
+
+  frontend:
+    profiles: ["frontend"]
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./static:/usr/share/nginx/html:ro
