@@ -358,3 +358,37 @@ Convencional Commits (resumen):
   - `chore(docker): añadir .dockerignore`
   - `feat(deps): crear requirements/runtime.txt para producción`
   - `docs(docker): instrucciones de build y uso (compose con restart always)`
+
+## CLI de gestión del proyecto
+
+El proyecto incluye un CLI genérico `project_manage.py` y un `Makefile` que delega en él para estandarizar operaciones comunes.
+
+Comandos principales:
+- `up`: Levanta servicios (`docker compose up -d`). Flags: `--profile`, `--build`.
+- `down`: Detiene y elimina (`docker compose down`). Flags: `--volumes`, `--remove-orphans`.
+- `restart`: Reinicia servicios. Flags: `--services`.
+- `rebuild`: Reconstruye imágenes. Flags: `--no-cache`, `--pull`, `--profile`.
+- `logs`: Muestra logs. Flags: `-f/--follow`, `--since`, `--tail`, `--services`.
+- `migrate`: Ejecuta migraciones controladas. Flag: `--makemigrations` (opcional; por defecto no ejecuta).
+- `status`: Estado de servicios (`docker compose ps`).
+- `trigger` (opcional): Dispara una tarea Celery si worker/broker están activos.
+- `compose`: Passthrough a `docker compose` para casos avanzados.
+- `info`: Muestra contexto (perfiles, servicios, flags de entrypoint, etc.).
+
+Uso con Makefile (atajos):
+- `make up`, `make down`, `make logs`, `make migrate`, `make status`, `make info`.
+
+Variables útiles (se propagan):
+- `PROFILE`/`PROFILES`: perfiles de compose (p. ej. `db,broker,worker`).
+- `SERVICES`: lista de servicios (p. ej. `app,worker`).
+- `FOLLOW=1`: seguir logs (`-f`).
+
+Extensión en hijos:
+- Crear `Makefile.local` con targets propios, por ejemplo:
+  ```make
+  custom-task:
+  	python project_manage.py compose -- exec app python src/manage.py custom_command
+  ```
+
+Racional:
+- Consistencia entre padre e hijos, menos comandos largos de compose, tolerancia a perfiles opcionales.
