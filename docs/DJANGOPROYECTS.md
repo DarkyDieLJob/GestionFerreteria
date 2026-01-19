@@ -462,3 +462,18 @@ Al migrar un hijo:
 - No sobrescribas el `README.md` del hijo; edítalo manualmente para mantener lo específico y enlaza a `docs/DJANGOPROYECTS.md`.
 
 > Consulta también la guía operativa de adopción para proyectos hijos: [docs/MIGRACION_HIJOS.md](MIGRACION_HIJOS.md)
+
+## Pipeline CI/CD (base conceptual)
+
+- Objetivo: workflow reusable en el padre que los hijos invocan con inputs mínimos para desplegar con seguridad en runners self-hosted.
+- Flujo (resumen):
+  1) Tag semántico manual (vX.Y.Z)
+  2) Lint + tests rápidos
+  3) Staging (runner con Docker): build in situ (buildx), migraciones, up con perfiles, smoke/health, rollback si falla
+  4) Gatekeeper (aprobación manual)
+  5) Producción (matrix de runners): build in situ + smoke, o no-op en runners sin Docker
+
+- Runners y etiquetas: configurar labels por entorno (p.ej., `self-hosted`, `stage`, `docker`, `rpi`, `cloud-docker`, `cloud-nodocker`).
+- Inputs típicos del reusable: `profiles`, `target`, `platforms`, `staging_runner_label`, `prod_runner_matrix`, `migrate_before_up`, `collectstatic`, `smoke_url`, `smoke_timeout`, `smoke_check_command`.
+- Tradeoffs: control manual inicial (gatekeeper) vs. automatización; dependencia de runners activos; sin registry/SSH (builds en destino).
+- Uso en hijos: workflow mínimo que llama al reusable del padre (workflow_call) con sus inputs locales y secrets por entorno.
