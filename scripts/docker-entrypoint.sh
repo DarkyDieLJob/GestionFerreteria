@@ -6,6 +6,13 @@ log() { echo -e "\n==> $1"; }
 APP_DIR="/app"
 cd "$APP_DIR"
 
+# Flags de control (valores por defecto seguros)
+NO_FRONTEND=${NO_FRONTEND:-false}
+ENABLE_COLLECTSTATIC=${ENABLE_COLLECTSTATIC:-false}
+RUN_MAKEMIGRATIONS=${RUN_MAKEMIGRATIONS:-true}
+
+log "Flags: NO_FRONTEND=$NO_FRONTEND, ENABLE_COLLECTSTATIC=$ENABLE_COLLECTSTATIC, RUN_MAKEMIGRATIONS=$RUN_MAKEMIGRATIONS"
+
 # 1) Preparar .env si no existe
 if [[ ! -f src/.env ]]; then
   log "Preparando src/.env"
@@ -30,9 +37,10 @@ EOF
   fi
 fi
 
-# 2) Frontend (Tailwind) si no se desactiva
-if [[ "${NO_FRONTEND:-false}" != "true" ]]; then
-  log "Configurando frontend con Tailwind"
+# 2) Frontend (Tailwind) si no se desactiva y si existe Node en runtime
+if [[ "$NO_FRONTEND" != "true" ]]; then
+  if command -v npm >/dev/null 2>&1; then
+  log "Configurando frontend con Tailwind (npm disponible)"
   FRONTEND_DIR="frontend"
   mkdir -p "${FRONTEND_DIR}/src"
 
@@ -94,14 +102,24 @@ EOF
   (cd "${FRONTEND_DIR}" && npm install)
   log "Construyendo CSS con Tailwind"
   (cd "${FRONTEND_DIR}" && npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify)
+  else
+    log "NO se ejecuta build de Tailwind: npm no está disponible en runtime (esperado en imágenes 'runtime')."
+  fi
 fi
 
 # 3) Migraciones
+if [[ "$RUN_MAKEMIGRATIONS" == "true" ]]; then
+  log "Ejecutando makemigrations"
+  python src/manage.py makemigrations --noinput || echo "makemigrations omitido/falló"
+else
+  log "RUN_MAKEMIGRATIONS=false → se omite makemigrations (migrate puede ser responsabilidad externa)."
+fi
+
 log "Aplicando migraciones"
 python src/manage.py migrate --noinput
 
-# 4) (Opcional) collectstatic
-if [[ "${ENABLE_COLLECTSTATIC:-false}" == "true" ]]; then
+# 4) (Opcional) collectstatic (solo si el frontend no está desactivado)
+if [[ "$ENABLE_COLLECTSTATIC" == "true" && "$NO_FRONTEND" != "true" ]]; then
   log "Recolectando estáticos"
   python src/manage.py collectstatic --noinput || echo "collectstatic falló/omitido"
 fi
