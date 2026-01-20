@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% block head_title %}{% endblock %} | {{ app_name }} v{{ app_version }}{% endblock %}</title>
+    <title>
+        {% block title %}{% block head_title %}{% endblock %}{% if app_name %} | {{ app_name }}{% if show_project_version %} v{{ app_version }}{% endif %}{% endif %}{% endblock %}
+    </title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -56,9 +58,17 @@
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
+                        {% block navbar_brand %}
                         <a href="{% url 'home' %}" class="text-xl font-bold text-gray-900">
-                            {{ app_name }} <span class="text-sm text-gray-500">v{{ app_version }}</span>
+                            {{ app_name }}
+                            {% if show_project_version %}
+                            <span class="text-sm text-gray-500">v{{ app_version }}</span>
+                            {% endif %}
+                            {% if show_template_version_in_nav %}
+                            <span class="ml-2 text-xs text-gray-400">({{ template_name }} v{{ template_version }})</span>
+                            {% endif %}
                         </a>
+                        {% endblock %}
                     </div>
                     <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
                         <a href="{% url 'home' %}" class="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
@@ -67,6 +77,7 @@
                     </div>
                 </div>
                 <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                    {% block navbar_right %}
                     {% if user.is_authenticated %}
                         {% if user.is_staff %}
                             <div class="flex items-center space-x-2 mr-4">
@@ -99,6 +110,7 @@
                             <i class="fas fa-user-plus mr-1"></i> Registrarse
                         </a>
                     {% endif %}
+                    {% endblock %}
                 </div>
                 <!-- Mobile menu button -->
                 <div class="-mr-2 flex items-center sm:hidden">
@@ -195,8 +207,16 @@
     <footer class="bg-white border-t border-gray-200 mt-12">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <p class="text-center text-gray-500 text-sm">
-                &copy; {% now "Y" %} {{ app_name }} v{{ app_version }}. Todos los derechos reservados.
+                {% if show_footer_year %}&copy; {% now "Y" %} {% endif %}{{ app_name }}{% if show_project_version %} v{{ app_version }}{% endif %}. Todos los derechos reservados.
+                {% if show_template_attrib %}
+                    {% if template_attrib_minimal %}
+                        Basado en {{ template_name }}.
+                    {% else %}
+                        Este proyecto está basado en {{ template_name }} v{{ template_version }}.
+                    {% endif %}
+                {% endif %}
             </p>
+            {% block footer_extra %}{% endblock %}
         </div>
     </footer>
 
