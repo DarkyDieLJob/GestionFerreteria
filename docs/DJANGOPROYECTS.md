@@ -451,6 +451,37 @@ ALLAUTH_PROVIDERS=github
 Relación con perfiles de compose:
 - Activa sólo los perfiles necesarios en Docker (`db`, `broker`, `worker`). Los toggles no fuerzan servicios; sólo parametrizan la app.
 
+## Navbar y footer heredable (branding hijo y atribución padre)
+
+- Objetivo: separar branding del hijo (navbar) de la atribución del padre (footer) con un contrato de contexto estable y toggles de visibilidad.
+- Context processor `core_app.context_processors.ui_meta` expone:
+  - `app_name`, `app_version`
+  - `template_name`, `template_version`
+  - `show_project_version` (bool, default True)
+  - `show_template_attrib` (bool, default True)
+  - `template_attrib_minimal` (bool, default False)
+  - `show_template_version_in_nav` (bool, default False)
+  - `show_footer_year` (bool, default True)
+
+- Fuentes de versión:
+  - Hijo (`app_version`): `ENV APP_VERSION` > `CHANGELOG.md` del hijo > fallback `dev`.
+  - Padre (`template_version`): constantes en `src/template_meta.py` (`TEMPLATE_NAME`, `TEMPLATE_VERSION`) > fallback `unknown`.
+
+- Plantilla base (`src/templates/base.html`):
+  - Navbar: bloque `navbar_brand` muestra `{{ app_name }}` y si `show_project_version` entonces `v{{ app_version }}`. Opcionalmente `show_template_version_in_nav`.
+  - Navbar: bloque `navbar_right` para que los hijos inserten acciones (login, etc.).
+  - Footer: incluye atribución al padre si `show_template_attrib`. Con `template_attrib_minimal` muestra solo el nombre del template; si no, incluye `template_version`.
+  - `footer_extra`: bloque opcional para contenido extra.
+
+- Recomendaciones:
+  - En producción: `SHOW_PROJECT_VERSION=true`, `SHOW_TEMPLATE_ATTRIB=true`, `TEMPLATE_ATTRIB_MINIMAL=true`, `SHOW_TEMPLATE_VERSION_IN_NAV=false`.
+  - En staging/QA: `SHOW_TEMPLATE_ATTRIB=true`, `TEMPLATE_ATTRIB_MINIMAL=false` para depurar versiones del padre.
+  - En CI/CD, fija `APP_VERSION` desde el tag (`vX.Y.Z`) al invocar el deploy.
+
+- Ejemplo de footer (completo):
+  - "© 2026 {{app_name}} v{{app_version}}. Todos los derechos reservados. Este proyecto está basado en {{template_name}} v{{template_version}}."
+
+
 ## Estrategia de documentación modular (padre vs hijos)
 
 - README del padre (este repo): breve y genérico; apunta a esta documentación.
