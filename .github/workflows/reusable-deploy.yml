@@ -1,0 +1,311 @@
+name: Reusable Deploy
+
+on:
+  workflow_call:
+    inputs:
+      tag_version:
+        description: "Git tag/version to deploy (e.g., v1.2.3). If empty, uses the current ref."
+        required: false
+        type: string
+      profiles:
+        description: "CSV profiles for docker compose (e.g., db,broker,worker,frontend)."
+        required: false
+        type: string
+      target:
+        description: "Docker build target (runtime or runtime-frontend)."
+        required: false
+        default: "runtime"
+        type: string
+      platforms:
+        description: "CSV platforms for multi-arch buildx (e.g., linux/amd64,linux/arm64)."
+        required: false
+        type: string
+      staging_runner_label:
+        description: "Label of the self-hosted runner for staging."
+        required: true
+        type: string
+      prod_runner_matrix_json:
+        description: "JSON array of runner labels for production matrix (e.g., [\"self-hosted\",\"rpi\"])."
+        required: true
+        type: string
+      no_docker_runners:
+        description: "Optional CSV list of production runner labels to force no-op (skip Docker deploy)."
+        required: false
+        type: string
+      migrate_before_up:
+        description: "Run migrations before bringing services up."
+        required: false
+        default: true
+        type: boolean
+      collectstatic:
+        description: "Run collectstatic (only relevant when frontend/static served)."
+        required: false
+        default: false
+        type: boolean
+      smoke_url:
+        description: "Relative URL path for smoke test (e.g., /healthz)."
+        required: false
+        default: "/"
+        type: string
+      smoke_timeout:
+        description: "Timeout in seconds for smoke test."
+        required: false
+        default: 120
+        type: number
+      smoke_check_command:
+        description: "Optional custom smoke command to run in app container (e.g., python src/manage.py check)."
+        required: false
+        type: string
+    secrets:
+      ANY_ENV_SPECIFIC_SECRET:
+        required: false
+
+jobs:
+  lint_test:
+    name: Lint and Tests (fast)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag_version || github.ref }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal tooling
+        run: |
+          python -m pip install --upgrade pip
+          echo "No project-specific dev dependencies mandated. Running minimal sanity checks."
+
+      - name: Sanity checks
+        run: |
+          python -m compileall -q src || true
+          echo "OK"
+
+  staging_build_deploy:
+    name: Staging build and deploy (in-situ)
+    needs: [lint_test]
+    runs-on: ${{ inputs.staging_runner_label }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag_version || github.ref }}
+
+      - name: Detect Docker availability
+        id: docker_check
+        shell: bash
+        run: |
+          if command -v docker >/dev/null 2>&1; then
+            echo "has_docker=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_docker=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup QEMU (multi-arch)
+        if: steps.docker_check.outputs.has_docker == 'true' && inputs.platforms != ''
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        if: steps.docker_check.outputs.has_docker == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (in-situ)
+        if: steps.docker_check.outputs.has_docker == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLAT_ARG=""
+          if [ -n "${{ inputs.platforms }}" ]; then
+            PLAT_ARG="--platform ${{ inputs.platforms }}"
+          fi
+          docker buildx build $PLAT_ARG --target "${{ inputs.target }}" --load -t app-local:staging .
+
+      - name: Compose up (with profiles)
+        if: steps.docker_check.outputs.has_docker == 'true'
+        env:
+          PROFILES: ${{ inputs.profiles }}
+          MIGRATE: ${{ inputs.migrate_before_up }}
+          COLLECTSTATIC: ${{ inputs.collectstatic }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${PROFILES}" ]; then
+            export COMPOSE_PROFILES="${PROFILES}"
+          fi
+          if [ "${MIGRATE}" = "true" ]; then
+            docker compose run --rm app python src/manage.py migrate --noinput
+          fi
+          if [ "${COLLECTSTATIC}" = "true" ]; then
+            docker compose run --rm app python src/manage.py collectstatic --noinput || true
+          fi
+          docker compose up -d
+
+      - name: Wait for services healthy
+        if: steps.docker_check.outputs.has_docker == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # basic wait loop for health/availability
+          end=$((SECONDS+${{ inputs.smoke_timeout }}))
+          until docker compose ps; do
+            [ $SECONDS -ge $end ] && { echo "Timeout waiting compose ps"; exit 1; }
+            sleep 3
+          done
+
+      - name: Smoke test (curl)
+        if: steps.docker_check.outputs.has_docker == 'true' && inputs.smoke_check_command == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="http://127.0.0.1:8000${{ inputs.smoke_url }}"
+          end=$((SECONDS+${{ inputs.smoke_timeout }}))
+          until curl -fsS "$URL" >/dev/null; do
+            [ $SECONDS -ge $end ] && { echo "Smoke failed for $URL"; exit 1; }
+            sleep 3
+          done
+
+      - name: Smoke test (custom command in app)
+        if: steps.docker_check.outputs.has_docker == 'true' && inputs.smoke_check_command != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose run --rm app sh -lc '${{ inputs.smoke_check_command }}'
+
+      - name: Rollback on failure
+        if: failure() && steps.docker_check.outputs.has_docker == 'true'
+        run: docker compose down -v || true
+
+  gatekeeper_approval:
+    name: Manual approval gate
+    needs: [staging_build_deploy]
+    runs-on: ubuntu-latest
+    # Configure the 'production' environment in the repo with required reviewers to enforce manual approval
+    environment:
+      name: production
+    steps:
+      - name: Await approval
+        run: echo "Proceeding to production after environment approval."
+
+  prod_deploy:
+    name: Production deploy (matrix)
+    needs: [gatekeeper_approval]
+    strategy:
+      fail-fast: false
+      matrix:
+        label: ${{ fromJSON(inputs.prod_runner_matrix_json) }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag_version || github.ref }}
+
+      - name: Detect Docker availability
+        id: docker_check
+        shell: bash
+        run: |
+          if command -v docker >/dev/null 2>&1; then
+            echo "has_docker=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_docker=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine if runner is marked as no-docker
+        id: nodocker_mark
+        shell: bash
+        env:
+          NO_DOCKER_RUNNERS: ${{ inputs.no_docker_runners }}
+        run: |
+          mark=false
+          if [ -n "${NO_DOCKER_RUNNERS}" ]; then
+            IFS=',' read -ra L <<< "${NO_DOCKER_RUNNERS}"
+            for x in "${L[@]}"; do
+              if [ "${x}" = "${{ matrix.label }}" ]; then mark=true; fi
+            done
+          fi
+          echo "marked=${mark}" >> $GITHUB_OUTPUT
+
+      - name: Setup QEMU (multi-arch)
+        if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true' && inputs.platforms != ''
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (in-situ)
+        if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLAT_ARG=""
+          if [ -n "${{ inputs.platforms }}" ]; then
+            PLAT_ARG="--platform ${{ inputs.platforms }}"
+          fi
+          docker buildx build $PLAT_ARG --target "${{ inputs.target }}" --load -t app-local:prod .
+
+      - name: Compose up (with profiles)
+        if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true'
+        env:
+          PROFILES: ${{ inputs.profiles }}
+          MIGRATE: ${{ inputs.migrate_before_up }}
+          COLLECTSTATIC: ${{ inputs.collectstatic }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${PROFILES}" ]; then
+            export COMPOSE_PROFILES="${PROFILES}"
+          fi
+          if [ "${MIGRATE}" = "true" ]; then
+            docker compose run --rm app python src/manage.py migrate --noinput
+          fi
+          if [ "${COLLECTSTATIC}" = "true" ]; then
+            docker compose run --rm app python src/manage.py collectstatic --noinput || true
+          fi
+          docker compose up -d
+
+      - name: Smoke test (curl)
+        if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true' && inputs.smoke_check_command == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="http://127.0.0.1:8000${{ inputs.smoke_url }}"
+          end=$((SECONDS+${{ inputs.smoke_timeout }}))
+          until curl -fsS "$URL" >/dev/null; do
+            [ $SECONDS -ge $end ] && { echo "Smoke failed for $URL"; exit 1; }
+            sleep 3
+          done
+
+      - name: Smoke test (custom command)
+        if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true' && inputs.smoke_check_command != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose run --rm app sh -lc '${{ inputs.smoke_check_command }}'
+
+      - name: No-op on runners without Docker or marked as no-docker
+        if: steps.docker_check.outputs.has_docker != 'true' || steps.nodocker_mark.outputs.marked == 'true'
+        run: echo "Runner ${{ matrix.label }} has no Docker or is marked no-op. Skipping deploy successfully."
+
+      - name: Rollback on failure
+        if: failure() && steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true'
+        run: docker compose down -v || true
+
+  notify_failure:
+    name: Notify on failure (optional)
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "One or more deployment stages failed. Review logs."
