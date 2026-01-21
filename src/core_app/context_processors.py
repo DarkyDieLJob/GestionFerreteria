@@ -81,3 +81,71 @@ def modes(request):
         "PROJECT_MODE": project_mode,
         "TABLET_MODE": tablet_mode,
     }
+
+
+def ui_meta(request):
+    """
+    Provee metadatos de UI esperados por tests y plantillas heredadas.
+    - app_name: desde settings.NOMBRE_APLICACION (fallback: 'Mi Aplicacion')
+    - app_version: APP_VERSION (env) o primera versión encontrada en CHANGELOG.md
+    - template_name/template_version: desde src/template_meta.py
+    - toggles: SHOW_* con defaults y override por env
+    """
+
+    def _truthy(value: str, default: bool) -> bool:
+        if value is None:
+            return default
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    app_name = getattr(settings, "NOMBRE_APLICACION", "Mi Aplicacion")
+
+    # Version de la app: APP_VERSION o CHANGELOG.md como en app_meta
+    app_version = os.environ.get("APP_VERSION")
+    if not app_version:
+        version = "dev"
+        base_dir = getattr(settings, "BASE_DIR", None)
+        changelog_path = None
+        if base_dir:
+            repo_root = os.path.abspath(os.path.join(base_dir, os.pardir))
+            candidate = os.path.join(repo_root, "CHANGELOG.md")
+            if os.path.exists(candidate):
+                changelog_path = candidate
+        if changelog_path:
+            try:
+                with open(changelog_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                m = re.search(r"^#{2,3}\s*(?:\[)?v?(\d+\.\d+\.\d+)(?:\])?\b", content, re.MULTILINE)
+                if m:
+                    version = m.group(1)
+            except Exception:
+                version = "dev"
+        app_version = version
+
+    # Datos de plantilla
+    try:
+        import template_meta  # type: ignore
+
+        template_name = getattr(template_meta, "TEMPLATE_NAME", "")
+        template_version = getattr(template_meta, "TEMPLATE_VERSION", "")
+    except Exception:
+        template_name = ""
+        template_version = ""
+
+    # Toggles con defaults del padre
+    show_project_version = _truthy(os.environ.get("SHOW_PROJECT_VERSION"), default=True)
+    show_template_attrib = _truthy(os.environ.get("SHOW_TEMPLATE_ATTRIB"), default=True)
+    template_attrib_minimal = _truthy(os.environ.get("TEMPLATE_ATTRIB_MINIMAL"), default=False)
+    show_template_version_in_nav = _truthy(os.environ.get("SHOW_TEMPLATE_VERSION_IN_NAV"), default=False)
+    show_footer_year = _truthy(os.environ.get("SHOW_FOOTER_YEAR"), default=True)
+
+    return {
+        "app_name": app_name,
+        "app_version": app_version,
+        "template_name": template_name,
+        "template_version": template_version,
+        "show_project_version": show_project_version,
+        "show_template_attrib": show_template_attrib,
+        "template_attrib_minimal": template_attrib_minimal,
+        "show_template_version_in_nav": show_template_version_in_nav,
+        "show_footer_year": show_footer_year,
+    }
