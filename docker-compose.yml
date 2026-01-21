@@ -4,18 +4,32 @@ services:
     image: postgres:15-alpine
     container_name: gestionferreteria-db
     restart: always
+    # Desde plantilla padre (prioridad 4): perfil y healthcheck
+    profiles: ["db"]
     environment:
       - POSTGRES_DB=ferreteria
       - POSTGRES_USER=usuario
       - POSTGRES_PASSWORD=changeme
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Broker para Celery
   redis:
     image: redis:7-alpine
     container_name: gestionferreteria-redis
     restart: always
+    # Desde plantilla padre (prioridad 4): perfil y healthcheck
+    profiles: ["broker"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Servicio web Django (mantiene nombre/volúmenes existentes)
   app:
@@ -23,16 +37,24 @@ services:
     image: django-proyects:raspbian
     container_name: gestionferreteria-web
     restart: always
+    # Desde plantilla padre (prioridad 4): perfilar y depender de servicios saludables
+    profiles: ["web"]
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8001:8001"
     environment:
       # Estáticos: habilitar si quieres recopilar estáticos en runtime
       - ENABLE_COLLECTSTATIC=false
-      # Desactiva frontend si no quieres construir Tailwind (por defecto se construye)
-      - NO_FRONTEND=false
+      # Desde plantilla padre (prioridad 4): flags de entrypoint parametrizables
+      - ENABLE_ENV_BOOTSTRAP=true
+      # Opción C: runtime sin npm -> no ejecutar frontend en runtime
+      - ENABLE_FRONTEND_SETUP=false
+      - ENABLE_FRONTEND_BUILD=false
+      - ENABLE_MIGRATE=true
       # Base de datos (habilita Postgres en settings)
       - USE_POSTGRES=true
       - POSTGRES_HOST=db
@@ -61,9 +83,13 @@ services:
     image: django-proyects:raspbian
     container_name: gestionferreteria-worker
     restart: always
+    # Desde plantilla padre (prioridad 4): perfilar y depender de servicios saludables
+    profiles: ["worker"]
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - USE_POSTGRES=true
       - POSTGRES_HOST=db
