@@ -6,8 +6,16 @@ log() { echo -e "\n==> $1"; }
 APP_DIR="/app"
 cd "$APP_DIR"
 
-# 1) Preparar .env si no existe
-if [[ ! -f src/.env ]]; then
+# Desde plantilla padre (prioridad 4): flags para parametrizar comportamiento por entorno
+ENABLE_ENV_BOOTSTRAP=${ENABLE_ENV_BOOTSTRAP:-true}
+ENABLE_FRONTEND_SETUP=${ENABLE_FRONTEND_SETUP:-false}
+ENABLE_FRONTEND_BUILD=${ENABLE_FRONTEND_BUILD:-false}
+ENABLE_MAKEMIGRATIONS=${ENABLE_MAKEMIGRATIONS:-false}
+ENABLE_MIGRATE=${ENABLE_MIGRATE:-true}
+ENABLE_COLLECTSTATIC=${ENABLE_COLLECTSTATIC:-false}
+
+# 1) Preparar .env si no existe (preservado del hijo)
+if [[ "$ENABLE_ENV_BOOTSTRAP" == "true" && ! -f src/.env ]]; then
   log "Preparando src/.env"
   if [[ -f src/.env.example ]]; then
     cp src/.env.example src/.env
@@ -33,8 +41,10 @@ EOF
   fi
 fi
 
-# 2) Frontend (Tailwind) si no se desactiva
-if [[ "${NO_FRONTEND:-false}" != "true" ]]; then
+# 2) Frontend (Tailwind) conmutado por flags y compatibilidad NO_FRONTEND (heredado del hijo)
+if [[ "$ENABLE_FRONTEND_SETUP" != "true" ]]; then
+  log "Frontend setup skipped (ENABLE_FRONTEND_SETUP=false)"
+elif [[ "${NO_FRONTEND:-false}" != "true" ]]; then
   log "Configurando frontend con Tailwind"
   FRONTEND_DIR="frontend"
   mkdir -p "${FRONTEND_DIR}/src"
@@ -93,20 +103,32 @@ EOF
   fi
 
   mkdir -p static/css
-  log "Instalando dependencias npm"
-  (cd "${FRONTEND_DIR}" && npm install)
-  log "Construyendo CSS con Tailwind"
-  (cd "${FRONTEND_DIR}" && npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify)
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "WARN: npm no encontrado en runtime; omitiendo pasos de frontend"
+  else
+    log "Instalando dependencias npm"
+    (cd "${FRONTEND_DIR}" && npm install)
+    if [[ "$ENABLE_FRONTEND_BUILD" == "true" ]]; then
+      log "Construyendo CSS con Tailwind"
+      (cd "${FRONTEND_DIR}" && npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify)
+    else
+      log "Frontend build skipped (ENABLE_FRONTEND_BUILD=false)"
+    fi
+  fi
 fi
 
-# 3) Migraciones
-log "Generando migraciones"
-python src/manage.py makemigrations
-log "Aplicando migraciones"
-python src/manage.py migrate --noinput
+# 3) Migraciones (gateadas por flags)
+if [[ "$ENABLE_MAKEMIGRATIONS" == "true" ]]; then
+  log "Generando migraciones"
+  python src/manage.py makemigrations || true
+fi
+if [[ "$ENABLE_MIGRATE" == "true" ]]; then
+  log "Aplicando migraciones"
+  python src/manage.py migrate --noinput
+fi
 
 # 4) (Opcional) collectstatic
-if [[ "${ENABLE_COLLECTSTATIC:-false}" == "true" ]]; then
+if [[ "$ENABLE_COLLECTSTATIC" == "true" ]]; then
   log "Recolectando estáticos"
   python src/manage.py collectstatic --noinput || echo "collectstatic falló/omitido"
 fi
