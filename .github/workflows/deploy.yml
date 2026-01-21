@@ -1,0 +1,30 @@
+name: Deploy (child consumer)
+
+on:
+  push:
+    tags:
+      - "test-*"
+      # - "v*"  # opcional: habilitar releases reales
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/reusable-deploy.yml
+    secrets: inherit
+    with:
+      # Nota: reusable usa directamente 'runs-on: ${{ inputs.staging_runner_label }}'
+      # Por ello, aquí se pasa una sola etiqueta única del runner de staging.
+      staging_runner_label: "stage"
+
+      # Prod usa matriz: fromJSON(inputs.prod_runner_matrix_json)
+      # Pasamos un arreglo JSON de etiquetas (cada item es una etiqueta única a usar en runs-on).
+      prod_runner_matrix_json: '["prod"]'
+
+      # Opcionales del reusable (descomentá si querés usarlos durante la prueba):
+      # profiles: "web,worker,broker,db"
+      # smoke_url: "/"
+      # smoke_timeout: 120
+      # migrate_before_up: true
+      # collectstatic: false
