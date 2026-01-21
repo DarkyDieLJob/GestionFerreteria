@@ -24,6 +24,10 @@ DATABASES['negocio_db'] = {**DATABASES['default'], 'TEST': {'MIRROR': 'default'}
 DATABASES['articles_db'] = {**DATABASES['default'], 'TEST': {'MIRROR': 'default'}}
 DATABASES['cart_db'] = {**DATABASES['default'], 'TEST': {'MIRROR': 'default'}}
 
+# Desde plantilla padre (prioridad 4)
+# DEBUG explícito en tests
+DEBUG = False
+
 # Speed up password hashing for tests
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
@@ -60,6 +64,15 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Email backend for tests
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+
+# Desde plantilla padre (prioridad 4)
+# Eager Celery en tests
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+
+# Desde plantilla padre (prioridad 4)
+# Hosts permitidos en tests
+ALLOWED_HOSTS = ['testserver', 'localhost']
 
 # Staff-only coverage view toggle for local/testing environments.
 # La vista /coverage/ sólo se habilita si DEBUG=True o si esta bandera está en True.
