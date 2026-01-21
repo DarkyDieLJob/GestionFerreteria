@@ -37,55 +37,15 @@ RUN python -m pip install --upgrade pip \
 COPY . .
 
 # Opción C: Build de frontend en build-time (Tailwind/CSS)
-# Genera configuración mínima si el repo no la trae (mantiene compatibilidad del hijo)
-RUN mkdir -p frontend/src static/css \
- && if [ ! -f frontend/package.json ]; then cat > frontend/package.json << 'EOF'\
-{\
-  "name": "django-frontend",\
-  "private": true,\
-  "version": "0.1.0",\
-  "scripts": {\
-    "dev": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css -w",\
-    "build": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify"\
-  },\
-  "devDependencies": {\
-    "autoprefixer": "^10.4.19",\
-    "postcss": "^8.4.38",\
-    "tailwindcss": "^3.4.10"\
-  }\
-}\
-EOF\
-; fi \
- && if [ ! -f frontend/tailwind.config.js ]; then cat > frontend/tailwind.config.js << 'EOF'\
-/** @type {import('tailwindcss').Config} */\
-module.exports = {\
-  content: [\
-    "../src/**/*.html",\
-    "../src/**/templates/**/*.html",\
-    "../templates/**/*.html"\
-  ],\
-  theme: { extend: {} },\
-  plugins: [],\
-};\
-EOF\
-; fi \
- && if [ ! -f frontend/postcss.config.js ]; then cat > frontend/postcss.config.js << 'EOF'\
-module.exports = {\
-  plugins: {\
-    tailwindcss: {},\
-    autoprefixer: {},\
-  },\
-};\
-EOF\
-; fi \
- && if [ ! -f frontend/src/input.css ]; then cat > frontend/src/input.css << 'EOF'\
-@tailwind base;\
-@tailwind components;\
-@tailwind utilities;\
-EOF\
-; fi \
- && (cd frontend && npm ci || npm install) \
- && (cd frontend && npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify)
+# Si existe configuración de frontend del hijo, construir; si no, omitir.
+RUN mkdir -p static/css \
+ && if [ -f frontend/package.json ]; then \
+      echo "Frontend config found; building Tailwind CSS" && \
+      (cd frontend && npm ci || npm install) && \
+      (cd frontend && npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify); \
+    else \
+      echo "No frontend/package.json found; skipping frontend build"; \
+    fi
 
 ## Stage runtime: imagen final ligera con venv copiado
 FROM python:3.11-slim-bookworm AS runtime
