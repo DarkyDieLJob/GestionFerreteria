@@ -25,6 +25,7 @@ jobs:
       # Opcionales del reusable (descomentá si querés usarlos durante la prueba):
       profiles: "db,broker,web"
       # smoke_url: "/"
+      smoke_check_command: "curl -fsS http://app:8001/"
       # smoke_timeout: 120
       # migrate_before_up: true
       # collectstatic: false
