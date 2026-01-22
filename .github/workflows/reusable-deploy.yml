@@ -181,7 +181,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose exec app sh -lc '${{ inputs.smoke_check_command }}'
+          docker compose exec app sh -lc "${{ inputs.smoke_check_command }}"
 
       - name: Rollback on failure
         if: failure() && steps.docker_check.outputs.has_docker == 'true'
@@ -299,7 +299,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose exec app sh -lc '${{ inputs.smoke_check_command }}'
+          docker compose exec app sh -lc "${{ inputs.smoke_check_command }}"
 
       - name: No-op on runners without Docker or marked as no-docker
         if: steps.docker_check.outputs.has_docker != 'true' || steps.nodocker_mark.outputs.marked == 'true'
