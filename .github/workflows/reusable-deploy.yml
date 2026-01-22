@@ -178,6 +178,7 @@ jobs:
         if: steps.docker_check.outputs.has_docker == 'true' && inputs.smoke_check_command != ''
         env:
           COMPOSE_PROFILES: ${{ inputs.profiles }}
+          SMOKE_URL: http://127.0.0.1:8001${{ inputs.smoke_url }}
         shell: bash
         run: |
           set -euo pipefail
@@ -296,6 +297,7 @@ jobs:
         if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true' && inputs.smoke_check_command != ''
         env:
           COMPOSE_PROFILES: ${{ inputs.profiles }}
+          SMOKE_URL: http://127.0.0.1:8001${{ inputs.smoke_url }}
         shell: bash
         run: |
           set -euo pipefail
