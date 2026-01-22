@@ -162,6 +162,8 @@ jobs:
 
       - name: Smoke test (curl)
         if: steps.docker_check.outputs.has_docker == 'true' && inputs.smoke_check_command == ''
+        env:
+          COMPOSE_PROFILES: ${{ inputs.profiles }}
         shell: bash
         run: |
           set -euo pipefail
@@ -174,6 +176,8 @@ jobs:
 
       - name: Smoke test (custom command in app)
         if: steps.docker_check.outputs.has_docker == 'true' && inputs.smoke_check_command != ''
+        env:
+          COMPOSE_PROFILES: ${{ inputs.profiles }}
         shell: bash
         run: |
           set -euo pipefail
@@ -276,6 +280,8 @@ jobs:
 
       - name: Smoke test (curl)
         if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true' && inputs.smoke_check_command == ''
+        env:
+          COMPOSE_PROFILES: ${{ inputs.profiles }}
         shell: bash
         run: |
           set -euo pipefail
@@ -288,6 +294,8 @@ jobs:
 
       - name: Smoke test (custom command)
         if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true' && inputs.smoke_check_command != ''
+        env:
+          COMPOSE_PROFILES: ${{ inputs.profiles }}
         shell: bash
         run: |
           set -euo pipefail
