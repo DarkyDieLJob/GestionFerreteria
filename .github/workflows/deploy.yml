@@ -5,6 +5,7 @@ on:
     tags:
       - "test-*"
       # - "v*"  # opcional: habilitar releases reales
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -25,7 +26,7 @@ jobs:
       # Opcionales del reusable (descomentá si querés usarlos durante la prueba):
       profiles: "db,broker,web"
       # smoke_url: "/"
-      smoke_check_command: "python -c \"import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8001/').status)\""
+      smoke_check_command: "python -c \"import urllib.request; print(urllib.request.urlopen(\\\"http://127.0.0.1:8001/\\\").status)\""
       # smoke_timeout: 120
       # migrate_before_up: true
       # collectstatic: false
