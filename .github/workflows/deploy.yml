@@ -23,7 +23,7 @@ jobs:
       prod_runner_matrix_json: '["prod"]'
 
       # Opcionales del reusable (descomentá si querés usarlos durante la prueba):
-      # profiles: "web,worker,broker,db"
+      profiles: "db,broker,web"
       # smoke_url: "/"
       # smoke_timeout: 120
       # migrate_before_up: true
