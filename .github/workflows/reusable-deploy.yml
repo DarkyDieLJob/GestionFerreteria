@@ -179,10 +179,11 @@ jobs:
         env:
           COMPOSE_PROFILES: ${{ inputs.profiles }}
           SMOKE_URL: http://127.0.0.1:8001${{ inputs.smoke_url }}
+          SMOKE_CMD: ${{ inputs.smoke_check_command }}
         shell: bash
         run: |
           set -euo pipefail
-          docker compose exec app sh -lc "${{ inputs.smoke_check_command }}"
+          docker compose exec app sh -lc "$SMOKE_CMD"
 
       - name: Rollback on failure
         if: failure() && steps.docker_check.outputs.has_docker == 'true'
@@ -298,10 +299,11 @@ jobs:
         env:
           COMPOSE_PROFILES: ${{ inputs.profiles }}
           SMOKE_URL: http://127.0.0.1:8001${{ inputs.smoke_url }}
+          SMOKE_CMD: ${{ inputs.smoke_check_command }}
         shell: bash
         run: |
           set -euo pipefail
-          docker compose exec app sh -lc "${{ inputs.smoke_check_command }}"
+          docker compose exec app sh -lc "$SMOKE_CMD"
 
       - name: No-op on runners without Docker or marked as no-docker
         if: steps.docker_check.outputs.has_docker != 'true' || steps.nodocker_mark.outputs.marked == 'true'
