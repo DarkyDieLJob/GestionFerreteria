@@ -31,7 +31,9 @@ def test_ui_meta_prefers_env_app_version(monkeypatch):
 
 
 @override_settings(NOMBRE_APLICACION="Mi App Test")
-def test_ui_meta_reads_version_from_changelog_when_no_env(tmp_path, settings, monkeypatch):
+def test_ui_meta_reads_version_from_changelog_when_no_env(
+    tmp_path, settings, monkeypatch
+):
     # Clear APP_VERSION to force changelog path
     monkeypatch.delenv("APP_VERSION", raising=False)
     # Create repo_root/tmp/src structure and a CHANGELOG.md with a version
@@ -40,12 +42,15 @@ def test_ui_meta_reads_version_from_changelog_when_no_env(tmp_path, settings, mo
     src_dir.mkdir()
     settings.BASE_DIR = str(src_dir)
     changelog = repo_root / "CHANGELOG.md"
-    changelog.write_text("""
+    changelog.write_text(
+        """
 # Changelog
 
 ## v2.3.4 - 2026-01-01
 - Entry
-""".strip(), encoding="utf-8")
+""".strip(),
+        encoding="utf-8",
+    )
 
     ctx = ui_meta(make_request())
     assert ctx["app_name"] == "Mi App Test"

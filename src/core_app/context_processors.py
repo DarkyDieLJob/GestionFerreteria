@@ -114,7 +114,11 @@ def ui_meta(request):
             try:
                 with open(changelog_path, "r", encoding="utf-8") as f:
                     content = f.read()
-                m = re.search(r"^#{2,3}\s*(?:\[)?v?(\d+\.\d+\.\d+)(?:\])?\b", content, re.MULTILINE)
+                m = re.search(
+                    r"^#{2,3}\s*(?:\[)?v?(\d+\.\d+\.\d+)(?:\])?\b",
+                    content,
+                    re.MULTILINE,
+                )
                 if m:
                     version = m.group(1)
             except Exception:
@@ -134,8 +138,12 @@ def ui_meta(request):
     # Toggles con defaults del padre
     show_project_version = _truthy(os.environ.get("SHOW_PROJECT_VERSION"), default=True)
     show_template_attrib = _truthy(os.environ.get("SHOW_TEMPLATE_ATTRIB"), default=True)
-    template_attrib_minimal = _truthy(os.environ.get("TEMPLATE_ATTRIB_MINIMAL"), default=False)
-    show_template_version_in_nav = _truthy(os.environ.get("SHOW_TEMPLATE_VERSION_IN_NAV"), default=False)
+    template_attrib_minimal = _truthy(
+        os.environ.get("TEMPLATE_ATTRIB_MINIMAL"), default=False
+    )
+    show_template_version_in_nav = _truthy(
+        os.environ.get("SHOW_TEMPLATE_VERSION_IN_NAV"), default=False
+    )
     show_footer_year = _truthy(os.environ.get("SHOW_FOOTER_YEAR"), default=True)
 
     return {
