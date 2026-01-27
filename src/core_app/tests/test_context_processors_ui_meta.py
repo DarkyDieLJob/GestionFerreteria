@@ -3,7 +3,6 @@ import pytest
 from django.test import RequestFactory, override_settings
 from core_app.context_processors import ui_meta
 
-
 pytestmark = pytest.mark.django_db
 
 
