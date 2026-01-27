@@ -36,16 +36,16 @@ RUN python -m pip install --upgrade pip \
 FROM node:20-alpine AS node-builder
 WORKDIR /app
 
-# Copiar solo lo necesario para construir Tailwind (si existe)
-COPY frontend/ ./frontend/
-
 # Asegurar que el directorio de estáticos exista aunque no haya carpeta static/ en el repo
 RUN mkdir -p /app/static/css
 
 WORKDIR /app/frontend
 RUN --mount=type=cache,target=/root/.npm \
-    (npm ci || npm install) \
-    && if [ -f package.json ]; then npm run build || true; fi
+    if [ -f package.json ]; then \
+      (npm ci || npm install) && (npm run build || true); \
+    else \
+      echo "No frontend/package.json found; skipping frontend build"; \
+    fi
 
 ###############################
 # Runtime base sin Node/npm
