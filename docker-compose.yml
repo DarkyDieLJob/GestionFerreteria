@@ -75,6 +75,12 @@ services:
       - ./src/static:/app/static
       - ./logs:/app/logs
       - ./src/media:/app/src/media
+    healthcheck:
+      test: ["CMD-SHELL", "python src/manage.py check --deploy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
     command: ["gunicorn", "core_config.wsgi:application", "--chdir", "src", "--bind", "0.0.0.0:8001", "--workers", "2", "--timeout", "60"]
 
   # Worker Celery para procesamiento de planillas
@@ -105,6 +111,12 @@ services:
       - ./src/static:/app/static
       - ./logs:/app/logs
       - ./src/media:/app/src/media
+    healthcheck:
+      test: ["CMD-SHELL", "python src/manage.py check || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
     command: ["celery", "-A", "core_config", "worker", "--loglevel=info", "--concurrency=1"]
 
 volumes:

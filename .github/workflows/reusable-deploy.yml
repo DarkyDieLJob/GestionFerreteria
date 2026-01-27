@@ -50,12 +50,17 @@ on:
       smoke_timeout:
         description: "Timeout in seconds for smoke test."
         required: false
-        default: 120
+        default: 90
         type: number
       smoke_check_command:
         description: "Optional custom smoke command to run in app container (e.g., python src/manage.py check)."
         required: false
         type: string
+      cleanup_cache:
+        description: "If true, prune Docker cache at the end of jobs (slower, for debugging)."
+        required: false
+        default: false
+        type: boolean
     secrets:
       ANY_ENV_SPECIFIC_SECRET:
         required: false
@@ -199,7 +204,7 @@ jobs:
         run: docker compose down -v || true
 
       - name: Cleanup Docker cache (staging)
-        if: always()
+        if: always() && inputs.cleanup_cache == true
         run: |
           docker system df || true
           docker image prune -af || true
@@ -342,7 +347,7 @@ jobs:
         run: docker compose down -v || true
 
       - name: Cleanup Docker cache (prod)
-        if: always()
+        if: always() && inputs.cleanup_cache == true
         run: |
           docker system df || true
           docker image prune -af || true
