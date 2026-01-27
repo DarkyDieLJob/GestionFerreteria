@@ -38,7 +38,9 @@ WORKDIR /app
 
 # Copiar solo lo necesario para construir Tailwind (si existe)
 COPY frontend/ ./frontend/
-COPY static/ ./static/
+
+# Asegurar que el directorio de estáticos exista aunque no haya carpeta static/ en el repo
+RUN mkdir -p /app/static/css
 
 WORKDIR /app/frontend
 RUN --mount=type=cache,target=/root/.npm \
