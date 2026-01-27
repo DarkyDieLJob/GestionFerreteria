@@ -122,6 +122,13 @@ jobs:
         if: steps.docker_check.outputs.has_docker == 'true'
         uses: docker/setup-buildx-action@v3
 
+      - name: Prepare buildx cache dir (staging)
+        if: steps.docker_check.outputs.has_docker == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/.buildx-cache
+
       - name: Build image (in-situ)
         if: steps.docker_check.outputs.has_docker == 'true'
         shell: bash
@@ -131,7 +138,11 @@ jobs:
           if [ -n "${{ inputs.platforms }}" ]; then
             PLAT_ARG="--platform ${{ inputs.platforms }}"
           fi
-          docker buildx build $PLAT_ARG --target "${{ inputs.target }}" --load -t app-local:staging .
+          docker buildx build $PLAT_ARG \
+            --target "${{ inputs.target }}" \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache,mode=max \
+            --load -t app-local:staging .
 
       - name: Compose up (with profiles)
         if: steps.docker_check.outputs.has_docker == 'true'
@@ -273,6 +284,13 @@ jobs:
         if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true'
         uses: docker/setup-buildx-action@v3
 
+      - name: Prepare buildx cache dir (prod)
+        if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/.buildx-cache
+
       - name: Build image (in-situ)
         if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true'
         shell: bash
@@ -282,7 +300,11 @@ jobs:
           if [ -n "${{ inputs.platforms }}" ]; then
             PLAT_ARG="--platform ${{ inputs.platforms }}"
           fi
-          docker buildx build $PLAT_ARG --target "${{ inputs.target }}" --load -t app-local:prod .
+          docker buildx build $PLAT_ARG \
+            --target "${{ inputs.target }}" \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache,mode=max \
+            --load -t app-local:prod .
 
       - name: Compose up (with profiles)
         if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true'
