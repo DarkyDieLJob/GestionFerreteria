@@ -30,10 +30,15 @@ jobs:
           echo "IMAGE_REPO=darkydieljob/gestionferreteria" >> $GITHUB_ENV
           echo "IMAGE_TAG=staging-latest" >> $GITHUB_ENV
 
-      - name: Pull images (with profiles)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        run: docker compose pull
+      - name: Ensure app image exists (pull or build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMG="${IMAGE_REGISTRY}/${IMAGE_REPO}:${IMAGE_TAG}"
+          if ! docker pull "$IMG"; then
+            echo "App image $IMG not found in registry. Building locally..."
+            docker build --target runtime -t "$IMG" -f Dockerfile .
+          fi
 
       - name: Compose up (with profiles)
         env:
