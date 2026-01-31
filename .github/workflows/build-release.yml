@@ -3,7 +3,6 @@ name: Build & Push (release/tag)
 on:
   push:
     branches: [release]       # Se ejecuta al pushear/mergear a release
-  push:
     tags:
       - 'v*'                  # También al crear tags vX.Y.Z
   workflow_dispatch: {}       # Permite ejecución manual
