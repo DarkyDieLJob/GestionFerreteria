@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-build-push.yml@pre-release
+    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-build-push.yml@main
     secrets: inherit
     with:
       image_repo: DarkyDieLJob/gestionferreteria
