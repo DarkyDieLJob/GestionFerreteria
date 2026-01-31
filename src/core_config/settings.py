@@ -39,6 +39,44 @@ DEBUG_INFO = config('DEBUG_INFO', cast=bool, default=False)
 # Lista separada por comas: 127.0.0.1,localhost,mi-dominio.com
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='127.0.0.1,localhost,raspberrypi.tail1ca260.ts.net')
 
+# Desde plantilla padre (prioridad 4)
+# Permitir override de configuración de caché vía entorno manteniendo LocMem por defecto
+if not os.environ.get('CACHE_BACKEND') and not os.environ.get('CACHES__default__BACKEND'):
+    # Default explícito para no cambiar comportamiento del hijo
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'default-locmem',
+        }
+    }
+else:
+    # Soporte de variables estilo django-environ/decouple con prefijo CACHES__
+    backend = os.environ.get('CACHE_BACKEND', 'django.core.cache.backends.locmem.LocMemCache')
+    CACHES = {
+        'default': {
+            'BACKEND': backend,
+            'LOCATION': os.environ.get('CACHE_LOCATION', 'default-locmem'),
+        }
+    }
+
+# Desde plantilla padre (prioridad 4)
+# Email backend configurable por entorno; por defecto SMTP estándar de Django
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+
+# Desde plantilla padre (prioridad 4)
+# Orígenes de confianza para CSRF configurables por entorno (lista separada por comas)
+_csrf_trusted = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [x.strip() for x in _csrf_trusted.split(',') if x.strip()]
+
+# Desde plantilla padre (prioridad 4)
+# Flags de seguridad configurables por entorno (defaults no forzados)
+SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'false').lower() in {'1', 'true', 'yes'}
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() in {'1', 'true', 'yes'}
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'false').lower() in {'1', 'true', 'yes'}
+SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '0') or 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'false').lower() in {'1', 'true', 'yes'}
+SECURE_HSTS_PRELOAD = os.environ.get('SECURE_HSTS_PRELOAD', 'false').lower() in {'1', 'true', 'yes'}
+
 
 # Application definition
 

@@ -1,0 +1,18 @@
+name: Ping self-hosted runners
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  ping:
+    strategy:
+      matrix:
+        label: ["stage", "prod"]  # Ajusta si tus labels difieren
+    runs-on: ${{ matrix.label }}
+    steps:
+      - name: Mostrar info del runner
+        run: |
+          echo "Runner label: ${{ matrix.label }}"
+          uname -a || true
+          docker --version || true
+          id || true

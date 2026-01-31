@@ -15,13 +15,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
 from core_app.adapters.views import home, coverage_report, coverage_asset, coverage_raw
 
+def healthz(request):
+    return JsonResponse({"status": "ok"})
+
 urlpatterns = [
     path('', home, name='home'),
+    path('healthz/', healthz, name='healthz'),
     path('coverage/', coverage_report, name='coverage'),
     path('coverage/assets/<path:path>', coverage_asset, name='coverage_asset'),
     path('coverage/raw/<path:path>', coverage_raw, name='coverage_raw'),
