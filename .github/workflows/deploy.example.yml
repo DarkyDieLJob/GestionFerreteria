@@ -5,9 +5,7 @@
 name: Deploy (child example)
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch: {}
 
 jobs:
   deploy:
