@@ -1,0 +1,26 @@
+name: Build & Push (release/tag)
+
+on:
+  push:
+    branches: [release]       # Se ejecuta al pushear/mergear a release
+  push:
+    tags:
+      - 'v*'                  # También al crear tags vX.Y.Z
+  workflow_dispatch: {}       # Permite ejecución manual
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-build-push.yml@pre-release
+    secrets: inherit
+    with:
+      image_repo: DarkyDieLJob/gestionferreteria
+      # Si el evento es tag vX.Y.Z, se usa ese nombre como tag de imagen
+      tags: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+      platforms: linux/amd64,linux/arm64
+      context: .
+      dockerfile: Dockerfile
+      # Opcional (no recomendado en prod): agregar co-tag latest en el reusable del padre.

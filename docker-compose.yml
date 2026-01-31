@@ -33,8 +33,7 @@ services:
 
   # Servicio web Django (mantiene nombre/volúmenes existentes)
   app:
-    build: .
-    image: django-proyects:raspbian
+    image: ${IMAGE_REGISTRY}/${IMAGE_REPO}:${IMAGE_TAG}
     container_name: gestionferreteria-web
     restart: always
     # Desde plantilla padre (prioridad 4): perfilar y depender de servicios saludables
@@ -85,8 +84,7 @@ services:
 
   # Worker Celery para procesamiento de planillas
   worker:
-    build: .
-    image: django-proyects:raspbian
+    image: ${IMAGE_REGISTRY}/${IMAGE_REPO}:${IMAGE_TAG}
     container_name: gestionferreteria-worker
     restart: always
     # Desde plantilla padre (prioridad 4): perfilar y depender de servicios saludables
