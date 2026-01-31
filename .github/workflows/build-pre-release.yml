@@ -1,0 +1,23 @@
+name: Build & Push (pre-release)
+
+on:
+  push:
+    branches: [pre-release]  # Se ejecuta al pushear/mergear a pre-release (no afecta feature/*)
+  workflow_dispatch: {}       # Permite ejecución manual
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-build-push.yml@pre-release
+    secrets: inherit
+    with:
+      image_repo: DarkyDieLJob/gestionferreteria
+      # Publica para staging
+      tags: staging-latest,sha-${{ github.sha }}
+      platforms: linux/amd64,linux/arm64
+      context: .
+      dockerfile: Dockerfile
+      # Cuando vayas a producción real, usá el workflow de release/tag.

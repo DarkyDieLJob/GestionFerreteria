@@ -45,6 +45,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+junit.xml
 *.cover
 *.py.cover
 .hypothesis/
@@ -215,6 +216,7 @@ frontend/*
 src/data/*
 static/*
 src/static/*
+persist/**
 
 # Django migrations (solo mantener __init__.py)
 src/**/migrations/*.py

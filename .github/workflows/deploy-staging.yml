@@ -1,0 +1,26 @@
+name: Deploy (staging)
+
+on:
+  # Dejamos solo manual para esta fase. Más adelante podés agregar:
+  # push:
+  #   branches: [deploy]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    environment: staging
+    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-pull-deploy.yml@pre-release
+    secrets: inherit
+    with:
+      runner_label: "stage"                 # Ajusta si tu runner usa otro label
+      image_repo: DarkyDieLJob/gestionferreteria
+      image_tag: staging-latest            # Staging usa alias mutable
+      compose_files: docker-compose.yml
+      deny_latest: true                    # Bloquea latest en ambientes que lo impiden
+      base_url: http://127.0.0.1:8001      # Tu app expone 8001
+      smoke_url: "/"
+      # Para despliegue real automático, agregá el trigger por rama y ejecutá este flujo.

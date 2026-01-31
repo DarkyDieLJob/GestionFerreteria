@@ -1,0 +1,29 @@
+name: Deploy (production)
+
+on:
+  # Dejamos solo manual y con gate por environment si configurás uno llamado 'production'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tag de imagen (vX.Y.Z)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    environment: production   # Configurá aprobación manual desde Settings > Environments
+    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-pull-deploy.yml@pre-release
+    secrets: inherit
+    with:
+      runner_label: "prod"                  # Ajusta si tu runner usa otro label
+      image_repo: DarkyDieLJob/gestionferreteria
+      image_tag: ${{ inputs.version }}      # Producción SIEMPRE pinneada a vX.Y.Z
+      compose_files: docker-compose.yml
+      deny_latest: true
+      base_url: http://127.0.0.1:8001
+      smoke_url: "/"
+      # Cuando quieras automatizar, podés crear un flujo que se dispare con tags v* o rama release.

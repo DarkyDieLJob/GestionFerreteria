@@ -1,0 +1,27 @@
+# Example consumer workflow for child repositories
+# Copy this into a child repo and adjust inputs/labels as needed.
+# Triggers on semantic tags and calls the reusable workflow defined in the parent.
+
+name: Deploy (child example)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-deploy.yml@main
+    with:
+      tag_version: ${{ github.ref_name }}
+      profiles: 'db,broker,worker'
+      target: 'runtime'
+      platforms: 'linux/amd64,linux/arm64'
+      staging_runner_label: 'self-hosted-stage'
+      prod_runner_matrix_json: '["self-hosted","rpi"]'
+      no_docker_runners: 'rpi'
+      migrate_before_up: true
+      smoke_url: '/'
+      smoke_timeout: 120
+      smoke_check_command: ''
+    secrets: inherit

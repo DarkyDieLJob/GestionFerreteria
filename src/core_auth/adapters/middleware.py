@@ -2,7 +2,6 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.deprecation import MiddlewareMixin
 
-
 EXEMPT_PATH_NAMES = {
     "core_auth:password_change_enforced",
     "core_auth:logout",
