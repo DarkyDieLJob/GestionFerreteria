@@ -30,7 +30,7 @@ jobs:
       - name: Set image environment
         run: |
           echo "IMAGE_REGISTRY=ghcr.io" >> $GITHUB_ENV
-          echo "IMAGE_REPO=DarkyDieLJob/gestionferreteria" >> $GITHUB_ENV
+          echo "IMAGE_REPO=darkydieljob/gestionferreteria" >> $GITHUB_ENV
           echo "IMAGE_TAG=${{ inputs.version }}" >> $GITHUB_ENV
 
       - name: Pull images
