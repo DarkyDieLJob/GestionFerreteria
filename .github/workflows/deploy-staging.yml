@@ -30,10 +30,14 @@ jobs:
           echo "IMAGE_REPO=DarkyDieLJob/gestionferreteria" >> $GITHUB_ENV
           echo "IMAGE_TAG=staging-latest" >> $GITHUB_ENV
 
-      - name: Pull images
+      - name: Pull images (with profiles)
+        env:
+          COMPOSE_PROFILES: db,broker,web
         run: docker compose pull
 
-      - name: Compose up
+      - name: Compose up (with profiles)
+        env:
+          COMPOSE_PROFILES: db,broker,web
         run: docker compose up -d --remove-orphans
 
       - name: Smoke check
