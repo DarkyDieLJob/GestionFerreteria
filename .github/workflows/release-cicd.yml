@@ -1,26 +1,62 @@
-name: Deploy (production)
+name: Release (build + deploy prod)
 
 on:
-  # Dejamos solo manual y con gate por environment si configurás uno llamado 'production'
+  push:
+    tags:
+      - 'v*'
+      - 'test-pipeline-*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Tag de imagen (vX.Y.Z)'
-        required: true
+        description: 'Tag de imagen (vX.Y.Z o test-pipeline-YYYYMMDD-N). Si se deja vacío, se usa github.ref_name (solo válido si el workflow corre sobre un tag).'
+        required: false
         type: string
 
 permissions:
   contents: read
-  packages: read
+  packages: write
 
 jobs:
-  deploy:
+  build:
+    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-build-push.yml@pre-release
+    secrets: inherit
+    with:
+      image_repo: DarkyDieLJob/gestionferreteria
+      tags: ${{ inputs.version != '' && inputs.version || github.ref_name }}
+      platforms: linux/amd64,linux/arm64
+      context: .
+      dockerfile: Dockerfile
+
+  deploy_prod:
+    name: Deploy (production)
+    needs: [build]
     environment:
-      name: production   # Configurá aprobación manual desde Settings > Environments
+      name: production
     runs-on: [self-hosted, prod]
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve IMAGE_TAG
+        id: resolve_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG_INPUT="${{ inputs.version }}"
+          REF_NAME="${{ github.ref_name }}"
+          if [ -n "${TAG_INPUT}" ]; then
+            TAG="${TAG_INPUT}"
+          else
+            TAG="${REF_NAME}"
+          fi
+          if ! echo "$TAG" | grep -Eq '^(v|test-pipeline-)'; then
+            echo "Refusing to deploy: resolved tag '$TAG' does not look like a supported release tag (v* or test-pipeline-*). Provide inputs.version or run on a matching tag." >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Docker login to GHCR
         env:
@@ -31,7 +67,7 @@ jobs:
         run: |
           echo "IMAGE_REGISTRY=ghcr.io" >> $GITHUB_ENV
           echo "IMAGE_REPO=darkydieljob/gestionferreteria" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${{ inputs.version }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ steps.resolve_tag.outputs.tag }}" >> $GITHUB_ENV
 
       - name: Pull images (with profiles)
         env:
@@ -65,4 +101,3 @@ jobs:
             [ $SECONDS -ge $end ] && { echo "Smoke failed"; docker compose logs --no-color app || true; exit 1; }
             sleep 3
           done
-      # Cuando quieras automatizar, podés crear un flujo que se dispare con tags v* o rama release.
