@@ -8,6 +8,7 @@ Breve descripción del proyecto. Este repositorio se generó a partir de la plan
 - Instalación y comandos rápidos: ver [docs/INSTALACION.md](docs/INSTALACION.md).
 - Índice general de documentación: ver [docs/README.md](docs/README.md).
 - Colas de tareas (Celery + Redis): ver [docs/COLAS_TAREAS.md](docs/COLAS_TAREAS.md).
+- CI/CD (pipelines de simulacro y release): ver [docs/CI_CD.md](docs/CI_CD.md).
 
 ## Colas de tareas (Celery + Redis)
 

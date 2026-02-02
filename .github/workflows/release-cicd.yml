@@ -27,12 +27,131 @@ jobs:
       context: .
       dockerfile: Dockerfile
 
-  deploy_prod:
-    name: Deploy (production)
+  deploy_staging:
+    name: Deploy (staging)
     needs: [build]
     environment:
+      name: staging
+    runs-on: [self-hosted, stage, docker]
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Docker availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v docker >/dev/null 2>&1 || { echo "docker not found on runner (PATH). Install Docker and ensure runner user can execute it."; exit 1; }
+          docker --version
+          docker compose version || true
+
+      - name: Resolve IMAGE_TAG
+        id: resolve_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG_INPUT="${{ inputs.version }}"
+          REF_NAME="${{ github.ref_name }}"
+          if [ -n "${TAG_INPUT}" ]; then
+            TAG="${TAG_INPUT}"
+          else
+            TAG="${REF_NAME}"
+          fi
+          if ! echo "$TAG" | grep -Eq '^(v|test-pipeline-)'; then
+            echo "Refusing to deploy: resolved tag '$TAG' does not look like a supported release tag (v* or test-pipeline-*). Provide inputs.version or run on a matching tag." >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Docker login to GHCR
+        env:
+          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$CR_PAT" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Set image environment
+        run: |
+          echo "IMAGE_REGISTRY=ghcr.io" >> $GITHUB_ENV
+          echo "IMAGE_REPO=darkydieljob/gestionferreteria" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ steps.resolve_tag.outputs.tag }}" >> $GITHUB_ENV
+
+      - name: Pull images (with profiles)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose pull
+
+      - name: Compose diagnostics (before up)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        shell: bash
+        run: |
+          pwd
+          ls -la
+          ls -la docker-compose.yml docker-compose.yaml compose.yml compose.yaml || true
+          echo "COMPOSE_PROFILES=$COMPOSE_PROFILES"
+          env | sort | grep -E 'COMPOSE|IMAGE_|POSTGRES|DJANGO|ENV' || true
+          docker compose version || true
+          docker compose config --services || true
+          docker compose config --profiles || true
+
+      - name: Compose up (with profiles)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose --profile db --profile broker --profile web up -d --remove-orphans
+
+      - name: Smoke check
+        run: |
+          set -euo pipefail
+          end=$((SECONDS+120))
+          until curl -fsS http://127.0.0.1:8001/ >/dev/null; do
+            [ $SECONDS -ge $end ] && { echo "Smoke failed"; docker compose logs --no-color app || true; exit 1; }
+            sleep 3
+          done
+
+  backmerge_release_to_develop:
+    name: Back-merge release -> develop
+    needs: [deploy_staging]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all branches
+        run: |
+          git fetch origin +refs/heads/*:refs/remotes/origin/* --prune
+
+      - name: Merge release into develop
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git checkout develop
+          git reset --hard origin/develop
+          git merge --no-ff origin/release -m "chore: back-merge release into develop after ${{ github.ref_name }}"
+          if git diff --quiet origin/develop...HEAD; then
+            echo "No changes to push"
+          else
+            git push origin HEAD:develop
+          fi
+
+  deploy_prod:
+    name: Deploy (production)
+    needs: [backmerge_release_to_develop]
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
       name: production
-    runs-on: [self-hosted, prod]
+    runs-on: [self-hosted, prod, docker]
     permissions:
       contents: read
       packages: read
