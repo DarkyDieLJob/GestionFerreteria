@@ -40,6 +40,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify Docker availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v docker >/dev/null 2>&1 || { echo "docker not found on runner (PATH). Install Docker and ensure runner user can execute it."; exit 1; }
+          docker --version
+          docker compose version || true
+
       - name: Resolve IMAGE_TAG
         id: resolve_tag
         shell: bash
