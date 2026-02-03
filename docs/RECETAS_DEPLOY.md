@@ -15,7 +15,7 @@ docker compose build
 
 ## Migraciones (previas al up -d)
 ```bash
-docker compose run --rm app python src/manage.py migrate
+docker compose run --rm app python src/manage.py migrate --run-syncdb --noinput
 ```
 
 ## Arranque (ordenado por healthchecks)
@@ -36,6 +36,7 @@ docker compose up -d [--profile db] [--profile broker] [--profile worker]
   - worker: `python src/manage.py check`
 - depends_on con `condition: service_healthy` asegura orden de arranque y tolerancia a latencia.
 - Tradeoff: pequeño tiempo extra (migrate + healthchecks) a cambio de mayor estabilidad.
+- Migraciones: en entornos donde las migraciones no se versionan, `--run-syncdb` permite crear tablas faltantes sin depender de archivos `migrations/`.
 
 ---
 

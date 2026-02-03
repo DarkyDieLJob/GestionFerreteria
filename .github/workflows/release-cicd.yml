@@ -96,6 +96,16 @@ jobs:
           docker compose config --services || true
           docker compose config --profiles || true
 
+      - name: Compose up deps (db + broker)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose --profile db --profile broker up -d db redis
+
+      - name: Run migrations (in-situ)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose run --rm app python src/manage.py migrate --run-syncdb --noinput
+
       - name: Compose up (with profiles)
         env:
           COMPOSE_PROFILES: db,broker,web
@@ -214,6 +224,16 @@ jobs:
           docker compose version || true
           docker compose config --services || true
           docker compose config --profiles || true
+
+      - name: Compose up deps (db + broker)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose --profile db --profile broker up -d db redis
+
+      - name: Run migrations (in-situ)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose run --rm app python src/manage.py migrate --run-syncdb --noinput
 
       - name: Compose up (with profiles)
         env:
