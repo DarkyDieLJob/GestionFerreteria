@@ -18,7 +18,7 @@ Convertiremos "DjangoProyects" en un **GitHub Template Repository** para usarlo 
 ## Consecuencias
 ### Positivas
 - **Simplicidad**: Generar nuevos proyectos con un clic en GitHub, sin copias manuales.
-- **Compatibilidad**: Integra con el flujo Git actual (`develop`, `pre-release`, `main`, Conventional Commits).
+- **Compatibilidad**: Integra con el flujo Git actual (`develop`, `pre-release`, `release`, Conventional Commits).
 - **Flexibilidad**: Permite sincronizar selectivamente (merge/cherry-pick) cambios generales (base → derivados) o específicos (derivado → base).
 - **Mantenimiento ligero**: Ideal para un desarrollador solo, sin herramientas adicionales.
 - **Reusabilidad**: Mejoras en apps comunes (p.ej., `core_utils`) pueden backportearse al base para futuros proyectos.
@@ -50,7 +50,7 @@ Convertiremos "DjangoProyects" en un **GitHub Template Repository** para usarlo 
    - Usar "Use this template" para crear repos como "Ferreteria_v4" o "TeatroBar_v2".
    - Clonar localmente, personalizar (p.ej., `INSTALLED_APPS`, `.env`), y agregar apps específicas.
 3. **Sincronizar Cambios**:
-   - **Base → Derivado**: En el derivado, agregar remote: `git remote add base https://github.com/tu-usuario/DjangoProyects.git`, luego `git fetch base` y `git merge base/main` (o `git cherry-pick <commit>` para cambios específicos).
+   - **Base → Derivado**: En el derivado, agregar remote: `git remote add base https://github.com/tu-usuario/DjangoProyects.git`, luego `git fetch base` y `git merge base/release` (o `git cherry-pick <commit>` para cambios específicos).
    - **Derivado → Base**: Crear PR desde el derivado al base (o cherry-pick commits). Ejemplo: mover templates de calendarios de TeatroBar_v2 a `core_utils` en el base.
    - Resolver conflictos en archivos sensibles (p.ej., `settings.py`, `urls.py`).
 4. **Automatización Parcial**:
@@ -58,7 +58,7 @@ Convertiremos "DjangoProyects" en un **GitHub Template Repository** para usarlo 
    - Ejemplo: Agregar `git remote add base <url> && git fetch base` en el script.
 5. **Documentación**:
    - Actualizar `README.md` y `docs/INSTALACION.md` con instrucciones para usar el template y sincronizar.
-   - Ejemplo: "Para sincronizar con el base: `git remote add base <url> && git fetch base && git merge base/main`".
+   - Ejemplo: "Para sincronizar con el base: `git remote add base <url> && git fetch base && git merge base/release`".
 
 ## Referencias
 - [GitHub Template Repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository)
