@@ -1,10 +1,6 @@
 name: Build & Push (release/tag)
 
 on:
-  push:
-    branches: [release]       # Se ejecuta al pushear/mergear a release
-    # tags:
-    #   - 'v*'                  # Manejado por release-cicd.yml (build + deploy) para evitar doble ejecución
   workflow_dispatch: {}       # Permite ejecución manual
 
 permissions:
