@@ -256,9 +256,9 @@ python -m pytest -q
 
 Sigue `docs/GIT_AGENTES.md`:
 
-- Nunca trabajes directo en `main` o `pre-release`.
+- Nunca trabajes directo en `release` o `pre-release`.
 - Si estás en `develop`: crea una rama `feature/{area}/{descripcion}` para empezar cambios.
-- Si estás en `pre-release` o `main`:
+- Si estás en `pre-release` o `release`:
   - Cambia a la rama `feature/*` pertinente, o
   - Cambia a `develop` y crea la `feature/*` correspondiente.
 

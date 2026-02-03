@@ -1,9 +1,9 @@
-name: Backmerge main -> pre-release
+name: Backmerge release -> pre-release
 
 on:
   push:
     branches:
-      - main
+      - release
 
 permissions:
   contents: write
@@ -26,14 +26,14 @@ jobs:
         run: |
           git fetch origin +refs/heads/*:refs/remotes/origin/*
 
-      - name: Merge main -> pre-release
+      - name: Merge release -> pre-release
         shell: bash
         run: |
           set -e
           # Ensure we have both branches locally
           git checkout -B pre-release origin/pre-release
           # Try the merge (fast-forward or merge commit)
-          if git merge --no-ff origin/main -m "chore: back-merge main into pre-release (run $GITHUB_RUN_ID)"; then
+          if git merge --no-ff origin/release -m "chore: back-merge release into pre-release (run $GITHUB_RUN_ID)"; then
             git push origin pre-release
             echo "Back-merge completed and pushed."
           else
