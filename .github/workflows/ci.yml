@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - release
       - develop
       - pre-release
       - 'feature/**'
@@ -11,7 +11,7 @@ on:
       - 'v*'
   pull_request:
     branches:
-      - main
+      - release
       - develop
       - pre-release
 

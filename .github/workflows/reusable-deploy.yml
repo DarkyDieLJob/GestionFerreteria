@@ -324,7 +324,15 @@ jobs:
           if [ "${COLLECTSTATIC}" = "true" ]; then
             docker compose run --rm app python src/manage.py collectstatic --noinput || true
           fi
-          docker compose up -d
+          pwd
+          ls -la
+          ls -la docker-compose.yml docker-compose.yaml compose.yml compose.yaml || true
+          echo "COMPOSE_PROFILES=$COMPOSE_PROFILES"
+          env | sort | grep -E 'COMPOSE|IMAGE_|POSTGRES|DJANGO|ENV' || true
+          docker compose version || true
+          docker compose config --services || true
+          docker compose config --profiles || true
+          docker compose --profile db --profile broker --profile web up -d
 
       - name: Smoke test (curl)
         if: steps.docker_check.outputs.has_docker == 'true' && steps.nodocker_mark.outputs.marked != 'true' && inputs.smoke_check_command == ''

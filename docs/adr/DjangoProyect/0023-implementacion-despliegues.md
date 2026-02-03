@@ -36,7 +36,7 @@ Tradeoffs: Disciplina en syncs (no mergear archivos versionados); mitigado con d
 Pasos conceptuales para la implementación
 
 Estructura del repositorio y ramas
-Ramas: develop para features, pre-release para staging, main para producción estable.
+Ramas: develop para features, pre-release para staging, release para producción estable.
 Políticas: validación previa a merges; disociación en versionado para evitar overwrites.
 
 Triggers y eventos

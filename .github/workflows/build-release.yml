@@ -3,8 +3,8 @@ name: Build & Push (release/tag)
 on:
   push:
     branches: [release]       # Se ejecuta al pushear/mergear a release
-    tags:
-      - 'v*'                  # También al crear tags vX.Y.Z
+    # tags:
+    #   - 'v*'                  # Manejado por release-cicd.yml (build + deploy) para evitar doble ejecución
   workflow_dispatch: {}       # Permite ejecución manual
 
 permissions:
@@ -13,12 +13,12 @@ permissions:
 
 jobs:
   build:
-    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-build-push.yml@pre-release
+    uses: ./.github/workflows/reusable-build-push.yml
     secrets: inherit
     with:
-      image_repo: DarkyDieLJob/gestionferreteria
+      image_repo: darkydieljob/gestionferreteria
       # Si el evento es tag vX.Y.Z, se usa ese nombre como tag de imagen
-      tags: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+      tags: ${{ startsWith(github.ref, 'refs/tags/v') && format('ghcr.io/darkydieljob/gestionferreteria:{0}', github.ref_name) || format('ghcr.io/darkydieljob/gestionferreteria:sha-{0}', github.sha) }}
       platforms: linux/amd64,linux/arm64
       context: .
       dockerfile: Dockerfile

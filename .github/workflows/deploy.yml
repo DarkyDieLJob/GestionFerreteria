@@ -3,7 +3,7 @@ name: Deploy (child consumer)
 on:
   push:
     tags:
-      - "test-*"
+      - "test-deploy-*"
       # - "v*"  # opcional: habilitar releases reales
   workflow_dispatch: {}
 

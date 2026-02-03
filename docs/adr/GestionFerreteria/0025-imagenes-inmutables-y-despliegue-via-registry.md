@@ -145,7 +145,7 @@ steps:
   - Producción: `IMAGE_TAG=vX.Y.Z` (pinneado) y gate manual.
 
 Notas:
-- Los runners de staging y prod deben apuntar a la rama `deploy`. Se sugiere mantener `main` como histórica/compatibilidad y no renombrarla de inmediato; `release` asume el rol de rama de releases estables para automatizar publish y etiquetado. Una vez estabilizado el flujo, evaluar si `main` queda obsoleta o se alinea a `release`.
+- Los runners de staging y prod deben apuntar a la rama `deploy`. En este repositorio, la rama de producción es `release` y `main` queda como rama histórica/legacy.
 - En producción, no usar `latest` en `IMAGE_TAG`. Se permite co-tag `latest` al publicar, pero `deploy` debe consumir `vX.Y.Z`.
 
 ### Riesgos y mitigaciones
