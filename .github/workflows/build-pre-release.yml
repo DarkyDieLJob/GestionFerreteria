@@ -2,7 +2,8 @@ name: Build & Push (pre-release)
 
 on:
   push:
-    branches: [pre-release]  # Se ejecuta al pushear/mergear a pre-release (no afecta feature/*)
+    tags:
+      - 'test-pipeline-*'
   workflow_dispatch: {}       # Permite ejecución manual
 
 permissions:
