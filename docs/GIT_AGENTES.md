@@ -142,6 +142,18 @@ Para evitar saltos de versión o doble etiquetado, el versionado y la generació
    - `git checkout develop && git pull --ff-only && git merge --no-ff origin/main -m "chore: sync main -> develop (release)" && git push`
    - (Opcional) `git checkout pre-release && git pull --ff-only && git merge --no-ff origin/main -m "chore: sync main -> pre-release (release)" && git push`
 
+### Merge a `release` (para bump automático)
+Cuando se usa `standard-version` en CI, el bump (patch/minor/major) se infiere a partir de los commits desde el último tag.
+Para que el cálculo sea correcto, el historial en la rama `release` debe conservar mensajes con Conventional Commits.
+
+Política recomendada:
+- Usar PRs hacia `release` con método **Squash and merge**.
+- El mensaje del squash commit debe seguir Conventional Commits:
+  - `fix:` = patch
+  - `feat:` = minor
+  - `feat!:` o `BREAKING CHANGE:` = major
+- Evitar merges que generen commits tipo `Merge pull request ...`, porque ese mensaje no aporta semántica para inferir el bump.
+
 ### Notas
 - Si por error se creó un tag manual y luego se ejecutó `standard-version`, puede generarse un salto (p.ej. 1.1.0 → 1.2.0). Evitar mezclar ambos métodos.
 - Los commits deben seguir Conventional Commits para que `standard-version` pueda inferir el tipo de release correctamente.
