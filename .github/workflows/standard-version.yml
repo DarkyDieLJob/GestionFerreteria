@@ -76,3 +76,17 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           git tag -a "$TAG" -m "chore(release): $VERSION"
           git push origin "$TAG"
+
+      - name: Dispatch deploy workflow (release-cicd)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release-cicd.yml',
+              ref: 'release',
+              inputs: {
+                version: '${{ steps.version.outputs.tag }}'
+              }
+            })
