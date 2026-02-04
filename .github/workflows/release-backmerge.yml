@@ -1,17 +1,16 @@
-name: Release Back-Merge
+name: Legacy Release Back-Merge (disabled)
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   backmerge-develop:
-    name: Back-merge main -> develop on tag
+    name: Back-merge release -> develop on tag (disabled)
     runs-on: ubuntu-latest
+    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,15 +26,15 @@ jobs:
         run: |
           git fetch origin +refs/heads/*:refs/remotes/origin/* --prune
 
-      - name: Merge main into develop
+      - name: Merge release into develop
         shell: bash
         run: |
           set -euxo pipefail
           # Ensure we have the latest
           git checkout develop
           git reset --hard origin/develop
-          # Merge origin/main into develop
-          git merge --no-ff origin/main -m "chore: back-merge main into develop after ${{ github.ref_name }}"
+          # Merge origin/release into develop
+          git merge --no-ff origin/release -m "chore: back-merge release into develop after ${{ github.ref_name }}"
           # If nothing to commit, skip push
           if git diff --quiet origin/develop...HEAD; then
             echo "No changes to push"

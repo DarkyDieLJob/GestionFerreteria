@@ -18,6 +18,10 @@ Bienvenido a la documentación central del proyecto. Usa este índice para naveg
   - Pautas operativas para agentes
     - docs/PAUTAS_AGENTES.md
 
+- CI/CD
+  - Pipelines de simulacro (test-pipeline-*) y release real (v*)
+    - docs/CI_CD.md
+
 - Funcionalidades del sistema
   - Colas de tareas (Celery + Redis)
     - docs/COLAS_TAREAS.md

@@ -3,7 +3,7 @@
 Guía de flujo de trabajo Git para agentes y colaboradores.
 
 ## Convenciones de ramas
-- Ramas largas vivas: `main` (producción), `pre-release` (integración/estabilización), `develop` (base para `feature/*` y `fix/*`)
+- Ramas largas vivas: `release` (producción), `pre-release` (integración/estabilización), `develop` (base para `feature/*` y `fix/*`)
 - Ramas de trabajo: `feature/{app_o_seccion}/{descripcion}`
   - Ejemplos:
     - `feature/core_auth/reset-requests-badge`
@@ -18,7 +18,7 @@ Guía de flujo de trabajo Git para agentes y colaboradores.
   1) `git checkout pre-release && git pull --ff-only`
   2) `git checkout -b fix/{area}/{descripcion}`
   3) Commits atómicos con tipo `fix:` o `docs/chore` si aplica.
-  4) Abrir PR base `pre-release` (no a `main`).
+  4) Abrir PR base `pre-release` (no a `release`).
   5) Tras merge en `pre-release`, sincronizar `develop` (ver Sync) si corresponde.
 
 > Nota (trabajo en solitario): este repositorio está pensado para 1 desarrollador. Se prefieren PRs para historial claro, pero se permiten merges directos cuando no haya revisor, manteniendo las validaciones (tests verdes) y mensajes de commit con Conventional Commits.
@@ -36,7 +36,7 @@ Guía de flujo de trabajo Git para agentes y colaboradores.
 - Si estás en `develop` y vas a empezar cambios:
   - Crea una rama `feature/*` primero. No commits directos en `develop`.
 - Si estás en una `feature/*` y vas a abrir un PR:
-  - Base del PR: `pre-release` (evitar `main`).
+  - Base del PR: `pre-release` (evitar `release`).
   - Título descriptivo y cuerpo con: cambios, pruebas, cobertura, migraciones, breaking changes.
 - Si estás en `develop` y hubo cambios en `pre-release`:
   - Trae esos cambios (merge `origin/pre-release` -> `develop`).
@@ -60,7 +60,7 @@ if branch == develop:
 elif branch.startswith('feature/'):
     create_pr(base='pre-release')
 else:
-    # pre-release o main u otras ramas
+    # pre-release o release u otras ramas
     follow_release_or_sync_rules()
 ```
 
@@ -69,17 +69,17 @@ else:
   - `git checkout develop`
   - `git fetch --all --prune`
   - `git merge --no-ff origin/pre-release -m "Merge pre-release into develop"`
-- Evitar merges a `main` desde `feature/*`: nunca directo a producción.
+- Evitar merges a `release` desde `feature/*`: nunca directo a producción.
 
 ## Releases
-- Objetivo: promover cambios probados en `pre-release` a `main`.
+- Objetivo: promover cambios probados en `pre-release` a `release`.
 - Pasos sugeridos:
   1) Validar CI verde en `pre-release` y aprobación QA.
-  2) Crear PR de `pre-release` -> `main` (revisión final).
-  3) Al mergear en `main`:
+  2) Crear PR de `pre-release` -> `release` (revisión final).
+  3) Al mergear en `release`:
      - Crear tag semántico (ej: `vX.Y.Z`): `git tag -a vX.Y.Z -m "Release vX.Y.Z"` y `git push origin vX.Y.Z`.
      - Opcional: GitHub Release con changelog.
-  4) Desplegar desde `main` (pipeline de CD si existe).
+  4) Desplegar desde `release` (pipeline de CD si existe).
 
 ### Opción directa (solo desarrollador, sin PR)
 - Usar solo cuando no existan revisores y con tests locales verdes.
@@ -87,11 +87,11 @@ else:
 git checkout pre-release
 git pull --ff-only
 # Validar estado (tests/QA)
-git checkout main
+git checkout release
 git pull --ff-only
 git merge --no-ff pre-release -m "release: v1.0.0"
 git tag -a v1.0.0 -m "release: v1.0.0"
-git push origin main
+git push origin release
 git push origin v1.0.0
 # Mantener ramas sincronizadas
 git checkout develop && git pull --ff-only && git merge --no-ff origin/pre-release -m "chore: sync pre-release -> develop (v1.0.0)" && git push
@@ -101,7 +101,7 @@ git checkout develop && git pull --ff-only && git merge --no-ff origin/pre-relea
 - Backport = aplicar cambios ya integrados en una rama más adelantada a otra rama base diferente.
 - Ejemplos:
   - Se mergeó una feature en `pre-release`, pero también se necesita en `develop` (si divergieron): merge `pre-release` -> `develop`.
-  - Se hizo un hotfix en `main` y hay que llevarlo a `pre-release`/`develop`.
+  - Se hizo un hotfix en `release` y hay que llevarlo a `pre-release`/`develop`.
 - Reglas:
   - Preferir merges limpios (`--no-ff`) y resolver conflictos con cuidado.
   - Registrar en el PR/commit que es un backport y el enlace al PR original.
@@ -109,14 +109,14 @@ git checkout develop && git pull --ff-only && git merge --no-ff origin/pre-relea
 ## Buenas prácticas
 - Commits pequeños y descriptivos; mensajes con contexto.
 - Ejecutar tests y coverage localmente antes de push.
-- No empujar directamente a `main` ni `pre-release` sin PR.
+- No empujar directamente a `release` ni `pre-release` sin PR.
 - Limpiar ramas `feature/*` tras merge (borrar local y remoto).
 
 ## Comandos útiles (resumen)
 - Crear feature: `git checkout develop && git pull --ff-only && git checkout -b feature/{app}/{desc}`
 - Abrir PR a pre-release (con gh): `gh pr create --base pre-release --head feature/{app}/{desc} ...`
 - Sync pre-release -> develop: `git checkout develop && git fetch && git merge --no-ff origin/pre-release -m "Merge pre-release into develop"`
-- Release: PR `pre-release` -> `main`, luego tag `vX.Y.Z` y push del tag.
+- Release: PR `pre-release` -> `release`, luego tag `vX.Y.Z` y push del tag.
  - Crear fix: `git checkout pre-release && git pull --ff-only && git checkout -b fix/{area}/{desc}`
  - Abrir PR fix a pre-release: `gh pr create --base pre-release --head fix/{area}/{desc} ...`
 
@@ -130,17 +130,29 @@ Para evitar saltos de versión o doble etiquetado, el versionado y la generació
 - Usar versiones semánticas: `major.minor.patch`.
 
 ### Flujo recomendado
-1) Asegúrate de que `main` contenga el contenido a publicar (mergea `pre-release` -> `main`).
-2) En `main`, ejecutar una sola vez según el tipo de release:
+1) Asegúrate de que `release` contenga el contenido a publicar (mergea `pre-release` -> `release`).
+2) En `release`, ejecutar una sola vez según el tipo de release:
    - Patch: `npx standard-version --release-as patch`
    - Minor: `npx standard-version --release-as minor`
    - Major: `npx standard-version --release-as major`
    (o sin `--release-as` para que infiera por commits)
 3) Publicar commit y tags:
-   - `git push --follow-tags origin main`
+   - `git push --follow-tags origin release`
 4) Sincronizar ramas:
-   - `git checkout develop && git pull --ff-only && git merge --no-ff origin/main -m "chore: sync main -> develop (release)" && git push`
-   - (Opcional) `git checkout pre-release && git pull --ff-only && git merge --no-ff origin/main -m "chore: sync main -> pre-release (release)" && git push`
+   - `git checkout develop && git pull --ff-only && git merge --no-ff origin/release -m "chore: sync release -> develop (release)" && git push`
+   - (Opcional) `git checkout pre-release && git pull --ff-only && git merge --no-ff origin/release -m "chore: sync release -> pre-release (release)" && git push`
+
+### Merge a `release` (para bump automático)
+Cuando se usa `standard-version` en CI, el bump (patch/minor/major) se infiere a partir de los commits desde el último tag.
+Para que el cálculo sea correcto, el historial en la rama `release` debe conservar mensajes con Conventional Commits.
+
+Política recomendada:
+- Usar PRs hacia `release` con método **Squash and merge**.
+- El mensaje del squash commit debe seguir Conventional Commits:
+  - `fix:` = patch
+  - `feat:` = minor
+  - `feat!:` o `BREAKING CHANGE:` = major
+- Evitar merges que generen commits tipo `Merge pull request ...`, porque ese mensaje no aporta semántica para inferir el bump.
 
 ### Notas
 - Si por error se creó un tag manual y luego se ejecutó `standard-version`, puede generarse un salto (p.ej. 1.1.0 → 1.2.0). Evitar mezclar ambos métodos.

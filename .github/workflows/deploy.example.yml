@@ -5,13 +5,11 @@
 name: Deploy (child example)
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch: {}
 
 jobs:
   deploy:
-    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-deploy.yml@main
+    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-deploy.yml@release
     with:
       tag_version: ${{ github.ref_name }}
       profiles: 'db,broker,worker'

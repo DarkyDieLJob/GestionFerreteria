@@ -42,7 +42,7 @@ Este documento detalla una checklist secuencial para completar ADR-0002. Cada í
 
 4. **Demostrar Sincronización Base → Derivado**  
    - **Descripción**: Probar la propagación de cambios del base a un derivado.  
-   - **Acciones**: En el base, hacer un cambio simple (p.ej., agregar un comentario en `core_utils/helpers.py`). Commit y push a `main`. En el derivado, agregar remote: `git remote add base https://github.com/tu-usuario/DjangoProyects.git`, fetch, y merge: `git fetch base && git merge base/main`.  
+   - **Acciones**: En el base, hacer un cambio simple (p.ej., agregar un comentario en `core_utils/helpers.py`). Commit y push a `release`. En el derivado, agregar remote: `git remote add base https://github.com/tu-usuario/DjangoProyects.git`, fetch, y merge: `git fetch base && git merge base/release`.  
    - **Verificación**: [ ] El cambio aparece en el derivado sin conflictos mayores; tests pasan (`pytest -q`). **Evidencia**: `git log` mostrando el merge.
 
 5. **Demostrar Sincronización Derivado → Base**  
@@ -57,7 +57,7 @@ Este documento detalla una checklist secuencial para completar ADR-0002. Cada í
 
 7. **Actualizar Documentación**  
    - **Descripción**: Documentar el nuevo flujo en archivos clave.  
-   - **Acciones**: Actualizar `README.md` con sección "Usar como Template" (instrucciones para generar derivados y sincronizar). Actualizar `docs/INSTALACION.md` con pasos para sync (p.ej., "Para sincronizar con el base: `git remote add base <url> && git fetch base && git merge base/main`").  
+   - **Acciones**: Actualizar `README.md` con sección "Usar como Template" (instrucciones para generar derivados y sincronizar). Actualizar `docs/INSTALACION.md` con pasos para sync (p.ej., "Para sincronizar con el base: `git remote add base <url> && git fetch base && git merge base/release`").  
    - **Verificación**: [ ] Documentos reflejan el flujo; links a ADR-0002. **Evidencia**: Commit con actualizaciones.
 
 8. **Validar Flujo Completo y Cleanup**  

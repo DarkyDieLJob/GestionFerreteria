@@ -15,15 +15,54 @@ permissions:
 
 jobs:
   deploy:
-    environment: production   # Configurá aprobación manual desde Settings > Environments
-    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-pull-deploy.yml@pre-release
-    secrets: inherit
-    with:
-      runner_label: "prod"                  # Ajusta si tu runner usa otro label
-      image_repo: DarkyDieLJob/gestionferreteria
-      image_tag: ${{ inputs.version }}      # Producción SIEMPRE pinneada a vX.Y.Z
-      compose_files: docker-compose.yml
-      deny_latest: true
-      base_url: http://127.0.0.1:8001
-      smoke_url: "/"
+    environment:
+      name: production   # Configurá aprobación manual desde Settings > Environments
+    runs-on: [self-hosted, prod]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker login to GHCR
+        env:
+          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$CR_PAT" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Set image environment
+        run: |
+          echo "IMAGE_REGISTRY=ghcr.io" >> $GITHUB_ENV
+          echo "IMAGE_REPO=darkydieljob/gestionferreteria" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ inputs.version }}" >> $GITHUB_ENV
+
+      - name: Pull images (with profiles)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose pull
+
+      - name: Compose diagnostics (before up)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        shell: bash
+        run: |
+          pwd
+          ls -la
+          ls -la docker-compose.yml docker-compose.yaml compose.yml compose.yaml || true
+          echo "COMPOSE_PROFILES=$COMPOSE_PROFILES"
+          env | sort | grep -E 'COMPOSE|IMAGE_|POSTGRES|DJANGO|ENV' || true
+          docker compose version || true
+          docker compose config --services || true
+          docker compose config --profiles || true
+
+      - name: Compose up (with profiles)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose --profile db --profile broker --profile web up -d --remove-orphans
+
+      - name: Smoke check
+        run: |
+          set -euo pipefail
+          end=$((SECONDS+120))
+          until curl -fsS http://127.0.0.1:8001/ >/dev/null; do
+            [ $SECONDS -ge $end ] && { echo "Smoke failed"; docker compose logs --no-color app || true; exit 1; }
+            sleep 3
+          done
       # Cuando quieras automatizar, podés crear un flujo que se dispare con tags v* o rama release.

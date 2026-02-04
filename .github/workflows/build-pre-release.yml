@@ -2,7 +2,8 @@ name: Build & Push (pre-release)
 
 on:
   push:
-    branches: [pre-release]  # Se ejecuta al pushear/mergear a pre-release (no afecta feature/*)
+    tags:
+      - 'test-pipeline-*'
   workflow_dispatch: {}       # Permite ejecución manual
 
 permissions:
@@ -11,12 +12,12 @@ permissions:
 
 jobs:
   build:
-    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-build-push.yml@pre-release
+    uses: ./.github/workflows/reusable-build-push.yml
     secrets: inherit
     with:
-      image_repo: DarkyDieLJob/gestionferreteria
+      image_repo: darkydieljob/gestionferreteria
       # Publica para staging
-      tags: staging-latest,sha-${{ github.sha }}
+      tags: ghcr.io/darkydieljob/gestionferreteria:staging-latest,ghcr.io/darkydieljob/gestionferreteria:sha-${{ github.sha }}
       platforms: linux/amd64,linux/arm64
       context: .
       dockerfile: Dockerfile

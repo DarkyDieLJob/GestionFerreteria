@@ -12,15 +12,45 @@ permissions:
 
 jobs:
   deploy:
-    environment: staging
-    uses: DarkyDieLJob/DjangoProyects/.github/workflows/reusable-pull-deploy.yml@pre-release
-    secrets: inherit
-    with:
-      runner_label: "stage"                 # Ajusta si tu runner usa otro label
-      image_repo: DarkyDieLJob/gestionferreteria
-      image_tag: staging-latest            # Staging usa alias mutable
-      compose_files: docker-compose.yml
-      deny_latest: true                    # Bloquea latest en ambientes que lo impiden
-      base_url: http://127.0.0.1:8001      # Tu app expone 8001
-      smoke_url: "/"
+    environment:
+      name: staging
+    runs-on: [self-hosted, stage]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker login to GHCR
+        env:
+          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$CR_PAT" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Set image environment
+        run: |
+          echo "IMAGE_REGISTRY=ghcr.io" >> $GITHUB_ENV
+          echo "IMAGE_REPO=darkydieljob/gestionferreteria" >> $GITHUB_ENV
+          echo "IMAGE_TAG=staging-latest" >> $GITHUB_ENV
+
+      - name: Ensure app image exists (pull or build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMG="${IMAGE_REGISTRY}/${IMAGE_REPO}:${IMAGE_TAG}"
+          if ! docker pull "$IMG"; then
+            echo "App image $IMG not found in registry. Building locally..."
+            docker build --target runtime -t "$IMG" -f Dockerfile .
+          fi
+
+      - name: Compose up (with profiles)
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        run: docker compose up -d --remove-orphans
+
+      - name: Smoke check
+        run: |
+          set -euo pipefail
+          end=$((SECONDS+120))
+          until curl -fsS http://127.0.0.1:8001/ >/dev/null; do
+            [ $SECONDS -ge $end ] && { echo "Smoke failed"; docker compose logs --no-color app || true; exit 1; }
+            sleep 3
+          done
       # Para despliegue real automático, agregá el trigger por rama y ejecutá este flujo.
