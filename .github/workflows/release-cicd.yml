@@ -135,14 +135,22 @@ jobs:
           if "${migrate_cmd[@]}"; then
             exit 0
           fi
-          echo "Migration failed; attempting targeted recovery for core_auth:0002..." >&2
+          echo "Migration failed; attempting automatic recovery for DuplicateTable (fake failing migration + retry)..." >&2
           set +e
           out=$("${migrate_cmd[@]}" 2>&1)
           code=$?
           set -e
           echo "$out" >&2
-          if echo "$out" | grep -Fq 'relation "core_auth_coreauthprofile" already exists'; then
-            docker compose run --rm app python src/manage.py migrate core_auth 0002 --fake
+          if echo "$out" | grep -Eqi 'already exists|DuplicateTable'; then
+            mig=$(echo "$out" | sed -nE 's/^\s*Applying\s+([a-zA-Z0-9_]+)\.([0-9]{4}[^[:space:]]*).*/\1 \2/p' | tail -n 1)
+            if [ -z "$mig" ]; then
+              echo "Could not detect failing migration from output; aborting." >&2
+              exit $code
+            fi
+            app=$(echo "$mig" | awk '{print $1}')
+            name=$(echo "$mig" | awk '{print $2}')
+            echo "Detected failing migration: $app $name. Marking as fake and retrying..." >&2
+            docker compose run --rm app python src/manage.py migrate "$app" "$name" --fake
             "${migrate_cmd[@]}"
           else
             exit $code
@@ -302,14 +310,22 @@ jobs:
           if "${migrate_cmd[@]}"; then
             exit 0
           fi
-          echo "Migration failed; attempting targeted recovery for core_auth:0002..." >&2
+          echo "Migration failed; attempting automatic recovery for DuplicateTable (fake failing migration + retry)..." >&2
           set +e
           out=$("${migrate_cmd[@]}" 2>&1)
           code=$?
           set -e
           echo "$out" >&2
-          if echo "$out" | grep -Fq 'relation "core_auth_coreauthprofile" already exists'; then
-            docker compose run --rm app python src/manage.py migrate core_auth 0002 --fake
+          if echo "$out" | grep -Eqi 'already exists|DuplicateTable'; then
+            mig=$(echo "$out" | sed -nE 's/^\s*Applying\s+([a-zA-Z0-9_]+)\.([0-9]{4}[^[:space:]]*).*/\1 \2/p' | tail -n 1)
+            if [ -z "$mig" ]; then
+              echo "Could not detect failing migration from output; aborting." >&2
+              exit $code
+            fi
+            app=$(echo "$mig" | awk '{print $1}')
+            name=$(echo "$mig" | awk '{print $2}')
+            echo "Detected failing migration: $app $name. Marking as fake and retrying..." >&2
+            docker compose run --rm app python src/manage.py migrate "$app" "$name" --fake
             "${migrate_cmd[@]}"
           else
             exit $code
