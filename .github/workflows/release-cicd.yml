@@ -11,6 +11,10 @@ on:
         description: 'Tag de imagen (vX.Y.Z o test-pipeline-YYYYMMDD-N). Si se deja vacío, se usa github.ref_name (solo válido si el workflow corre sobre un tag).'
         required: false
         type: string
+      fake_migrations:
+        description: 'Opcional. Lista separada por comas de migraciones a marcar como aplicadas (FAKE) antes de migrar. Formato: app_label:migration (ej: core_auth:0002).'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -101,10 +105,30 @@ jobs:
           COMPOSE_PROFILES: db,broker,web
         run: docker compose --profile db --profile broker up -d db redis
 
+      - name: Fake migrations (optional)
+        if: inputs.fake_migrations != ''
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        shell: bash
+        run: |
+          set -euo pipefail
+          IFS=',' read -ra ITEMS <<< "${{ inputs.fake_migrations }}"
+          for item in "${ITEMS[@]}"; do
+            item_trimmed=$(echo "$item" | xargs)
+            app=${item_trimmed%%:*}
+            mig=${item_trimmed##*:}
+            if [ -z "$app" ] || [ -z "$mig" ] || [ "$app" = "$mig" ]; then
+              echo "Invalid fake migration entry: '$item_trimmed' (expected app:migration)" >&2
+              exit 1
+            fi
+            echo "Faking migration: $app $mig"
+            docker compose run --rm app python src/manage.py migrate "$app" "$mig" --fake
+          done
+
       - name: Run migrations (in-situ)
         env:
           COMPOSE_PROFILES: db,broker,web
-        run: docker compose run --rm app python src/manage.py migrate --run-syncdb --noinput
+        run: docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput
 
       - name: Compose up (with profiles)
         env:
@@ -230,10 +254,30 @@ jobs:
           COMPOSE_PROFILES: db,broker,web
         run: docker compose --profile db --profile broker up -d db redis
 
+      - name: Fake migrations (optional)
+        if: inputs.fake_migrations != ''
+        env:
+          COMPOSE_PROFILES: db,broker,web
+        shell: bash
+        run: |
+          set -euo pipefail
+          IFS=',' read -ra ITEMS <<< "${{ inputs.fake_migrations }}"
+          for item in "${ITEMS[@]}"; do
+            item_trimmed=$(echo "$item" | xargs)
+            app=${item_trimmed%%:*}
+            mig=${item_trimmed##*:}
+            if [ -z "$app" ] || [ -z "$mig" ] || [ "$app" = "$mig" ]; then
+              echo "Invalid fake migration entry: '$item_trimmed' (expected app:migration)" >&2
+              exit 1
+            fi
+            echo "Faking migration: $app $mig"
+            docker compose run --rm app python src/manage.py migrate "$app" "$mig" --fake
+          done
+
       - name: Run migrations (in-situ)
         env:
           COMPOSE_PROFILES: db,broker,web
-        run: docker compose run --rm app python src/manage.py migrate --run-syncdb --noinput
+        run: docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput
 
       - name: Compose up (with profiles)
         env:
