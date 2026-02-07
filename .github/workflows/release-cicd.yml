@@ -34,141 +34,21 @@ jobs:
   deploy_staging:
     name: Deploy (staging)
     needs: [build]
-    environment:
-      name: staging
-    runs-on: [self-hosted, stage, docker]
+    uses: ./.github/workflows/reusable-compose-deploy-ghcr.yml
+    secrets: inherit
     permissions:
       contents: read
       packages: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Verify Docker availability
-        shell: bash
-        run: |
-          set -euo pipefail
-          command -v docker >/dev/null 2>&1 || { echo "docker not found on runner (PATH). Install Docker and ensure runner user can execute it."; exit 1; }
-          docker --version
-          docker compose version || true
-
-      - name: Resolve IMAGE_TAG
-        id: resolve_tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG_INPUT="${{ inputs.version }}"
-          REF_NAME="${{ github.ref_name }}"
-          if [ -n "${TAG_INPUT}" ]; then
-            TAG="${TAG_INPUT}"
-          else
-            TAG="${REF_NAME}"
-          fi
-          if ! echo "$TAG" | grep -Eq '^(v|test-pipeline-)'; then
-            echo "Refusing to deploy: resolved tag '$TAG' does not look like a supported release tag (v* or test-pipeline-*). Provide inputs.version or run on a matching tag." >&2
-            exit 1
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Docker login to GHCR
-        env:
-          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "$CR_PAT" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Set image environment
-        run: |
-          echo "IMAGE_REGISTRY=ghcr.io" >> $GITHUB_ENV
-          echo "IMAGE_REPO=darkydieljob/gestionferreteria" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${{ steps.resolve_tag.outputs.tag }}" >> $GITHUB_ENV
-
-      - name: Pull images (with profiles)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        run: docker compose pull
-
-      - name: Compose diagnostics (before up)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        shell: bash
-        run: |
-          pwd
-          ls -la
-          ls -la docker-compose.yml docker-compose.yaml compose.yml compose.yaml || true
-          echo "COMPOSE_PROFILES=$COMPOSE_PROFILES"
-          env | sort | grep -E 'COMPOSE|IMAGE_|POSTGRES|DJANGO|ENV' || true
-          docker compose version || true
-          docker compose config --services || true
-          docker compose config --profiles || true
-
-      - name: Compose up deps (db + broker)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        run: docker compose --profile db --profile broker up -d db redis
-
-      - name: Fake migrations (optional)
-        if: inputs.fake_migrations != ''
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        shell: bash
-        run: |
-          set -euo pipefail
-          IFS=',' read -ra ITEMS <<< "${{ inputs.fake_migrations }}"
-          for item in "${ITEMS[@]}"; do
-            item_trimmed=$(echo "$item" | xargs)
-            app=${item_trimmed%%:*}
-            mig=${item_trimmed##*:}
-            if [ -z "$app" ] || [ -z "$mig" ] || [ "$app" = "$mig" ]; then
-              echo "Invalid fake migration entry: '$item_trimmed' (expected app:migration)" >&2
-              exit 1
-            fi
-            echo "Faking migration: $app $mig"
-            docker compose run --rm app python src/manage.py migrate "$app" "$mig" --fake
-          done
-
-      - name: Run migrations (in-situ)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        shell: bash
-        run: |
-          set -euo pipefail
-          migrate_cmd=(docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput)
-          if "${migrate_cmd[@]}"; then
-            exit 0
-          fi
-          echo "Migration failed; attempting automatic recovery for DuplicateTable (fake failing migration + retry)..." >&2
-          set +e
-          out=$("${migrate_cmd[@]}" 2>&1)
-          code=$?
-          set -e
-          echo "$out" >&2
-          if echo "$out" | grep -Eqi 'already exists|DuplicateTable'; then
-            mig=$(echo "$out" | sed -nE 's/^\s*Applying\s+([a-zA-Z0-9_]+)\.([0-9]{4}[^[:space:]]*).*/\1 \2/p' | tail -n 1)
-            if [ -z "$mig" ]; then
-              echo "Could not detect failing migration from output; aborting." >&2
-              exit $code
-            fi
-            app=$(echo "$mig" | awk '{print $1}')
-            name=$(echo "$mig" | awk '{print $2}')
-            echo "Detected failing migration: $app $name. Marking as fake and retrying..." >&2
-            docker compose run --rm app python src/manage.py migrate "$app" "$name" --fake
-            "${migrate_cmd[@]}"
-          else
-            exit $code
-          fi
-
-      - name: Compose up (with profiles)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        run: docker compose --profile db --profile broker --profile web up -d --remove-orphans
-
-      - name: Smoke check
-        run: |
-          set -euo pipefail
-          end=$((SECONDS+120))
-          until curl -fsS http://127.0.0.1:8001/ >/dev/null; do
-            [ $SECONDS -ge $end ] && { echo "Smoke failed"; docker compose logs --no-color app || true; exit 1; }
-            sleep 3
-          done
+    with:
+      environment_name: staging
+      runner_labels_json: '["self-hosted","stage","docker"]'
+      image_registry: ghcr.io
+      image_repo: darkydieljob/gestionferreteria
+      image_tag: ${{ inputs.version != '' && inputs.version || github.ref_name }}
+      profiles: db,broker,web
+      fake_migrations: ${{ inputs.fake_migrations }}
+      smoke_url: http://127.0.0.1:8001/
+      smoke_timeout_seconds: 120
 
   backmerge_release_to_develop:
     name: Back-merge release -> develop
@@ -209,138 +89,18 @@ jobs:
     name: Deploy (production)
     needs: [backmerge_release_to_develop]
     if: startsWith(github.ref, 'refs/tags/v') || startsWith(inputs.version, 'v')
-    environment:
-      name: production
-    runs-on: [self-hosted, prod, docker]
+    uses: ./.github/workflows/reusable-compose-deploy-ghcr.yml
+    secrets: inherit
     permissions:
       contents: read
       packages: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Verify Docker availability
-        shell: bash
-        run: |
-          set -euo pipefail
-          command -v docker >/dev/null 2>&1 || { echo "docker not found on runner (PATH). Install Docker and ensure runner user can execute it."; exit 1; }
-          docker --version
-          docker compose version || true
-
-      - name: Resolve IMAGE_TAG
-        id: resolve_tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG_INPUT="${{ inputs.version }}"
-          REF_NAME="${{ github.ref_name }}"
-          if [ -n "${TAG_INPUT}" ]; then
-            TAG="${TAG_INPUT}"
-          else
-            TAG="${REF_NAME}"
-          fi
-          if ! echo "$TAG" | grep -Eq '^(v|test-pipeline-)'; then
-            echo "Refusing to deploy: resolved tag '$TAG' does not look like a supported release tag (v* or test-pipeline-*). Provide inputs.version or run on a matching tag." >&2
-            exit 1
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Docker login to GHCR
-        env:
-          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "$CR_PAT" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Set image environment
-        run: |
-          echo "IMAGE_REGISTRY=ghcr.io" >> $GITHUB_ENV
-          echo "IMAGE_REPO=darkydieljob/gestionferreteria" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${{ steps.resolve_tag.outputs.tag }}" >> $GITHUB_ENV
-
-      - name: Pull images (with profiles)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        run: docker compose pull
-
-      - name: Compose diagnostics (before up)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        shell: bash
-        run: |
-          pwd
-          ls -la
-          ls -la docker-compose.yml docker-compose.yaml compose.yml compose.yaml || true
-          echo "COMPOSE_PROFILES=$COMPOSE_PROFILES"
-          env | sort | grep -E 'COMPOSE|IMAGE_|POSTGRES|DJANGO|ENV' || true
-          docker compose version || true
-          docker compose config --services || true
-          docker compose config --profiles || true
-
-      - name: Compose up deps (db + broker)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        run: docker compose --profile db --profile broker up -d db redis
-
-      - name: Fake migrations (optional)
-        if: inputs.fake_migrations != ''
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        shell: bash
-        run: |
-          set -euo pipefail
-          IFS=',' read -ra ITEMS <<< "${{ inputs.fake_migrations }}"
-          for item in "${ITEMS[@]}"; do
-            item_trimmed=$(echo "$item" | xargs)
-            app=${item_trimmed%%:*}
-            mig=${item_trimmed##*:}
-            if [ -z "$app" ] || [ -z "$mig" ] || [ "$app" = "$mig" ]; then
-              echo "Invalid fake migration entry: '$item_trimmed' (expected app:migration)" >&2
-              exit 1
-            fi
-            echo "Faking migration: $app $mig"
-            docker compose run --rm app python src/manage.py migrate "$app" "$mig" --fake
-          done
-
-      - name: Run migrations (in-situ)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        shell: bash
-        run: |
-          set -euo pipefail
-          migrate_cmd=(docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput)
-          if "${migrate_cmd[@]}"; then
-            exit 0
-          fi
-          echo "Migration failed; attempting automatic recovery for DuplicateTable (fake failing migration + retry)..." >&2
-          set +e
-          out=$("${migrate_cmd[@]}" 2>&1)
-          code=$?
-          set -e
-          echo "$out" >&2
-          if echo "$out" | grep -Eqi 'already exists|DuplicateTable'; then
-            mig=$(echo "$out" | sed -nE 's/^\s*Applying\s+([a-zA-Z0-9_]+)\.([0-9]{4}[^[:space:]]*).*/\1 \2/p' | tail -n 1)
-            if [ -z "$mig" ]; then
-              echo "Could not detect failing migration from output; aborting." >&2
-              exit $code
-            fi
-            app=$(echo "$mig" | awk '{print $1}')
-            name=$(echo "$mig" | awk '{print $2}')
-            echo "Detected failing migration: $app $name. Marking as fake and retrying..." >&2
-            docker compose run --rm app python src/manage.py migrate "$app" "$name" --fake
-            "${migrate_cmd[@]}"
-          else
-            exit $code
-          fi
-
-      - name: Compose up (with profiles)
-        env:
-          COMPOSE_PROFILES: db,broker,web
-        run: docker compose --profile db --profile broker --profile web up -d --remove-orphans
-
-      - name: Smoke check
-        run: |
-          set -euo pipefail
-          end=$((SECONDS+120))
-          until curl -fsS http://127.0.0.1:8001/ >/dev/null; do
-            [ $SECONDS -ge $end ] && { echo "Smoke failed"; docker compose logs --no-color app || true; exit 1; }
-            sleep 3
-          done
+    with:
+      environment_name: production
+      runner_labels_json: '["self-hosted","prod","docker"]'
+      image_registry: ghcr.io
+      image_repo: darkydieljob/gestionferreteria
+      image_tag: ${{ inputs.version != '' && inputs.version || github.ref_name }}
+      profiles: db,broker,web
+      fake_migrations: ${{ inputs.fake_migrations }}
+      smoke_url: http://127.0.0.1:8001/
+      smoke_timeout_seconds: 120
