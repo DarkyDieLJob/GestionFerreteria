@@ -128,7 +128,25 @@ jobs:
       - name: Run migrations (in-situ)
         env:
           COMPOSE_PROFILES: db,broker,web
-        run: docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput
+        shell: bash
+        run: |
+          set -euo pipefail
+          migrate_cmd=(docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput)
+          if "${migrate_cmd[@]}"; then
+            exit 0
+          fi
+          echo "Migration failed; attempting targeted recovery for core_auth:0002..." >&2
+          set +e
+          out=$("${migrate_cmd[@]}" 2>&1)
+          code=$?
+          set -e
+          echo "$out" >&2
+          if echo "$out" | grep -Fq 'relation "core_auth_coreauthprofile" already exists'; then
+            docker compose run --rm app python src/manage.py migrate core_auth 0002 --fake
+            "${migrate_cmd[@]}"
+          else
+            exit $code
+          fi
 
       - name: Compose up (with profiles)
         env:
@@ -277,7 +295,25 @@ jobs:
       - name: Run migrations (in-situ)
         env:
           COMPOSE_PROFILES: db,broker,web
-        run: docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput
+        shell: bash
+        run: |
+          set -euo pipefail
+          migrate_cmd=(docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput)
+          if "${migrate_cmd[@]}"; then
+            exit 0
+          fi
+          echo "Migration failed; attempting targeted recovery for core_auth:0002..." >&2
+          set +e
+          out=$("${migrate_cmd[@]}" 2>&1)
+          code=$?
+          set -e
+          echo "$out" >&2
+          if echo "$out" | grep -Fq 'relation "core_auth_coreauthprofile" already exists'; then
+            docker compose run --rm app python src/manage.py migrate core_auth 0002 --fake
+            "${migrate_cmd[@]}"
+          else
+            exit $code
+          fi
 
       - name: Compose up (with profiles)
         env:
