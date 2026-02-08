@@ -69,6 +69,34 @@ jobs:
           echo "IMAGE_REPO=${{ inputs.image_repo }}" >> $GITHUB_ENV
           echo "IMAGE_TAG=${{ inputs.image_tag }}" >> $GITHUB_ENV
 
+      - name: Disk space diagnostics and Docker cleanup (if low)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "== Disk usage (df -h) =="
+          df -h || true
+          echo
+          echo "== Docker usage (docker system df) =="
+          docker system df || true
+
+          # If root filesystem has less than 10% available, attempt aggressive cleanup.
+          avail_pct=$(df -P / | awk 'NR==2{gsub(/%/,"",$5); print 100-$5}')
+          echo "Root filesystem available: ${avail_pct}%"
+          if [ -n "${avail_pct}" ] && [ "${avail_pct}" -lt 10 ]; then
+            echo "Low disk space detected (<10% available). Running Docker cleanup..." >&2
+            docker compose down -v --remove-orphans || true
+            docker container prune -f || true
+            docker image prune -af || true
+            docker builder prune -af || true
+            docker volume prune -f || true
+            echo "== After cleanup (df -h) =="
+            df -h || true
+            echo "== After cleanup (docker system df) =="
+            docker system df || true
+          else
+            echo "Disk space OK; skipping cleanup."
+          fi
+
       - name: Pull images (with profiles)
         env:
           COMPOSE_PROFILES: ${{ inputs.profiles }}
