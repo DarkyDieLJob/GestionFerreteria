@@ -169,7 +169,7 @@ jobs:
               exit 1
             fi
             echo "Faking migration: $app $mig"
-            docker compose run --rm app python src/manage.py migrate "$app" "$mig" --fake
+            docker compose run --rm -e ENABLE_MIGRATE=false -e ENABLE_MAKEMIGRATIONS=false app python src/manage.py migrate "$app" "$mig" --fake
           done
 
       - name: Run migrations (in-situ)
@@ -178,7 +178,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          migrate_cmd=(docker compose run --rm app python src/manage.py migrate --fake-initial --run-syncdb --noinput)
+          migrate_cmd=(docker compose run --rm -e ENABLE_MIGRATE=false -e ENABLE_MAKEMIGRATIONS=false app python src/manage.py migrate --fake-initial --run-syncdb --noinput)
           set +e
           out=$("${migrate_cmd[@]}" 2>&1)
           code=$?
@@ -199,7 +199,7 @@ jobs:
             name=$(echo "$name_raw" | sed -E 's/\.\.\..*$//' | sed -E 's/[^a-zA-Z0-9_].*$//')
             if echo "$name" | grep -Eq '^[0-9]{4}_[a-zA-Z0-9_]+$'; then
               echo "Migration failed due to DuplicateTable. Faking migration: $app $name and retrying..." >&2
-              docker compose run --rm app python src/manage.py migrate "$app" "$name" --fake
+              docker compose run --rm -e ENABLE_MIGRATE=false -e ENABLE_MAKEMIGRATIONS=false app python src/manage.py migrate "$app" "$name" --fake
               "${migrate_cmd[@]}"
               exit $?
             fi
@@ -208,7 +208,7 @@ jobs:
           # Fallback for known production issue: existing core_auth_coreauthprofile table with desynced migration history.
           if echo "$out" | grep -Eqi 'core_auth_coreauthprofile'; then
             echo "DuplicateTable for core_auth_coreauthprofile detected. Faking core_auth 0002_coreauthprofile_passwordresetrequest and retrying..." >&2
-            docker compose run --rm app python src/manage.py migrate core_auth 0002_coreauthprofile_passwordresetrequest --fake
+            docker compose run --rm -e ENABLE_MIGRATE=false -e ENABLE_MAKEMIGRATIONS=false app python src/manage.py migrate core_auth 0002_coreauthprofile_passwordresetrequest --fake
             "${migrate_cmd[@]}"
             exit $?
           fi
