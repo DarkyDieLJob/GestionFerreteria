@@ -191,15 +191,30 @@ jobs:
             exit $code
           fi
           mig=$(echo "$out" | sed -nE 's/^\s*Applying\s+([a-zA-Z0-9_]+)\.([0-9]{4}[^[:space:]]*).*/\1 \2/p' | tail -n 1)
-          if [ -z "$mig" ]; then
-            echo "DuplicateTable detected but could not parse failing migration (no 'Applying ...' line). Aborting." >&2
-            exit $code
+          if [ -n "$mig" ]; then
+            app=$(echo "$mig" | awk '{print $1}')
+            name_raw=$(echo "$mig" | awk '{print $2}')
+            # Django sometimes prints: "Applying app.0002_name...Traceback" on a single line.
+            # Strip everything after the first "..." and validate token shape.
+            name=$(echo "$name_raw" | sed -E 's/\.\.\..*$//' | sed -E 's/[^a-zA-Z0-9_].*$//')
+            if echo "$name" | grep -Eq '^[0-9]{4}_[a-zA-Z0-9_]+$'; then
+              echo "Migration failed due to DuplicateTable. Faking migration: $app $name and retrying..." >&2
+              docker compose run --rm app python src/manage.py migrate "$app" "$name" --fake
+              "${migrate_cmd[@]}"
+              exit $?
+            fi
           fi
-          app=$(echo "$mig" | awk '{print $1}')
-          name=$(echo "$mig" | awk '{print $2}')
-          echo "Migration failed due to DuplicateTable. Faking migration: $app $name and retrying..." >&2
-          docker compose run --rm app python src/manage.py migrate "$app" "$name" --fake
-          "${migrate_cmd[@]}"
+
+          # Fallback for known production issue: existing core_auth_coreauthprofile table with desynced migration history.
+          if echo "$out" | grep -Eqi 'core_auth_coreauthprofile'; then
+            echo "DuplicateTable for core_auth_coreauthprofile detected. Faking core_auth 0002_coreauthprofile_passwordresetrequest and retrying..." >&2
+            docker compose run --rm app python src/manage.py migrate core_auth 0002_coreauthprofile_passwordresetrequest --fake
+            "${migrate_cmd[@]}"
+            exit $?
+          fi
+
+          echo "DuplicateTable detected but could not parse failing migration reliably. Aborting." >&2
+          exit $code
 
       - name: Compose up (with profiles)
         env:
