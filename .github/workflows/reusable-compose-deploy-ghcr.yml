@@ -76,14 +76,18 @@ jobs:
           echo "== Disk usage (df -h) =="
           df -h || true
           echo
+          echo "== Disk usage (/var) =="
+          df -hT /var || true
+          echo
           echo "== Docker usage (docker system df) =="
           docker system df || true
 
-          # If root filesystem has less than 10% available, attempt aggressive cleanup.
-          avail_pct=$(df -P / | awk 'NR==2{gsub(/%/,"",$5); print 100-$5}')
-          echo "Root filesystem available: ${avail_pct}%"
-          if [ -n "${avail_pct}" ] && [ "${avail_pct}" -lt 10 ]; then
-            echo "Low disk space detected (<10% available). Running Docker cleanup..." >&2
+          # containerd/docker write mostly under /var on this runner.
+          # If /var has less than ~1200MB available, attempt aggressive cleanup.
+          avail_mb=$(df -Pm /var | awk 'NR==2{print $4}')
+          echo "/var available: ${avail_mb}MB"
+          if [ -n "${avail_mb}" ] && [ "${avail_mb}" -lt 1200 ]; then
+            echo "Low disk space detected on /var (<1200MB available). Running Docker cleanup..." >&2
             docker compose down -v --remove-orphans || true
             docker container prune -f || true
             docker image prune -af || true
@@ -91,6 +95,8 @@ jobs:
             docker volume prune -f || true
             echo "== After cleanup (df -h) =="
             df -h || true
+            echo "== After cleanup (df -hT /var) =="
+            df -hT /var || true
             echo "== After cleanup (docker system df) =="
             docker system df || true
           else
